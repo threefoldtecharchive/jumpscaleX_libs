@@ -1,5 +1,5 @@
 import subprocess
-from Jumpscale.sal.sshd.SSHD import SSHD
+from JumpscaleLibs.sal.sshd.SSHD import SSHD
 from Jumpscale import j
 import uuid
 

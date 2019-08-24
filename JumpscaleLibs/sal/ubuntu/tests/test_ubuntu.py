@@ -1,4 +1,4 @@
-from Jumpscale.sal.ubuntu.Ubuntu import Ubuntu
+from JumpscaleLibs.sal.ubuntu.Ubuntu import Ubuntu
 from Jumpscale import j
 from unittest import TestCase
 

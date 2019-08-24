@@ -2,7 +2,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor, wait
 import requests
 from configparser import ConfigParser
-from Jumpscale.tools.googleslides.slides2html.google_links_utils import get_slide_id, get_presentation_id, link_info
+from JumpscaleLibs.tools.googleslides.slides2html.google_links_utils import get_slide_id, get_presentation_id, link_info
 from Jumpscale import j
 
 # logging.basicConfig()

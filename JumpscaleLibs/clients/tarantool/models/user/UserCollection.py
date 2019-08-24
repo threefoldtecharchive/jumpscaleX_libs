@@ -5,7 +5,7 @@ import base64
 
 ModelBaseCollection = j.data.capnp.getModelBaseClassCollection()
 ModelBase = j.data.capnp.getModelBaseClass()
-# from Jumpscale.clients.tarantool.KVSInterface import KVSTarantool
+# from JumpscaleLibs.clients.tarantool.KVSInterface import KVSTarantool
 
 
 class UserModel(ModelBase):

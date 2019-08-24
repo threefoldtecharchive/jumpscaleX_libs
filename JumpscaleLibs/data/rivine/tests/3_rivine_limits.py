@@ -1,6 +1,6 @@
 from Jumpscale import j
 import pytest
-from Jumpscale.data.rivine.RivineBinaryEncoder import IntegerOutOfRange, SliceLengthOutOfRange
+from JumpscaleLibs.data.rivine.RivineBinaryEncoder import IntegerOutOfRange, SliceLengthOutOfRange
 
 
 def main(self):

@@ -2,11 +2,11 @@ from Jumpscale import j
 
 import re
 
-from Jumpscale.clients.blockchain.tfchain.types.ConditionTypes import ConditionBaseClass
-from Jumpscale.clients.blockchain.tfchain.types.CryptoTypes import PublicKey
-from Jumpscale.clients.blockchain.tfchain.types.PrimitiveTypes import Hash
-from Jumpscale.clients.blockchain.tfchain.types.ThreeBot import BotName
-from Jumpscale.clients.blockchain.tfchain.TFChainClient import ThreeBotRecord
+from JumpscaleLibs.clients.blockchain.tfchain.types.ConditionTypes import ConditionBaseClass
+from JumpscaleLibs.clients.blockchain.tfchain.types.CryptoTypes import PublicKey
+from JumpscaleLibs.clients.blockchain.tfchain.types.PrimitiveTypes import Hash
+from JumpscaleLibs.clients.blockchain.tfchain.types.ThreeBot import BotName
+from JumpscaleLibs.clients.blockchain.tfchain.TFChainClient import ThreeBotRecord
 
 
 class TFChainExplorerGetClientStub(j.baseclasses.object):

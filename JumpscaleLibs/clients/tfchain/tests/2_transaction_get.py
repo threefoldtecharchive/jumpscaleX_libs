@@ -1,6 +1,6 @@
 from Jumpscale import j
 
-from Jumpscale.clients.blockchain.tfchain.stub.ExplorerClientStub import TFChainExplorerGetClientStub
+from JumpscaleLibs.clients.blockchain.tfchain.stub.ExplorerClientStub import TFChainExplorerGetClientStub
 
 
 def main(self):

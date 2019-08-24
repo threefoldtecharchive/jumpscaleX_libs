@@ -2,8 +2,8 @@ from Jumpscale import j
 
 import pytest
 
-from Jumpscale.clients.blockchain.tfchain.stub.ExplorerClientStub import TFChainExplorerGetClientStub
-from Jumpscale.clients.blockchain.tfchain.types.AtomicSwap import AtomicSwapContract
+from JumpscaleLibs.clients.blockchain.tfchain.stub.ExplorerClientStub import TFChainExplorerGetClientStub
+from JumpscaleLibs.clients.blockchain.tfchain.types.AtomicSwap import AtomicSwapContract
 
 
 def main(self):

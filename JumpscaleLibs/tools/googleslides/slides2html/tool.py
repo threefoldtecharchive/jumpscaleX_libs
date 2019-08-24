@@ -8,15 +8,15 @@ from httplib2 import Http
 from oauth2client import file, client, tools
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
-from Jumpscale.tools.googleslides.slides2html.google_links_utils import get_slide_id, get_presentation_id, link_info
-from Jumpscale.tools.googleslides.slides2html.image_utils import (
+from JumpscaleLibs.tools.googleslides.slides2html.google_links_utils import get_slide_id, get_presentation_id, link_info
+from JumpscaleLibs.tools.googleslides.slides2html.image_utils import (
     images_to_transparent_background,
     set_background_for_images,
     resize_images,
 )
-from Jumpscale.tools.googleslides.slides2html.generator import Generator
-from Jumpscale.tools.googleslides.slides2html.downloader import Downloader
-from Jumpscale.tools.googleslides.slides2html.revealjstemplate import BASIC_TEMPLATE
+from JumpscaleLibs.tools.googleslides.slides2html.generator import Generator
+from JumpscaleLibs.tools.googleslides.slides2html.downloader import Downloader
+from JumpscaleLibs.tools.googleslides.slides2html.revealjstemplate import BASIC_TEMPLATE
 
 
 def dir_images_as_htmltags(directory):

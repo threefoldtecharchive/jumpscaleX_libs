@@ -2,7 +2,7 @@ from Jumpscale import j
 
 import pytest
 
-from Jumpscale.clients.blockchain.tfchain.stub.ExplorerClientStub import TFChainExplorerGetClientStub
+from JumpscaleLibs.clients.blockchain.tfchain.stub.ExplorerClientStub import TFChainExplorerGetClientStub
 
 
 def main(self):

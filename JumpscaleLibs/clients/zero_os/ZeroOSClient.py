@@ -1,5 +1,5 @@
 from Jumpscale import j
-from Jumpscale.sal_zos.node.Node import Node
+from JumpscaleLibsExtra.sal_zos.node.Node import Node
 
 from .protocol.Client import Client as ProtocolClient
 

@@ -1,5 +1,5 @@
 from Jumpscale import j
-from Jumpscale.tools.markdowndocs.Link import MarkdownLinkParser
+from JumpscaleLibs.tools.markdowndocs.Link import MarkdownLinkParser
 
 
 def filter_on(data, attr, values):

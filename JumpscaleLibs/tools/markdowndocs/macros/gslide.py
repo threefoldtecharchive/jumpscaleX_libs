@@ -1,5 +1,5 @@
 from Jumpscale import j
-from Jumpscale.tools.googleslides.slides2html.google_links_utils import get_presentation_id
+from JumpscaleLibs.tools.googleslides.slides2html.google_links_utils import get_presentation_id
 
 
 EXPORT_TMP_DIR = "/tmp"

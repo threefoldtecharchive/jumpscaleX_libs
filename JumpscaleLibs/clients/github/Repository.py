@@ -8,7 +8,6 @@ import threading
 # import collections
 import urllib
 from .Milestone import RepoMilestone
-from Jumpscale.errorhandling.JSExceptions import Input
 from github.GithubException import UnknownObjectException
 
 JSBASE = j.baseclasses.object

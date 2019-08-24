@@ -2,7 +2,7 @@ import os
 import re
 from functools import partial
 from Jumpscale import j
-from Jumpscale.tools.markdowndocs.Link import MarkdownLinkParser, GithubLinker, Link
+from JumpscaleLibs.tools.markdowndocs.Link import MarkdownLinkParser, GithubLinker, Link
 
 
 def with_code_block(content, _type=""):

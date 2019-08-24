@@ -2,10 +2,10 @@ from Jumpscale import j
 
 import pytest
 
-from Jumpscale.clients.blockchain.tfchain.stub.ExplorerClientStub import TFChainExplorerGetClientStub
-from Jumpscale.clients.blockchain.tfchain.TFChainClient import ThreeBotRecord
-from Jumpscale.clients.blockchain.tfchain.types.ThreeBot import BotName, NetworkAddress
-from Jumpscale.clients.blockchain.tfchain.types.CryptoTypes import PublicKey
+from JumpscaleLibs.clients.blockchain.tfchain.stub.ExplorerClientStub import TFChainExplorerGetClientStub
+from JumpscaleLibs.clients.blockchain.tfchain.TFChainClient import ThreeBotRecord
+from JumpscaleLibs.clients.blockchain.tfchain.types.ThreeBot import BotName, NetworkAddress
+from JumpscaleLibs.clients.blockchain.tfchain.types.CryptoTypes import PublicKey
 
 
 def main(self):

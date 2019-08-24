@@ -59,7 +59,7 @@ class GDriveClient(JSConfigClient):
 
     def exportSlides(self, presentation, destpath="/tmp", staticdir=None, size="MEDIUM"):
         def do():
-            from Jumpscale.tools.googleslides.slides2html.downloader import Downloader
+            from JumpscaleLibs.tools.googleslides.slides2html.downloader import Downloader
 
             # presentation should be the guid
             # should extract the presentation if full path

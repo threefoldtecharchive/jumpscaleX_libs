@@ -1,6 +1,6 @@
 from uuid import uuid4
 from Jumpscale import j
-from Jumpscale.tools.markdowndocs.macros import include
+from JumpscaleLibs.tools.markdowndocs.macros import include
 
 import pytest
 

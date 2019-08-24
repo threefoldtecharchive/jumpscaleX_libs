@@ -2,7 +2,7 @@ import time
 import pytest
 
 from Jumpscale import j
-from Jumpscale.sal.dnsmasq.Dnsmasq import DNSMasq
+from JumpscaleLibs.sal.dnsmasq.Dnsmasq import DNSMasq
 
 
 TEST_DNSMASQ = "/tmp/dnsmasq"

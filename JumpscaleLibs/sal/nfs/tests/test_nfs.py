@@ -1,5 +1,5 @@
 from Jumpscale import j
-from Jumpscale.sal.nfs.NFS import NFS
+from JumpscaleLibs.sal.nfs.NFS import NFS
 from uuid import uuid4
 import pytest, os
 

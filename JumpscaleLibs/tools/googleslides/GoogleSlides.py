@@ -46,20 +46,20 @@ class GoogleSlides(j.baseclasses.object):
             ValueError -- [Invalid credentials file.]
         """
 
-        from Jumpscale.tools.googleslides.slides2html.google_links_utils import (
+        from JumpscaleLibs.tools.googleslides.slides2html.google_links_utils import (
             get_slide_id,
             get_presentation_id,
             link_info,
         )
-        from Jumpscale.tools.googleslides.slides2html.image_utils import (
+        from JumpscaleLibs.tools.googleslides.slides2html.image_utils import (
             images_to_transparent_background,
             set_background_for_images,
             resize_images,
         )
-        from Jumpscale.tools.googleslides.slides2html.generator import Generator
-        from Jumpscale.tools.googleslides.slides2html.downloader import Downloader
-        from Jumpscale.tools.googleslides.slides2html.revealjstemplate import BASIC_TEMPLATE
-        from Jumpscale.tools.googleslides.slides2html.tool import Tool
+        from JumpscaleLibs.tools.googleslides.slides2html.generator import Generator
+        from JumpscaleLibs.tools.googleslides.slides2html.downloader import Downloader
+        from JumpscaleLibs.tools.googleslides.slides2html.revealjstemplate import BASIC_TEMPLATE
+        from JumpscaleLibs.tools.googleslides.slides2html.tool import Tool
 
         presentation_id = slideid
         try:

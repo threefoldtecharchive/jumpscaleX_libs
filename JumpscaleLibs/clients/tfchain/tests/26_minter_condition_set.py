@@ -2,8 +2,8 @@ from Jumpscale import j
 
 import pytest
 
-from Jumpscale.clients.blockchain.tfchain.stub.ExplorerClientStub import TFChainExplorerGetClientStub
-from Jumpscale.clients.blockchain.tfchain.types.FulfillmentTypes import (
+from JumpscaleLibs.clients.blockchain.tfchain.stub.ExplorerClientStub import TFChainExplorerGetClientStub
+from JumpscaleLibs.clients.blockchain.tfchain.types.FulfillmentTypes import (
     FulfillmentSingleSignature,
     FulfillmentMultiSignature,
 )
