@@ -1,0 +1,29 @@
+from Jumpscale import j
+from mongoengine import connect
+
+JSConfigClient = j.baseclasses.object_config
+
+
+class MongoEngineClient(JSConfigClient):
+    _SCHEMATEXT = """
+        @url = jumpscale.MongoEngine.client
+        name* = "default" (S)
+        host = "localhost" (S)
+        port = 27017 (ipport)
+        username = "" (S)
+        password_ = "" (S)
+        alias = "" (S)
+        db = "" (S)
+        authentication_source = "" (S)
+        authentication_mechanism = "" (S)
+        ssl = False (B)
+        replicaset = "" (S)
+        """
+
+    def _init(self, **kwargs):
+        kwargs = {}
+        data = self.data
+        for key, value in data._ddict.items():
+            if value != "":
+                kwargs[key.rstrip("_")] = value
+        connect(**kwargs)
