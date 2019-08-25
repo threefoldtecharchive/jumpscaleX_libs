@@ -46,7 +46,7 @@ class DictEditor(j.baseclasses.object):
     __repr__ = __str__
 
 
-class DictEditorFactory(j.baseclasses.object_config_collection):
+class DictEditorFactory(j.baseclasses.object_config_collection_testtools):
 
     __jslocation__ = "j.data.dict_editor"
 

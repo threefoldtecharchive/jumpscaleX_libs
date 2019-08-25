@@ -1,7 +1,7 @@
 from Jumpscale import j
 from .SQLAlchemy import Base, SQLAlchemy
 
-JSConfigs = j.baseclasses.factory
+JSConfigs = j.baseclasses.object_config_collection
 
 
 class SQLAlchemyFactory(JSConfigs):

@@ -4,7 +4,7 @@ from Jumpscale import j
 
 from .ZerobootClient import zero_bootClient
 
-JSConfigFactoryBase = j.baseclasses.factory
+JSConfigFactoryBase = j.baseclasses.object_config_collection
 
 
 class ZerobootFactory(JSConfigFactoryBase):

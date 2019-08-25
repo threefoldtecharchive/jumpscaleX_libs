@@ -9,7 +9,7 @@ from .HTMLWebParts import HTMLWebParts
 from html2text import HTML2Text
 
 
-class HTMLFactory(j.baseclasses.factory_testtools):
+class HTMLFactory(j.baseclasses.object_config_collection_testtools):
     __jslocation__ = "j.data.html"
 
     def _init(self):

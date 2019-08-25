@@ -1,7 +1,7 @@
 from Jumpscale import j
 from .GraphiteClient import GraphiteClient
 
-JSConfigs = j.baseclasses.factory
+JSConfigs = j.baseclasses.object_config_collection
 
 
 class GraphiteFactory(JSConfigs):

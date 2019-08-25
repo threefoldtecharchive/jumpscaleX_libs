@@ -14,7 +14,7 @@ mymember.deauthorize()
 import time
 from Jumpscale import j
 
-JSConfigs = j.baseclasses.factory
+JSConfigs = j.baseclasses.object_config_collection
 
 
 JSBASE = j.baseclasses.object_config_collection

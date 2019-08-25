@@ -6,7 +6,7 @@ from .api_service import ApiService
 from .http_client import HTTPClient
 
 JSConfigClient = j.baseclasses.object_config
-JSConfigs = j.baseclasses.factory
+JSConfigs = j.baseclasses.object_config_collection
 
 
 class Client(JSConfigClient):

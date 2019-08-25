@@ -1,7 +1,7 @@
 from Jumpscale import j
 from .FreeFlowClient import FreeFlowClient
 
-JSConfigs = j.baseclasses.factory
+JSConfigs = j.baseclasses.object_config_collection
 
 
 class FreeFlowFactory(JSConfigs):
