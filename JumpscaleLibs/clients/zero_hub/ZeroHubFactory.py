@@ -1,7 +1,7 @@
 from .ZeroHubClient import ZeroHubClient
 from Jumpscale import j
 
-JSConfigs = j.baseclasses.objects_config_bcdb
+JSConfigs = j.baseclasses.factory
 
 
 class ZeroHubFactory(JSConfigs):

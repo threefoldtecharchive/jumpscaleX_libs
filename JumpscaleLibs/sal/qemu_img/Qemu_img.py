@@ -10,9 +10,7 @@ JSBASE = j.baseclasses.object
 
 
 class QemuImg(j.baseclasses.object):
-    def __init__(self):
-        self.__jslocation__ = "j.sal.qemu_img"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.sal.qemu_img"
 
     def create(
         self,

@@ -22,9 +22,9 @@ class IssueManager(j.baseclasses.object):
 
     """
 
-    def __init__(self):
-        self.__jslocation__ = "j.tools.issuemanager"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.tools.issuemanager"
+
+    def _init(self):
         self.__imports__ = "pycapnp,peewee"
         self.namespace = "gogs"
         self.store = "gogs"

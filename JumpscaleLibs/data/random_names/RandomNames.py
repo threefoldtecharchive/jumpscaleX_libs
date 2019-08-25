@@ -5,9 +5,7 @@ JSBASE = j.baseclasses.object
 
 
 class RandomNames(j.baseclasses.object):
-    def __init__(self):
-        JSBASE.__init__(self)
-        self.__jslocation__ = "j.data.randomnames"
+    __jslocation__ = "j.data.randomnames"
 
     # Names taken from moby https://raw.githubusercontent.com/moby/moby/master/pkg/namesgenerator/names-generator.go
 

@@ -16,9 +16,9 @@ class NetworkingError(Exception, JSBASE):
 
 
 class UnixNetworkManager(j.baseclasses.object):
-    def __init__(self):
-        self.__jslocation__ = "j.sal.nic"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.sal.nic"
+
+    def _init(self):
         self._executor = j.tools.executorLocal
         self._nics = None
 

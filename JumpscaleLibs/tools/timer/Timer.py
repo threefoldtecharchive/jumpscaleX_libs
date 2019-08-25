@@ -5,9 +5,8 @@ JSBASE = j.baseclasses.object
 
 
 class TIMER(j.baseclasses.object):
-    def __init__(self):
-        self.__jslocation__ = "j.tools.timer"
-        JSBASE.__init__(self)
+
+    __jslocation__ = "j.tools.timer"
 
     @staticmethod
     def execute_until(callback, timeout=60, interval=0.2):

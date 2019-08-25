@@ -4,7 +4,7 @@ import mysql.connector
 import time
 import calendar
 
-JSConfigs = j.baseclasses.objects_config_bcdb
+JSConfigs = j.baseclasses.factory
 
 
 class MySQLFactory(JSConfigs):

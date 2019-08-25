@@ -7,9 +7,7 @@ JSBASE = j.baseclasses.object
 class DnsmasqFactory(JSBASE):
     """Factory class to deal with Dnsmasq"""
 
-    def __init__(self):
-        self.__jslocation__ = "j.sal.dnsmasq"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.sal.dnsmasq"
 
     def get(self, path="/etc/dnsmasq"):
         """Get an instance of the Dnsmasq class

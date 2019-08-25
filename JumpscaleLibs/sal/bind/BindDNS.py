@@ -83,10 +83,8 @@ class Zone(j.baseclasses.object):
 
 
 class BindDNS(DNS):
-    def __init__(self):
-        self.__jslocation__ = "j.sal.bind"
-        self.__imports__ = "dnspython3"
-        DNS.__init__(self)
+    __jslocation__ = "j.sal.bind"
+    __imports__ = "dnspython3"
 
     @property
     def zones(self):

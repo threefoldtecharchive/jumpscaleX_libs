@@ -2,7 +2,7 @@ from Jumpscale import j
 import psycopg2
 from .PostgresqlClient import PostgresClient
 
-JSConfigs = j.baseclasses.objects_config_bcdb
+JSConfigs = j.baseclasses.factory
 
 
 class PostgresqlFactory(JSConfigs):

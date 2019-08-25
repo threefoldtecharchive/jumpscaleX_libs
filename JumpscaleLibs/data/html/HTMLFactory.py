@@ -10,9 +10,9 @@ from html2text import HTML2Text
 
 
 class HTMLFactory(j.baseclasses.factory_testtools):
-    def __init__(self):
-        self.__jslocation__ = "j.data.html"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.data.html"
+
+    def _init(self):
         self.webparts = HTMLWebParts()
         self._webparts_done = []
 

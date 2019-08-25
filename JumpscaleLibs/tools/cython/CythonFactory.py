@@ -22,9 +22,9 @@ class CythonFactory(j.baseclasses.object):
         '''
     """
 
-    def __init__(self):
-        self.__jslocation__ = "j.tools.cython"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.tools.cython"
+
+    def _init(self):
         self.__imports__ = "cython"
         self.__path = ""
         self._currentPath

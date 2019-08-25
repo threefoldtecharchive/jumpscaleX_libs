@@ -1,7 +1,7 @@
 from .ZeroStorClient import ZeroStorClient
 from Jumpscale import j
 
-JSBASE = j.baseclasses.objects_config_bcdb
+JSBASE = j.baseclasses.factory
 
 
 class ZeroStorFactory(JSBASE):

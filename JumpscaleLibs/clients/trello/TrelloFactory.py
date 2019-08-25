@@ -1,7 +1,7 @@
 from Jumpscale import j
 from .TrelloClient import TrelloClient
 
-JSConfigs = j.baseclasses.objects_config_bcdb
+JSConfigs = j.baseclasses.factory
 
 
 class Trello(JSConfigs):

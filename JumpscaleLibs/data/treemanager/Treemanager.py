@@ -235,9 +235,7 @@ class Tree(j.baseclasses.object):
 
 
 class TreemanagerFactory(j.baseclasses.object):
-    def __init__(self):
-        self.__jslocation__ = "j.data.treemanager"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.data.treemanager"
 
     def get(self, data=""):
         return Tree(data=data)

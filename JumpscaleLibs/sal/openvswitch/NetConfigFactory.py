@@ -11,8 +11,9 @@ JSBASE = j.baseclasses.object
 
 
 class NetConfigFactory(j.baseclasses.object):
+    __jslocation__ = "j.sal.openvswitch"
+
     def __init__(self):
-        self.__jslocation__ = "j.sal.openvswitch"
         self._layout = None
         self.PHYSMTU = 2000  # will fit all switches
         self._executor = j.tools.executorLocal

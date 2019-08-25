@@ -2,7 +2,7 @@ from Jumpscale import j
 from .CoreXClient import CoreXClient
 
 
-class CoreXClientFactory(j.baseclasses.objects_config_bcdb):
+class CoreXClientFactory(j.baseclasses.factory):
 
     __jslocation__ = "j.clients.corex"
     _CHILDCLASS = CoreXClient

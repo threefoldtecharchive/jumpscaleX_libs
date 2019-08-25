@@ -87,10 +87,9 @@ class MarkDownDocs(j.baseclasses.object):
     """
     """
 
-    def __init__(self):
-        self.__jslocation__ = "j.tools.markdowndocs"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.tools.markdowndocs"
 
+    def _init(self):
         j.clients.redis.core_get()
 
         self.__imports__ = "toml"

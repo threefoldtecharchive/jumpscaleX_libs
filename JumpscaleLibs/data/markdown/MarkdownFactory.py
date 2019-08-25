@@ -16,9 +16,7 @@ JSBASE = j.baseclasses.object
 
 
 class MarkdownFactory(j.baseclasses.object):
-    def __init__(self):
-        self.__jslocation__ = "j.data.markdown"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.data.markdown"
 
     @property
     def _path(self):

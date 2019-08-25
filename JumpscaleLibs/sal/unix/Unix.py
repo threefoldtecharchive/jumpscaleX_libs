@@ -48,9 +48,7 @@ def user_in_group(username, groupname):
 
 
 class UnixSystem(j.baseclasses.object):
-    def __init__(self):
-        self.__jslocation__ = "j.sal.unix"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.sal.unix"
 
     def getBashEnvFromFile(self, file, var):
         """Get the value of an environment variable in a Bash file

@@ -2,7 +2,7 @@ from Jumpscale import j
 
 from .CoreDnsClient import CoreDnsClient
 
-JSConfigs = j.baseclasses.objects_config_bcdb
+JSConfigs = j.baseclasses.factory
 
 
 class CoreDnsFactory(JSConfigs):

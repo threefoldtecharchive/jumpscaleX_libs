@@ -6,9 +6,7 @@ JSBASE = j.baseclasses.object
 
 
 class LRUCacheFactory(j.baseclasses.object):
-    def __init__(self):
-        self.__jslocation__ = "j.data.cachelru"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.data.cachelru"
 
     def getRWCache(self, nrItemsReadCache, nrItemsWriteCache=50, maxTimeWriteCache=2000, writermethod=None):
         return RWCache(nrItemsReadCache, nrItemsWriteCache, maxTimeWriteCache, writermethod=writermethod)

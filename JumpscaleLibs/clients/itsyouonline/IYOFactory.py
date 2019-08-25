@@ -10,7 +10,7 @@ from .IYOClient import IYOClient
 DEFAULT_BASE_URL = "https://itsyou.online/api"
 
 
-class IYOFactory(j.baseclasses.objects_config_bcdb):
+class IYOFactory(j.baseclasses.factory):
     __jslocation__ = "j.clients.itsyouonline"
     _CHILDCLASS = IYOClient
 

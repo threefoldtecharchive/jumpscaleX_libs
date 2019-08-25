@@ -24,9 +24,10 @@ from .models import ACICollection
 
 
 class FListFactory:
-    def __init__(self):
-        self.__jslocation__ = "j.tools.flist"
-        self.__imports__ = "brotli,pycapnp"
+    __jslocation__ = "j.tools.flist"
+    __imports__ = "brotli,pycapnp"
+
+    def _init(self):
         self.manipulator = FlistManipulatorFactory()
 
     def getCapnpSchema(self):

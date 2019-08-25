@@ -2,7 +2,7 @@ from Jumpscale import j
 from .SendGridClient import SendGridClient
 
 
-JSConfigs = j.baseclasses.objects_config_bcdb
+JSConfigs = j.baseclasses.factory
 
 
 class SendgridFactory(JSConfigs):

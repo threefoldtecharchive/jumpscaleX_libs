@@ -3,7 +3,7 @@ from Jumpscale import j
 from .TFChainWallet import TFChainWallet
 
 
-class TFChainWalletFactory(j.baseclasses.objects_config_bcdb):
+class TFChainWalletFactory(j.baseclasses.factory):
     """
     Tfchain client object
     """

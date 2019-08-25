@@ -4,9 +4,7 @@ JSBASE = j.baseclasses.object
 
 
 class LegalContractsFactory(j.baseclasses.object):
-    def __init__(self):
-        self.__jslocation__ = "j.tools.legal_contracts"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.tools.legal_contracts"
 
     def install(self):
         # p = j.tools.prefab.local

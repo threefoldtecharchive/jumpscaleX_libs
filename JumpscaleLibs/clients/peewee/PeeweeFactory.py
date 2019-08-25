@@ -9,7 +9,7 @@ import importlib
 import uuid
 
 
-class PeeweeFactory(j.baseclasses.objects_config_bcdb):
+class PeeweeFactory(j.baseclasses.factory):
     """
     """
 

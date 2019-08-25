@@ -11,9 +11,9 @@ class DiskManager(j.baseclasses.object):
      helps you to gather a lot of information about the disks and partitions.
     """
 
-    def __init__(self):
-        self.__jslocation__ = "j.sal.disklayout"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.sal.disklayout"
+
+    def _init(self):
         self.disks = []
         self._executor = j.tools.executorLocal
         # self._cache = j.core.cache.get(

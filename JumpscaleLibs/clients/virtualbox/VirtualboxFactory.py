@@ -4,7 +4,7 @@ from Jumpscale import j
 
 from .VirtualboxClient import VirtualboxClient
 
-JSBASE = j.baseclasses.objects_config_bcdb
+JSBASE = j.baseclasses.factory
 
 
 class VirtualboxFactory(j.baseclasses.object):

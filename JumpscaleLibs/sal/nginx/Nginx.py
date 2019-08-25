@@ -5,9 +5,7 @@ JSBASE = j.baseclasses.object
 
 
 class NginxFactory(j.baseclasses.object):
-    def __init__(self):
-        self.__jslocation__ = "j.sal.nginx"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.sal.nginx"
 
     def get(self, path="/etc/nginx"):
         # TODO: *2 let work on path

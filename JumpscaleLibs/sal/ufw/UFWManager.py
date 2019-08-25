@@ -152,6 +152,7 @@ class RuleOp(UFWOperation):
 
 
 class UFWManager(j.baseclasses.object):
+    __jslocation__ = "j.sal.ufw"
     ACTION_ALLOW_IN = "allow in"
     ACTION_ALLOW_OUT = "allow out"
     ACTION_DENY_IN = "deny in"
@@ -159,8 +160,7 @@ class UFWManager(j.baseclasses.object):
     ACTION_REJECT_IN = "reject in"
     ACTION_REJECT_OUT = "reject out"
 
-    def __init__(self):
-        self.__jslocation__ = "j.sal.ufw"
+    def _init(self):
         self._rules = None
         self._enabled = None
         self._transactions = []

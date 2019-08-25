@@ -2,7 +2,7 @@ from .IntercomClient import IntercomClient
 from Jumpscale import j
 
 
-JSConfigs = j.baseclasses.objects_config_bcdb
+JSConfigs = j.baseclasses.factory
 
 
 class Intercom(JSConfigs):

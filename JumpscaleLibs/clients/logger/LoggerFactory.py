@@ -2,7 +2,7 @@ from Jumpscale import j
 from .LoggerClient import LoggerClient
 
 
-class LoggerFactory(j.baseclasses.objects_config_bcdb):
+class LoggerFactory(j.baseclasses.factory):
 
     __jslocation__ = "j.clients.logger"
     _CHILDCLASS = SSHClientBase

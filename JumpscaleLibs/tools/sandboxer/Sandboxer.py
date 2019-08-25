@@ -46,9 +46,9 @@ class Sandboxer(j.baseclasses.object):
     sandbox any linux app
     """
 
-    def __init__(self):
-        self.__jslocation__ = "j.tools.sandboxer"
-        JSBASE.__init__(self)
+    __jslocation__ = "j.tools.sandboxer"
+
+    def _init(self):
 
         self.original_size = 0
         self.new_size = 0

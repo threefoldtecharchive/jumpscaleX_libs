@@ -2,7 +2,7 @@ from Jumpscale import j
 from .GrafanaClient import GrafanaClient
 
 
-class GrafanaFactory(j.baseclasses.objects_config_bcdb):
+class GrafanaFactory(j.baseclasses.factory):
 
     __jslocation__ = "j.clients.grafana"
     _CHILDCLASS = GrafanaClient
