@@ -2,7 +2,7 @@ from Jumpscale import j
 from .EtcdClient import EtcdClient
 
 
-JSConfigs = j.baseclasses.factory
+JSConfigs = j.baseclasses.object_config_collection
 
 
 class EtcdFactory(JSConfigs):

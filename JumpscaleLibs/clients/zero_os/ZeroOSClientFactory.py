@@ -5,7 +5,7 @@ from Jumpscale import j
 from .ZeroOSClient import ZeroOSClient
 
 
-class ZeroOSFactory(j.baseclasses.factory):
+class ZeroOSFactory(j.baseclasses.object_config_collection_testtools):
     """
     """
 

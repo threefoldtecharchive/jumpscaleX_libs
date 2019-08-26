@@ -4,7 +4,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 from .InfluxdbClient import InfluxClient
 
-JSConfigs = j.baseclasses.factory
+JSConfigs = j.baseclasses.object_config_collection
 
 
 class InfluxdbFactory(JSConfigs):

@@ -2,7 +2,7 @@ import os
 from Jumpscale import j
 from .OauthInstance import OauthClient
 
-JSConfigs = j.baseclasses.factory
+JSConfigs = j.baseclasses.object_config_collection
 
 
 class OauthFactory(JSConfigs):

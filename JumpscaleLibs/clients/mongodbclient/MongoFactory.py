@@ -1,7 +1,7 @@
 from Jumpscale import j
 from .MongoDBClient import MongoDBClient
 
-JSConfigs = j.baseclasses.factory
+JSConfigs = j.baseclasses.object_config_collection
 
 
 class MongoFactory(JSConfigs):
