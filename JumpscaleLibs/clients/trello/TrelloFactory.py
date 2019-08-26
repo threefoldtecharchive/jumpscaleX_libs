@@ -6,7 +6,7 @@ JSConfigs = j.baseclasses.object_config_collection
 
 class Trello(JSConfigs):
     __jslocation__ = "j.clients.trello"
-    _CHILDCLASS = TrelloClient
+    _CHILDFACTORY_CLASS = TrelloClient
 
     def install(self, reset=False):
         j.builders.runtimes.pip.install("py-trello", reset=reset)

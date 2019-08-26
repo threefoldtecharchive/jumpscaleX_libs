@@ -10,7 +10,7 @@ class PostgresqlFactory(JSConfigs):
     """
 
     __jslocation__ = "j.clients.postgres"
-    _CHILDCLASS = PostgresClient
+    _CHILDFACTORY_CLASS = PostgresClient
 
     def install(self):
         """

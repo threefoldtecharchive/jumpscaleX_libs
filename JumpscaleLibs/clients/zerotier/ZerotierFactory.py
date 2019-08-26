@@ -22,7 +22,7 @@ JSBASE = j.baseclasses.object_config_collection
 
 class ZerotierFactory(JSConfigs):
     __jslocation__ = "j.clients.zerotier"
-    _CHILDCLASS = ZerotierClient
+    _CHILDFACTORY_CLASS = ZerotierClient
 
     def _init(self, **kwargs):
         self.__imports__ = "zerotier"

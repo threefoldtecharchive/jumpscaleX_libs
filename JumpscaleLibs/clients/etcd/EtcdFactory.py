@@ -8,7 +8,7 @@ JSConfigs = j.baseclasses.object_config_collection
 class EtcdFactory(JSConfigs):
 
     __jslocation__ = "j.clients.etcd"
-    _CHILDCLASS = EtcdClient
+    _CHILDFACTORY_CLASS = EtcdClient
 
     def test(self):
 

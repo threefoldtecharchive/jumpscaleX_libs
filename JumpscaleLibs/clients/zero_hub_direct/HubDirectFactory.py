@@ -11,7 +11,7 @@ class HubDirectFactory(JSConfigs):
     """
 
     __jslocation__ = "j.clients.zhubdirect"
-    _CHILDCLASS = HubDirectClient
+    _CHILDFACTORY_CLASS = HubDirectClient
 
     def _init(self, **kwargs):
         self.__imports__ = "ovc"

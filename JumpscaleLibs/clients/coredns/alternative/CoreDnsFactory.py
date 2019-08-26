@@ -7,7 +7,7 @@ JSConfigs = j.baseclasses.object_config_collection
 
 class CoreDnsFactory(JSConfigs):
     __jslocation__ = "j.sal.coredns"
-    _CHILDCLASS = CoreDnsClient
+    _CHILDFACTORY_CLASS = CoreDnsClient
 
     def get(
         self,
@@ -22,7 +22,7 @@ class CoreDnsFactory(JSConfigs):
         password="root",
         **kwargs,
     ):
-        """Get Coredns client instance after getting an etcd client instance 
+        """Get Coredns client instance after getting an etcd client instance
             If client found with name in param 'etcd_instance' , the client instance is used. Otherwise a new etcd client instance is created
 
         :param name: coredns client name, defaults to None

@@ -7,4 +7,4 @@ JSConfigs = j.baseclasses.object_config_collection
 class GraphiteFactory(JSConfigs):
 
     __jslocation__ = "j.clients.graphite"
-    _CHILDCLASS = GraphiteClient
+    _CHILDFACTORY_CLASS = GraphiteClient

@@ -20,7 +20,7 @@ class TFChainClientFactory(JSConfigBaseFactory):
     """
 
     __jslocation__ = "j.clients.tfchain"
-    _CHILDCLASS = TFChainClient
+    _CHILDFACTORY_CLASS = TFChainClient
 
     def _init(self, **kwargs):
         self._explorer_client = TFChainExplorerClient()

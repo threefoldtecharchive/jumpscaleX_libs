@@ -12,7 +12,7 @@ class MySQLFactory(JSConfigs):
     """
 
     __jslocation__ = "j.clients.mysql"
-    _CHILDCLASS = MySQLClient
+    _CHILDFACTORY_CLASS = MySQLClient
 
     def _init(self, **kwargs):
         self.clients = {}

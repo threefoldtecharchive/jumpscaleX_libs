@@ -17,13 +17,13 @@ class DigitalOcean(j.baseclasses.object_config):
     project_name = "" (S)
     meta = {} (DICT)
     vms = (LO) !jumpscale.digitalocean.vm
-        
+
     @url = jumpscale.digitalocean.vm
     name = "" (S)
     do_id = "" (S)
-    meta = {} (DICT)    
+    meta = {} (DICT)
     """
-    # _CHILDCLASS = DigitalOceanVM
+    # _CHILDFACTORY_CLASS = DigitalOceanVM
 
     def _init(self, **kwargs):
         self._client = None
@@ -39,10 +39,10 @@ class DigitalOcean(j.baseclasses.object_config):
     @property
     def client(self):
         """If client not set, a new client is created
-        
+
         :raises RuntimeError: Auth token not configured
         :return: client
-        :rtype: 
+        :rtype:
         """
 
         if not self._client:

@@ -6,7 +6,7 @@ JSConfigs = j.baseclasses.object_config_collection
 
 class SQLAlchemyFactory(JSConfigs):
     __jslocation__ = "j.clients.sqlalchemy"
-    _CHILDCLASS = SQLAlchemy
+    _CHILDFACTORY_CLASS = SQLAlchemy
 
     def _init(self, **kwargs):
         self.__imports__ = "sqlalchemy"

@@ -5,7 +5,7 @@ from .CoreXClient import CoreXClient
 class CoreXClientFactory(j.baseclasses.object_config_collection_testtools):
 
     __jslocation__ = "j.clients.corex"
-    _CHILDCLASS = CoreXClient
+    _CHILDFACTORY_CLASS = CoreXClient
 
     def _init(self, **kwargs):
         pass

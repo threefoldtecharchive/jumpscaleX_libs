@@ -6,7 +6,7 @@ JSConfigs = j.baseclasses.object_config_collection
 
 class ZeroHubFactory(JSConfigs):
     __jslocation__ = "j.clients.zhub"
-    _CHILDCLASS = ZeroHubClient
+    _CHILDFACTORY_CLASS = ZeroHubClient
 
     def test(self):
         """

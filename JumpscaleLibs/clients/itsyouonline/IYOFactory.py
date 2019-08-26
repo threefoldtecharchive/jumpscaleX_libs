@@ -12,7 +12,7 @@ DEFAULT_BASE_URL = "https://itsyou.online/api"
 
 class IYOFactory(j.baseclasses.object_config_collection_testtools):
     __jslocation__ = "j.clients.itsyouonline"
-    _CHILDCLASS = IYOClient
+    _CHILDFACTORY_CLASS = IYOClient
 
     def _init(self, **kwargs):
         self.raml_spec = (

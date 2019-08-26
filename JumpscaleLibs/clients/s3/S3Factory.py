@@ -10,7 +10,7 @@ class S3Factory(JSConfigBase):
     """
 
     __jslocation__ = "j.clients.s3"
-    _CHILDCLASS = S3Client
+    _CHILDFACTORY_CLASS = S3Client
 
     def _init(self, **kwargs):
         self.__imports__ = "minio"

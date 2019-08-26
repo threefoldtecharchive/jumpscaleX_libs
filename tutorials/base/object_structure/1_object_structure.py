@@ -21,7 +21,7 @@ class Cars(j.baseclasses.objects_config_bcdb):
     ...
     """
 
-    _CHILDCLASS = Car
+    _CHILDFACTORY_CLASS = Car
 
 
 class Ship(j.baseclasses.object_config):
@@ -46,7 +46,7 @@ class Ships(j.baseclasses.objects_config_bcdb):
     ...
     """
 
-    _CHILDCLASS = Ship
+    _CHILDFACTORY_CLASS = Ship
 
     def _init(self, **kwargs):
         self.a = "a"

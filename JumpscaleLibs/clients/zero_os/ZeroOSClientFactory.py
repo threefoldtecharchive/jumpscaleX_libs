@@ -9,7 +9,7 @@ class ZeroOSFactory(j.baseclasses.object_config_collection_testtools):
     """
     """
 
-    _CHILDCLASS = ZeroOSClient
+    _CHILDFACTORY_CLASS = ZeroOSClient
     __jslocation__ = "j.clients.zos"
 
     def get_by_id(self, node_id):

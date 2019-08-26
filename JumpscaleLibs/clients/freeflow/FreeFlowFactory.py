@@ -6,4 +6,4 @@ JSConfigs = j.baseclasses.object_config_collection
 
 class FreeFlowFactory(JSConfigs):
     __jslocation__ = "j.clients.freeflowpages"
-    _CHILDCLASS = FreeFlowClient
+    _CHILDFACTORY_CLASS = FreeFlowClient

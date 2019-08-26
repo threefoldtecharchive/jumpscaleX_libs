@@ -12,7 +12,7 @@ JSConfigs = j.baseclasses.object_config_collection
 class CoreDnsFactory(JSConfigs):
     __jslocation__ = "j.clients.coredns"
     __jsbase__ = "j.tools.configmanager._base_class_configs"
-    _CHILDCLASS = CoreDnsClient
+    _CHILDFACTORY_CLASS = CoreDnsClient
 
     def configure(self, name, host="127.0.0.1", port="2379", user="root", password_="root", etcd_instance="main"):
         """

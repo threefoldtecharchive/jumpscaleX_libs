@@ -13,7 +13,7 @@ class InfluxdbFactory(JSConfigs):
     """
 
     __jslocation__ = "j.clients.influxdb"
-    _CHILDCLASS = InfluxClient
+    _CHILDFACTORY_CLASS = InfluxClient
 
     def postraw(self, data, host="localhost", port=8086, username="root", password="root", database="main"):
         """

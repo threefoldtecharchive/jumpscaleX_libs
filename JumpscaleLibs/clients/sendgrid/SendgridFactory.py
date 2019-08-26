@@ -8,7 +8,7 @@ JSConfigs = j.baseclasses.object_config_collection
 class SendgridFactory(JSConfigs):
 
     __jslocation__ = "j.clients.sendgrid"
-    _CHILDCLASS = SendGridClient
+    _CHILDFACTORY_CLASS = SendGridClient
 
     def test(self):
         """
