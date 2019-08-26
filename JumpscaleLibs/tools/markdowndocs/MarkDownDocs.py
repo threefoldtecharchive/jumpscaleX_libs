@@ -151,7 +151,7 @@ class MarkDownDocs(j.baseclasses.object):
 
         if not path_or_url:
             path_or_url = (
-                "https://github.com/threefoldtech/jumpscaleX_coretree/master/Jumpscale/tools/markdowndocs/macros"
+                "https://github.com/threefoldtech/jumpscaleX_core//tree/master/Jumpscale/tools/markdowndocs/macros"
             )
 
         path = j.clients.git.getContentPathFromURLorPath(path_or_url)
@@ -337,7 +337,9 @@ class MarkDownDocs(j.baseclasses.object):
         ff_event_wiki.write()
 
     def test2(self):
-        url = "https://github.com/threefoldtech/jumpscaleX_coretree/development/docs/tools/wiki/docsites/examples/docs/"
+        url = (
+            "https://github.com/threefoldtech/jumpscaleX_core/tree/development/docs/tools/wiki/docsites/examples/docs/"
+        )
         examples = j.tools.markdowndocs.load(url, name="examples")
         examples.write()
 
