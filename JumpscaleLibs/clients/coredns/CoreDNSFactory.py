@@ -6,7 +6,7 @@
 from .CoreDnsClient import CoreDnsClient
 from Jumpscale import j
 
-JSConfigs = j.baseclasses.object_config_collection
+JSConfigs = j.baseclasses.object_config_collection_testtools
 
 
 class CoreDnsFactory(JSConfigs):

@@ -1,7 +1,7 @@
 from Jumpscale import j
 from .DigitalOcean import DigitalOcean
 
-JSConfigBaseFactory = j.baseclasses.object_config_collection
+JSConfigBaseFactory = j.baseclasses.object_config_collection_testtools
 
 
 class DigitalOceanFactory(JSConfigBaseFactory):
