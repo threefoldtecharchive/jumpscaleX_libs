@@ -7,7 +7,7 @@ JSConfigs = j.baseclasses.object_config_collection
 class OdooFactory(JSConfigs):
 
     __jslocation__ = "j.clients.odoo"
-    _CHILDFACTORY_CLASS = OdooClient
+    _CHILDCLASS = OdooClient
 
     def test(self):
         """

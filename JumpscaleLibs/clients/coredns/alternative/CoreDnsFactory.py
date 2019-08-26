@@ -7,7 +7,7 @@ JSConfigs = j.baseclasses.object_config_collection
 
 class CoreDnsFactory(JSConfigs):
     __jslocation__ = "j.sal.coredns"
-    _CHILDFACTORY_CLASS = CoreDnsClient
+    _CHILDCLASS = CoreDnsClient
 
     def get(
         self,

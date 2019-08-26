@@ -12,4 +12,4 @@ class IpmiFactory(JSConfigBaseFactory):
     """
 
     __jslocation__ = "j.clients.ipmi"
-    _CHILDFACTORY_CLASS = Ipmi
+    _CHILDCLASS = Ipmi

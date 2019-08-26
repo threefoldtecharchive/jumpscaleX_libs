@@ -6,7 +6,7 @@ JSConfigs = j.baseclasses.object_config_collection
 
 class MongoFactory(JSConfigs):
     __jslocation__ = "j.clients.mongodb"
-    _CHILDFACTORY_CLASS = MongoDBClient
+    _CHILDCLASS = MongoDBClient
 
     def _init(self, **kwargs):
         self.__imports__ = "pymongo"

@@ -6,4 +6,4 @@ JSConfigs = j.baseclasses.object_config_collection
 
 class TelegramBotFactory(JSConfigs):
     __jslocation__ = "j.clients.telegram_bot"
-    _CHILDFACTORY_CLASS = TelegramBot
+    _CHILDCLASS = TelegramBot

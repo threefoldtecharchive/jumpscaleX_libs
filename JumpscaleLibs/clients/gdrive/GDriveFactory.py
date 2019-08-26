@@ -7,4 +7,4 @@ JSConfigs = j.baseclasses.object_config_collection
 class GDriveFactory(JSConfigs):
 
     __jslocation__ = "j.clients.gdrive"
-    _CHILDFACTORY_CLASS = GDriveClient
+    _CHILDCLASS = GDriveClient

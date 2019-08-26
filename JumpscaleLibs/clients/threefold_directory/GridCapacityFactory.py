@@ -24,7 +24,7 @@ class Client(JSConfigClient):
 
 class GridCapacityFactory(JSConfigs):
     __jslocation__ = "j.clients.threefold_directory"
-    _CHILDFACTORY_CLASS = Client
+    _CHILDCLASS = Client
 
     def _init(self, **kwargs):
         self.connections = {}

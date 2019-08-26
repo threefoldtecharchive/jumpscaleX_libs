@@ -7,7 +7,7 @@ JSConfigBaseFactory = j.baseclasses.object_config_collection
 class DigitalOceanFactory(JSConfigBaseFactory):
 
     __jslocation__ = "j.clients.digitalocean"
-    _CHILDFACTORY_CLASS = DigitalOcean
+    _CHILDCLASS = DigitalOcean
 
     def _init(self, **kwargs):
         self.connections = {}

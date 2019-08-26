@@ -23,7 +23,7 @@ class DigitalOcean(j.baseclasses.object_config):
     do_id = "" (S)
     meta = {} (DICT)
     """
-    # _CHILDFACTORY_CLASS = DigitalOceanVM
+    # _CHILDCLASS = DigitalOceanVM
 
     def _init(self, **kwargs):
         self._client = None

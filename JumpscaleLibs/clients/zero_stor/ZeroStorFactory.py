@@ -6,4 +6,4 @@ JSBASE = j.baseclasses.object_config_collection
 
 class ZeroStorFactory(JSBASE):
     __jslocation__ = "j.clients.zstor"
-    _CHILDFACTORY_CLASS = ZeroStorClient
+    _CHILDCLASS = ZeroStorClient

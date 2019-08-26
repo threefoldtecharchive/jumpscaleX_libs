@@ -19,7 +19,7 @@ class TarantoolFactory(JSConfigBaseFactory):
     """
 
     __jslocation__ = "j.clients.tarantool"
-    _CHILDFACTORY_CLASS = TarantoolClient
+    _CHILDCLASS = TarantoolClient
 
     def _init(self, **kwargs):
         self.__imports__ = "tarantool"

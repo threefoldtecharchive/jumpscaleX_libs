@@ -7,4 +7,4 @@ JSConfigs = j.baseclasses.object_config_collection
 
 class OauthFactory(JSConfigs):
     __jslocation__ = "j.clients.oauth"
-    _CHILDFACTORY_CLASS = OauthClient
+    _CHILDCLASS = OauthClient

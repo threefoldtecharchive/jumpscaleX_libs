@@ -6,4 +6,4 @@ JSConfigs = j.baseclasses.object_config_collection
 
 class SyncthingFactory(JSConfigs):
     __jslocation__ = "j.clients.syncthing"
-    _CHILDFACTORY_CLASS = SyncthingClient
+    _CHILDCLASS = SyncthingClient

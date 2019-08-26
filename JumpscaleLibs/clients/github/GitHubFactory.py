@@ -7,7 +7,7 @@ JSConfigs = j.baseclasses.object_config_collection
 class GitHubFactory(JSConfigs):
 
     __jslocation__ = "j.clients.github"
-    _CHILDFACTORY_CLASS = GitHubClient
+    _CHILDCLASS = GitHubClient
 
     def __init__(self):
         self.__imports__ = "PyGithub"

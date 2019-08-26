@@ -16,12 +16,12 @@ class Car(j.baseclasses.object_config):
         pass
 
 
-class Cars(j.baseclasses.objects_config_bcdb):
+class Cars(j.baseclasses.object_config_collection):
     """
     ...
     """
 
-    _CHILDFACTORY_CLASS = Car
+    _CHILDCLASS = Car
 
 
 class Ship(j.baseclasses.object_config):
@@ -41,12 +41,12 @@ class Ship(j.baseclasses.object_config):
         pass
 
 
-class Ships(j.baseclasses.objects_config_bcdb):
+class Ships(j.baseclasses.object_config_collection):
     """
     ...
     """
 
-    _CHILDFACTORY_CLASS = Ship
+    _CHILDCLASS = Ship
 
     def _init(self, **kwargs):
         self.a = "a"

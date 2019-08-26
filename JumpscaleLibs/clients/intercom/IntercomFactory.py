@@ -8,4 +8,4 @@ JSConfigs = j.baseclasses.object_config_collection
 class Intercom(JSConfigs):
 
     __jslocation__ = "j.clients.intercom"
-    _CHILDFACTORY_CLASS = IntercomClient
+    _CHILDCLASS = IntercomClient

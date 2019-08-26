@@ -6,7 +6,7 @@ JSConfigs = j.baseclasses.object_config_collection
 
 class MongoEngineFactory(JSConfigs):
     __jslocation__ = "j.clients.mongoengine"
-    _CHILDFACTORY_CLASS = MongoEngineClient
+    _CHILDCLASS = MongoEngineClient
 
     def _init(self, **kwargs):
         self.__imports__ = "mongoengine"

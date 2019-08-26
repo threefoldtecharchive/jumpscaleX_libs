@@ -6,4 +6,4 @@ JSBASE = j.baseclasses.object_config_collection
 
 class GoogleComputeFactory(JSBASE):
     __jslocation__ = "j.clients.google_compute"
-    _CHILDFACTORY_CLASS = GoogleCompute
+    _CHILDCLASS = GoogleCompute

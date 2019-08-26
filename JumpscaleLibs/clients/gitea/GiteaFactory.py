@@ -16,7 +16,7 @@ JSBASE = j.baseclasses.object
 
 class GiteaFactory(JSConfigBase):
     __jslocation__ = "j.clients.gitea"
-    _CHILDFACTORY_CLASS = GiteaClient
+    _CHILDCLASS = GiteaClient
 
     @property
     def _path(self):

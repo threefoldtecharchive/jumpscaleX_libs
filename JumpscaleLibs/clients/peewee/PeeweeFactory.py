@@ -14,7 +14,7 @@ class PeeweeFactory(j.baseclasses.object_config_collection_testtools):
     """
 
     __jslocation__ = "j.clients.peewee"
-    _CHILDFACTORY_CLASS = PeeweeClient
+    _CHILDCLASS = PeeweeClient
 
     def _init(self, **kwargs):
         self.__imports__ = "peewee"
