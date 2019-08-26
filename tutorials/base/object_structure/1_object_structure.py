@@ -18,7 +18,7 @@ class Car(j.baseclasses.object_config):
 
 class Cars(j.baseclasses.object_config_collection):
     """
-    ...
+    collection of cars no test tools
     """
 
     _CHILDCLASS = Car
@@ -55,15 +55,15 @@ class Ships(j.baseclasses.object_config_collection):
         pass
 
 
-class World(j.application.JSBaseConfigsFactoryClass):
+class World(j.baseclasses.factory):
     """
-    some text explaining what the class does
+    generic usable factory
     """
 
     _CHILDCLASSES = [Cars, Ships, Ship]
 
 
-class WorldWithData(j.application.JSBaseConfigsConfigFactoryClass):
+class WorldWithData(j.baseclasses.factory):
 
     _CHILDCLASSES = [Cars, Ships]
     _SCHEMATEXT = """
@@ -114,7 +114,7 @@ def main(self):
 
     w2 = WorldWithData()
     w3 = WorldWithData()
-    assert isinstance(w2, j.application.JSBaseConfigsConfigFactoryClass)
+    assert isinstance(w2, j.baseclasses.factory)
     assert isinstance(w2, j.application.JSConfigsFactory)
     assert isinstance(w2, j.baseclasses.object_config)
 
