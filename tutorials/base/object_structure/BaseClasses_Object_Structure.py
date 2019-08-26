@@ -73,10 +73,6 @@ class WorldWithData(j.baseclasses.factory(isconfig_object=True)):
         """
 
 
-class TutorialBaseClasses:
-    __jslocation__ = "j.tutorials.baseclasses"
-
-
 class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object):
 
     __jslocation__ = "j.tutorials.baseclasses.world"
