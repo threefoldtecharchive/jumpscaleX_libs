@@ -7,4 +7,4 @@ JSConfigBase = j.baseclasses.factory
 
 class NBHClientFactory(j.baseclasses.factory):
     __jslocation__ = "j.clients.nbhvertex"
-    _CHILDCLASS = NBHClient
+    _CHILDFACTORY_CLASS = NBHClient
