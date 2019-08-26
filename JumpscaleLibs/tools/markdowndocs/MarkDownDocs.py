@@ -151,7 +151,7 @@ class MarkDownDocs(j.baseclasses.object):
 
         if not path_or_url:
             path_or_url = (
-                "https://github.com/threefoldtech/jumpscaleX_core//tree/master/Jumpscale/tools/markdowndocs/macros"
+                "https://github.com/threefoldtech/jumpscaleX_core/tree/master/Jumpscale/tools/markdowndocs/macros"
             )
 
         path = j.clients.git.getContentPathFromURLorPath(path_or_url)

@@ -14,7 +14,7 @@ class SQLAlchemyFactory(JSConfigs):
     def getBaseClass(self):
         """
         complete example how to use sqlalchemy:
-        https://github.com/Jumpscale/jumpscaleX_core//wiki/SQLAlchemy
+        https://github.com/Jumpscale/jumpscaleX_core/wiki/SQLAlchemy
         """
         return Base
 
