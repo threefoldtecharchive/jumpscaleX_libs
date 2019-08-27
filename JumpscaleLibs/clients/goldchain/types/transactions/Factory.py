@@ -2,7 +2,7 @@ from Jumpscale import j
 
 from .Base import TransactionBaseClass, TransactionVersion
 from .Standard import TransactionV1
-from .Minting import TransactionV128, TransactionV129
+from .Minting import TransactionV128, TransactionV129, TransactionV130
 
 
 class TransactionFactory(j.baseclasses.object):
@@ -35,6 +35,12 @@ class TransactionFactory(j.baseclasses.object):
         """
         return TransactionV129()
 
+    def mint_coin_destruction_new(self):
+        """
+        Creates and returns an empty Mint CoinDestruction transaction.
+        """
+        return TransactionV130()
+
     def from_json(self, obj, id=None):
         """
         Create a GoldChain transaction from a JSON string or dictionary.
@@ -57,6 +63,8 @@ class TransactionFactory(j.baseclasses.object):
             txn = TransactionV128.from_json(obj)
         elif tt == TransactionVersion.MINTER_COIN_CREATION:
             txn = TransactionV129.from_json(obj)
+        elif tt == TransactionV130.MINTER_COIN_DESTRUCTION:
+            txn = TransactionV130.from_json(obj)
         elif tt == TransactionVersion.LEGACY:
             txn = TransactionV1.legacy_from_json(obj)
 
