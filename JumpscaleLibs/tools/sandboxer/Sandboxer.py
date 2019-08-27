@@ -48,7 +48,7 @@ class Sandboxer(j.baseclasses.object):
 
     __jslocation__ = "j.tools.sandboxer"
 
-    def _init(self):
+    def _init(self, **kwargs):
 
         self.original_size = 0
         self.new_size = 0

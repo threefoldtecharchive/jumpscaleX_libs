@@ -27,7 +27,7 @@ class FListFactory:
     __jslocation__ = "j.tools.flist"
     __imports__ = "brotli,pycapnp"
 
-    def _init(self):
+    def _init(self, **kwargs):
         self.manipulator = FlistManipulatorFactory()
 
     def getCapnpSchema(self):

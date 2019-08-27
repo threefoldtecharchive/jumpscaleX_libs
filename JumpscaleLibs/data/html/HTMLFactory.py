@@ -12,7 +12,7 @@ from html2text import HTML2Text
 class HTMLFactory(j.baseclasses.object_config_collection_testtools):
     __jslocation__ = "j.data.html"
 
-    def _init(self):
+    def _init(self, **kwargs):
         self.webparts = HTMLWebParts()
         self._webparts_done = []
 

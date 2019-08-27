@@ -7,7 +7,7 @@ JSBASE = j.baseclasses.object
 class Sheets(j.baseclasses.object):
     __jslocation__ = "j.data.worksheets"
 
-    def _init(self):
+    def _init(self, **kwargs):
         self.sheets = {}
         self.sheetsByCategory = {}
         self.sheetNames = []

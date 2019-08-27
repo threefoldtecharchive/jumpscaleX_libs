@@ -15,7 +15,7 @@ JSBASE = j.baseclasses.object
 class KVM(j.baseclasses.object):
     __jslocation__ = "j.sal.kvm"
 
-    def _init(self):
+    def _init(self, **kwargs):
         self.__imports__ = "libvirt-python"
         self.KVMController = KVMController
         self.Machine = Machine

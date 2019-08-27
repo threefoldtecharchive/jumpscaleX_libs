@@ -13,7 +13,7 @@ class DiskManager(j.baseclasses.object):
 
     __jslocation__ = "j.sal.disklayout"
 
-    def _init(self):
+    def _init(self, **kwargs):
         self.disks = []
         self._executor = j.tools.executorLocal
         # self._cache = j.core.cache.get(

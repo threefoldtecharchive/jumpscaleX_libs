@@ -24,7 +24,7 @@ class CythonFactory(j.baseclasses.object):
 
     __jslocation__ = "j.tools.cython"
 
-    def _init(self):
+    def _init(self, **kwargs):
         self.__imports__ = "cython"
         self.__path = ""
         self._currentPath

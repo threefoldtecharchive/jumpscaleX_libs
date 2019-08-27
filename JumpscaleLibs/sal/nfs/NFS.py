@@ -91,7 +91,7 @@ class NFSExport(JSBASE):
 class NFS(JSBASE):
     __jslocation__ = "j.sal.nfs"
 
-    def _init(self):
+    def _init(self, **kwargs):
         self._exports = None
 
     def _load(self):

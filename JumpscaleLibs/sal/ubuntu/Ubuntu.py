@@ -7,7 +7,7 @@ JSBaseClass = j.baseclasses.object
 class Ubuntu(JSBaseClass):
     __jslocation__ = "j.sal.ubuntu"
 
-    def _init(self):
+    def _init(self, **kwargs):
         self._aptupdated = False
         self._checked = False
         self._cache_ubuntu = None

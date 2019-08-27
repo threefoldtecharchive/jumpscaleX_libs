@@ -160,7 +160,7 @@ class UFWManager(j.baseclasses.object):
     ACTION_REJECT_IN = "reject in"
     ACTION_REJECT_OUT = "reject out"
 
-    def _init(self):
+    def _init(self, **kwargs):
         self._rules = None
         self._enabled = None
         self._transactions = []
