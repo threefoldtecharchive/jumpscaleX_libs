@@ -11,7 +11,7 @@ from .types.Errors import ErrorTypes
 from .GoldChainTypesFactory import GoldChainTypesFactory
 from .GoldChainTime import GoldChainTime
 
-JSConfigBaseFactory = j.baseclasses.object_config_collection
+JSConfigBaseFactory = j.baseclasses.object_config_collection_testtools
 
 
 class GoldChainClientFactory(JSConfigBaseFactory):

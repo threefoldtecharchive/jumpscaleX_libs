@@ -29,7 +29,7 @@ _EXPLORER_NODES = {
 _CHAIN_NETWORK_TYPES = sorted(["STD", "TEST", "DEV"])
 
 
-class GoldChainClient(j.baseclasses.factory):
+class GoldChainClient(j.baseclasses.object_config):
     """
     Goldchain client object
     """
