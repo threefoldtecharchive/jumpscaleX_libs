@@ -55,7 +55,7 @@ class Ships(j.baseclasses.object_config_collection):
         pass
 
 
-class World(j.baseclasses.factory()):
+class World(j.baseclasses.factory):
     """
     generic usable factory
     """
@@ -63,11 +63,11 @@ class World(j.baseclasses.factory()):
     _CHILDCLASSES = [Cars, Ships, Ship]
 
 
-class WorldWithData(j.baseclasses.factory(isconfig_object=True)):
+class WorldWithData(j.baseclasses.factory_data):
 
     _CHILDCLASSES = [Cars, Ships]
     _SCHEMATEXT = """
-        @url = jumpscale.example.ship.1
+        @url = jumpscale.example.ship.data
         name* = ""
         color = "red,blue" (E)
         """
@@ -81,10 +81,11 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         """
         to run:
 
-        kosmos 'j.tutorials.baseclasses.world.test()'
+        kosmos -p 'j.tutorials.baseclasses.world.test()'
         """
 
         ships = Ships()
+        ships.reset()
 
         ship1 = ships.get(name="ibizaboat")
         assert ship1.name == "ibizaboat"
@@ -94,6 +95,9 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
 
         w = World()
 
+        w.cars.reset()
+        assert len(w.cars.find()) == 0
+
         car = w.cars.get("rabbit")
         car2 = w.cars.get("bobby")
 
@@ -102,6 +106,7 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         assert w.ship.onsea == False
 
         assert len(w.cars.find()) == 2
+        assert len(w.cars._model.find()) == 0
 
         assert len(w.cars.find(name="rabbit")) == 1
 
@@ -109,17 +114,19 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         assert len(allchildren) == 5
 
         w.save()
+        assert len(w.cars._model.find()) == 2  # now should be saved
 
         w.cars._children = j.baseclasses.dict()
-
-        assert len(w.cars._model.find()) == 2  # proves that the data has been saved in the DB
+        j.shell()
+        assert len(w.cars.find()) == 2
+        # proves that the data has been saved in the DB
 
         assert len(w.cars.find()) == 2
 
         w2 = WorldWithData()
         w3 = WorldWithData()
         assert isinstance(w2, j.baseclasses.factory)
-        assert isinstance(w2, j.application.JSConfigsFactory)
+        assert isinstance(w2, j.baseclasses.object)
         assert isinstance(w2, j.baseclasses.object_config)
 
         # needs to be 0 because is a new obj with other children
@@ -133,13 +140,13 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
 
         assert len(w2.cars.find()) == 1  # then we know that world 2 only has 1 car
 
-        assert len(w.cars.find()) == 2
-
         car4 = w3.cars.get("rabbit4")
         car5 = w3.cars.get("rabbit5")
         car6 = w3.cars.get("rabbit6")
 
         assert len(w3.cars.find()) == 3
         assert len(w2.cars.find()) == 1
+
+        assert len(w.cars.find()) == 6
 
         print("TEST OK")
