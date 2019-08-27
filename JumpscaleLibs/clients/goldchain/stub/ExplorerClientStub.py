@@ -2,9 +2,9 @@ from Jumpscale import j
 
 import re
 
-from JumpscaleLibs.clients.blockchain.goldchain.types.ConditionTypes import ConditionBaseClass
-from JumpscaleLibs.clients.blockchain.goldchain.types.CryptoTypes import PublicKey
-from JumpscaleLibs.clients.blockchain.goldchain.types.PrimitiveTypes import Hash
+from JumpscaleLibs.clients.goldchain.types.ConditionTypes import ConditionBaseClass
+from JumpscaleLibs.clients.goldchain.types.CryptoTypes import PublicKey
+from JumpscaleLibs.clients.goldchain.types.PrimitiveTypes import Hash
 
 
 class GoldChainExplorerGetClientStub(j.baseclasses.object):

@@ -1,6 +1,6 @@
 from Jumpscale import j
 
-from JumpscaleLibs.clients.blockchain.goldchain.stub.ExplorerClientStub import GoldChainExplorerGetClientStub
+from JumpscaleLibs.clients.goldchain.stub.ExplorerClientStub import GoldChainExplorerGetClientStub
 
 
 def main(self):

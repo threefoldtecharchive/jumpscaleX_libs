@@ -2,9 +2,9 @@ from Jumpscale import j
 
 import pytest
 
-from JumpscaleLibs.clients.blockchain.goldchain.stub.ExplorerClientStub import GoldChainExplorerGetClientStub
-from JumpscaleLibs.clients.blockchain.goldchain.types.PrimitiveTypes import BinaryData
-from JumpscaleLibs.clients.blockchain.goldchain.types.AtomicSwap import AtomicSwapContract, AtomicSwapSecretHash
+from JumpscaleLibs.clients.goldchain.stub.ExplorerClientStub import GoldChainExplorerGetClientStub
+from JumpscaleLibs.clients.goldchain.types.PrimitiveTypes import BinaryData
+from JumpscaleLibs.clients.goldchain.types.AtomicSwap import AtomicSwapContract, AtomicSwapSecretHash
 
 
 def main(self):

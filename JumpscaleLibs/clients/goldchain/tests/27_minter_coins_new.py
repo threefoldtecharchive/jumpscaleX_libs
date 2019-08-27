@@ -2,8 +2,8 @@ from Jumpscale import j
 
 import pytest
 
-from JumpscaleLibs.clients.blockchain.goldchain.stub.ExplorerClientStub import GoldChainExplorerGetClientStub
-from JumpscaleLibs.clients.blockchain.goldchain.types.FulfillmentTypes import (
+from JumpscaleLibs.clients.goldchain.stub.ExplorerClientStub import GoldChainExplorerGetClientStub
+from JumpscaleLibs.clients.goldchain.types.FulfillmentTypes import (
     FulfillmentSingleSignature,
     FulfillmentMultiSignature,
 )

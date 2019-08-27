@@ -2,7 +2,7 @@ from Jumpscale import j
 
 import pytest
 
-from JumpscaleLibs.clients.blockchain.goldchain.stub.ExplorerClientStub import GoldChainExplorerGetClientStub
+from JumpscaleLibs.clients.goldchain.stub.ExplorerClientStub import GoldChainExplorerGetClientStub
 
 
 def main(self):
