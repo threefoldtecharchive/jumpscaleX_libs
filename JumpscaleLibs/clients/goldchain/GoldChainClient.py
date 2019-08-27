@@ -9,7 +9,6 @@ import sys
 from .types.ConditionTypes import UnlockHash, UnlockHashType, ConditionMultiSignature
 from .types.PrimitiveTypes import Hash, Currency
 from .types.IO import CoinOutput, BlockstakeOutput
-from .types.CryptoTypes import PublicKey
 from .types.transactions.Base import TransactionBaseClass
 from .types.transactions.Minting import TransactionV128
 from .GoldChainWalletFactory import GoldChainWalletFactory

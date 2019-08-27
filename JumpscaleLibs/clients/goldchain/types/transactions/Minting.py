@@ -387,3 +387,153 @@ class TransactionV129(TransactionBaseClass):
         if self._parent_mint_condition is None:
             return False
         return self.mint_fulfillment.is_fulfilled(parent_condition=self._parent_mint_condition)
+
+
+class TransactionV130(TransactionBaseClass):
+    _SPECIFIER = b"coin destruct tx\0"
+
+    def __init__(self):
+        self._coin_inputs = []
+        self._miner_fees = []
+        self._refund_coin_output = None
+        self._data = None
+
+        super().__init__()
+
+    @property
+    def version(self):
+        return TransactionVersion.MINTER_COIN_DESTRUCTION
+
+    @property
+    def miner_fees(self):
+        """
+        Miner fees, paid to the block creator of this Transaction,
+        funded by this Transaction's coin inputs.
+        """
+        return self._miner_fees
+
+    @property
+    def data(self):
+        """
+        Optional binary data attached to this Transaction,
+        with a max length of 83 bytes.
+        """
+        if self._data is None:
+            return BinaryData(strencoding="base64")
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        if value is None:
+            self._data = None
+            return
+        if isinstance(value, BinaryData):
+            value = value.value
+        elif isinstance(value, str):
+            value = value.encode("utf-8")
+        if len(value) > 83:
+            raise j.exceptions.Value(
+                "arbitrary data can have a maximum bytes length of 83, {} exceeds this limit".format(len(value))
+            )
+        self._data = BinaryData(value=value, strencoding="base64")
+
+    @property
+    def coin_inputs(self):
+        """
+        Coin inputs of this Transaction,
+        """
+        return self._coin_inputs
+
+    @coin_inputs.setter
+    def coin_inputs(self, value):
+        self._coin_inputs = []
+        if not value:
+            return
+        for ci in value:
+            self.coin_input_add(ci.parentid, ci.fulfillment, parent_output=ci.parent_output)
+
+    def coin_input_add(self, parentid, fulfillment, parent_output=None):
+        ci = CoinInput(parentid=parentid, fulfillment=fulfillment)
+        ci.parent_output = parent_output
+        self._coin_inputs.append(ci)
+
+    def miner_fee_add(self, value):
+        self._miner_fees.append(Currency(value=value))
+
+    @property
+    def refund_coin_output(self):
+        if self._refund_coin_output is None:
+            return CoinOutput()
+        return self._refund_coin_output
+
+    def refund_coin_output_set(self, value, condition, id=None):
+        co = CoinOutput(value=value, condition=condition)
+        co.id = id
+        self._refund_coin_output = co
+
+    def _signature_hash_input_get(self, *extra_objects):
+        e = j.data.rivine.encoder_sia_get()
+
+        # encode the transaction version
+        e.add_byte(self.version)
+
+        # encode the specifier
+        e.add_array(TransactionV130._SPECIFIER)
+
+        # extra objects if any
+        if extra_objects:
+            e.add_all(*extra_objects)
+
+        # encode parent ID slice
+        e.add(len(self.coin_inputs))
+        for ci in self.coin_inputs:
+            e.add(ci.parentid)
+
+        # encode refund coin output
+        if self._refund_coin_output is None:
+            e.add_int8(0)
+        else:
+            e.add_int8(1)
+            e.add(self._refund_coin_output)
+
+        # encode miner fees
+        e.add_slice(self.miner_fees)
+
+        # encode custom data
+        e.add(self.data)
+
+        # return the encoded data
+        return e.data
+
+    def _id_input_compute(self):
+        return bytearray(TransactionV130._SPECIFIER) + self._binary_encode_data()
+
+    def _binary_encode_data(self):
+        encoder = j.data.rivine.encoder_rivine_get()
+        encoder.add_all(self.coin_inputs)
+        if self._refund_coin_output is None:
+            encoder.add_int8(0)
+        else:
+            encoder.add_int8(1)
+            encoder.add(self._refund_coin_output)
+        encoder.add_all(self.refund_coin_outputs, self.miner_fees, self.data)
+        return encoder.data
+
+    def _from_json_data_object(self, data):
+        # set coin inputs
+        self._coin_inputs = [CoinInput.from_json(ci) for ci in data.get("coininputs", []) or []]
+        # refund coin output
+        if "refundcoinoutput" in data:
+            self._refund_coin_output = CoinOutput.from_json(data["refundcoinoutput"])
+        self._miner_fees = [Currency.from_json(fee) for fee in data.get("minerfees", []) or []]
+        self._data = BinaryData.from_json(data.get("arbitrarydata", None) or "", strencoding="base64")
+
+    def _json_data_object(self):
+        output = {
+            "coininputs": [ci.json() for ci in self.coin_inputs],
+            "minerfees": [fee.json() for fee in self.miner_fees],
+            "arbitrarydata": self.data.json(),
+        }
+        if self._refund_coin_output is not None:
+            output["refundcoinoutput"] = self._refund_coin_output.json()
+        return output
