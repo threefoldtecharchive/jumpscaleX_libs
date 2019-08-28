@@ -125,7 +125,7 @@ class GoldChainExplorerClient(j.baseclasses.object):
         """
         kosmos 'j.clients.goldchain.explorer.test()'
         """
-        resp = self.get(addresses=["https://explorer2.threefoldtoken.com"], endpoint="/explorer/constants")
+        resp = self.get(addresses=["https://explorer2.testnet.nbh-digital.com"], endpoint="/explorer/constants")
         data = j.data.serializers.json.loads(resp)
         assert data["chaininfo"]["Name"] == "goldchain"
         assert data["chaininfo"]["CoinUnit"] == "GFT"
