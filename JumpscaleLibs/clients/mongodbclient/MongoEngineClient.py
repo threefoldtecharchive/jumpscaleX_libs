@@ -1,5 +1,11 @@
 from Jumpscale import j
-from mongoengine import connect
+
+try:
+    from mongoengine import connect
+except:
+    j.builders.runtimes.python3.pip_package_install("mongoengine")
+    from mongoengine import connect
+
 
 JSConfigClient = j.baseclasses.object_config
 
@@ -22,8 +28,4 @@ class MongoEngineClient(JSConfigClient):
 
     def _init(self, **kwargs):
         kwargs = {}
-        data = self.data
-        for key, value in data._ddict.items():
-            if value != "":
-                kwargs[key.rstrip("_")] = value
         connect(**kwargs)
