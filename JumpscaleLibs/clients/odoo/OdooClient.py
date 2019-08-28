@@ -4,7 +4,7 @@ try:
     import erppeek
 
 except:
-    j.builders.runtimes.python.pip_package_install("ERPpeek")
+    j.builders.runtimes.python3.pip_package_install("ERPpeek")
     import erppeek
 
 

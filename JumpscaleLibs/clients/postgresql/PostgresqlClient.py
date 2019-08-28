@@ -91,7 +91,7 @@ class PostgresClient(JSConfigClient):
         try:
             from sqlalchemy.ext.automap import automap_base
         except:
-            j.builders.runtimes.python.pip_package_install("sqlalchemy")
+            j.builders.runtimes.python3.pip_package_install("sqlalchemy")
 
         from sqlalchemy.ext.automap import automap_base
         from sqlalchemy.orm import Session
