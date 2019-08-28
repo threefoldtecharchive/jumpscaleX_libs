@@ -10,7 +10,7 @@ from jose import jwt
 from time import time
 
 from Jumpscale import j
-from clients.itsyouonline.generated.client import Client
+from .generated.client import Client
 
 
 # TODO:*1 regenerate using proper goraml new file & newest generation tools ! (had to fix manually quite some issues?)
