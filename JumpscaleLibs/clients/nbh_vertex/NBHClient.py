@@ -340,7 +340,7 @@ class NBHClient(JSConfigBase):
         self.login()
         params = {"ClientID": client_id, "isPaging": is_paging}
         response = self._request("AccountInfoReport", params)
-        if len(response) == 1:
+        if response and len(response) == 1:
             raise_if_error(response[0]["ClientID"])
 
         return response
@@ -360,7 +360,7 @@ class NBHClient(JSConfigBase):
         self.login()
         params = {"ClientID": client_id, "AccountType": account_type, "isPaging": is_paging}
         response = self._request("AccountStatusReport", params)
-        if len(response) == 1:
+        if response and len(response) == 1:
             raise_if_error(response[0]["ClientID"])
         return response
 
@@ -377,7 +377,7 @@ class NBHClient(JSConfigBase):
         self.login()
         params = {"AccountID": account_id, "FromDate": from_date, "ToDate": to_date}
         response = self._request("GetAccountStmt", params)
-        if len(response) == 2:
+        if response and len(response) == 2:
             raise_if_error(response[0])
         return response
 
@@ -441,7 +441,7 @@ class NBHClient(JSConfigBase):
             "Price": price,
             "RefPrice": ref_price,
             "Comm": commission,
-            "UserDefinedData": user_defined_date,
+            "UserDefinedDate": user_defined_date,
         }
         return self._request("ClosePosition", params)
 
@@ -471,7 +471,7 @@ class NBHClient(JSConfigBase):
             "isPaging": is_paging,
         }
         response = self._request("DetailedOpenPositionsReport", params)
-        if len(response) == 1:
+        if response and len(response) == 1:
             raise_if_error(response[0]["ClientID"])
 
         return response
