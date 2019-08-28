@@ -4,7 +4,7 @@ from Jumpscale import j
 try:
     import digitalocean
 except:
-    j.builders.runtimes.python.pip_package_install("python-digitalocean")
+    j.builders.runtimes.python3.pip_package_install("python-digitalocean")
     import digitalocean
 from .DigitalOceanVM import DigitalOceanVM
 
