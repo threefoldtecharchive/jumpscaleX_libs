@@ -3,10 +3,7 @@ from Jumpscale import j
 import pytest
 
 from JumpscaleLibs.clients.goldchain.stub.ExplorerClientStub import GoldChainExplorerGetClientStub
-from JumpscaleLibs.clients.goldchain.types.FulfillmentTypes import (
-    FulfillmentSingleSignature,
-    FulfillmentMultiSignature,
-)
+from JumpscaleLibs.clients.goldchain.types.FulfillmentTypes import FulfillmentSingleSignature, FulfillmentMultiSignature
 
 
 def main(self):
