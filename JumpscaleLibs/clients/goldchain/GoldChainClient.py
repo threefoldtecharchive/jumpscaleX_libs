@@ -476,7 +476,7 @@ class ExplorerBlockchainInfo:
 
 
 class ExplorerUnlockhashResult:
-    def __init__(self, unlockhash, transactions, multisig_addresses, erc20_info, client=None):
+    def __init__(self, unlockhash, transactions, multisig_addresses, client=None):
         """
         All the info found for a given unlock hash, as reported by an explorer.
         """
@@ -487,7 +487,6 @@ class ExplorerUnlockhashResult:
         if client is not None and not isinstance(client, GoldChainClient):
             raise j.exceptions.Value("client cannot be set to a value of type {}".format(type(client)))
         self._client = client
-        self._erc20_info = erc20_info
 
     @property
     def unlockhash(self):
@@ -509,10 +508,6 @@ class ExplorerUnlockhashResult:
         Addresses of multisignature wallets co-owned by the looked up unlockhash.
         """
         return self._multisig_addresses
-
-    @property
-    def erc20_info(self):
-        return self._erc20_info
 
     def __repr__(self):
         return "Found {} transaction(s) and {} multisig address(es) for {}".format(

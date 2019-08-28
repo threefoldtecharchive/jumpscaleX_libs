@@ -3,6 +3,7 @@ from Jumpscale import j
 from .Base import TransactionBaseClass, TransactionVersion
 from .Standard import TransactionV1
 from .Minting import TransactionV128, TransactionV129, TransactionV130
+from .Authcoin import TransactionV176
 
 
 class TransactionFactory(j.baseclasses.object):
@@ -41,6 +42,12 @@ class TransactionFactory(j.baseclasses.object):
         """
         return TransactionV130()
 
+    def auth_address_update_new(self):
+        """
+        Creates and returns an empty Authcoin AuthAddressUpdate transaction
+        """
+        return TransactionV176
+
     def from_json(self, obj, id=None):
         """
         Create a GoldChain transaction from a JSON string or dictionary.
@@ -63,8 +70,10 @@ class TransactionFactory(j.baseclasses.object):
             txn = TransactionV128.from_json(obj)
         elif tt == TransactionVersion.MINTER_COIN_CREATION:
             txn = TransactionV129.from_json(obj)
-        elif tt == TransactionV130.MINTER_COIN_DESTRUCTION:
+        elif tt == TransactionVersion.MINTER_COIN_DESTRUCTION:
             txn = TransactionV130.from_json(obj)
+        elif tt == TransactionVersion.AUTH_ADDRESS_UPDATE:
+            txn = TransactionV176.from_json(obj)
         elif tt == TransactionVersion.LEGACY:
             txn = TransactionV1.legacy_from_json(obj)
 
@@ -492,3 +501,71 @@ class TransactionFactory(j.baseclasses.object):
             == "81d68405cc8c2c2ecf018000000000000000656432353531390000000000000000002000000000000000d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d77804000000000000000ad59389329ed01c5ee14ce25ae38634c2b3ef694a2bdfa714f73b175f979ba6613025f9123d68c0f11e8f0a7114833c0aab4c8596d4c31671ec8a73923f023050100000000000000070000000000000001c6bf5263400001210000000000000001e3cbc41bd3cdfec9e01a6be46a35099ba0e1e1b793904fce6aa5a444496c6d81010000000000000004000000000000003b9aca001100000000000000746573742e2e2e20312c20322e2e2e2033"
         )
         assert str(v129_txn.coin_outputid_new(0)) == "f4b8569f430a29af187a8b97e78167b63895c51339255ea5198a35f4b162b4c6"
+
+        # v130 transactions are supported
+        v130_txn_json = {
+            "version": 130,
+            "data": {
+                "coininputs": [
+                    {
+                        "parentid": "1100000000000000000000000000000000000000000000000000000000000011",
+                        "fulfillment": {
+                            "type": 1,
+                            "data": {
+                                "publickey": "ed25519:def123def123def123def123def123def123def123def123def123def123def1",
+                                "signature": "ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef",
+                            },
+                        },
+                    }
+                ],
+                "refundcoinoutput": {
+                    "value": "500000000000000",
+                    "condition": {
+                        "type": 1,
+                        "data": {
+                            "unlockhash": "01e3cbc41bd3cdfec9e01a6be46a35099ba0e1e1b793904fce6aa5a444496c6d815f5e3e981ccf"
+                        },
+                    },
+                },
+                "minerfees": ["1000000000"],
+                "arbitrarydata": "dGVzdC4uLiAxLCAyLi4uIDM=",
+            },
+        }
+        v130_txn = self.from_json(v130_txn_json)
+        assert v130_txn.json() == v130_txn_json
+        # assert (
+        #    v130_txn.binary_encode().hex()
+        #    == "8133a6432220334946018000000000000000656432353531390000000000000000002000000000000000d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d77804000000000000000a074b976556d6ea2e4ae8d51fbbb5ec99099f11918201abfa31cf80d415c8d5bdfda5a32d9cc167067b6b798e80c6c1a45f6fd9e0f01ac09053e767b15d310050100000000000000070000000000000001c6bf5263400001210000000000000001e78fd5af261e49643dba489b29566db53fa6e195fa0e6aad4430d4f06ce88b73010000000000000004000000000000003b9aca0012000000000000006d6f6e65792066726f6d2074686520736b79"
+        # )
+
+        # v176 transactions are supported
+        v176_txn_json = {
+            "version": 176,
+            "data": {
+                "nonce": "FoAiO8vN2eU=",
+                "authaddresses": [
+                    "0112210f9efa5441ab705226b0628679ed190eb4588b662991747ea3809d93932c7b41cbe4b732",
+                    "01450aeb140c58012cb4afb48e068f976272fefa44ffe0991a8a4350a3687558d66c8fc753c37e",
+                ],
+                "deauthaddresses": ["019e9b6f2d43a44046b62836ce8d75c935ff66cbba1e624b3e9755b98ac176a08dac5267b2c8ee"],
+                "arbitrarydata": "dGVzdC4uLiAxLCAyLi4uIDM=",
+                "authfulfillment": {
+                    "type": 1,
+                    "data": {
+                        "publickey": "ed25519:d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780",
+                        "signature": "bdf023fbe7e0efec584d254b111655e1c2f81b9488943c3a712b91d9ad3a140cb0949a8868c5f72e08ccded337b79479114bdb4ed05f94dfddb359e1a6124602",
+                    },
+                },
+            },
+        }
+
+        v176_txn = self.from_json(v176_txn_json)
+        assert v176_txn.json() == v176_txn_json
+        assert len(v176_txn.auth_addresses) == 2
+        assert len(v176_txn.deauth_addresses) == 1
+        assert str(v176_txn._nonce) == "FoAiO8vN2eU="
+        assert str(v176_txn.data) == "dGVzdC4uLiAxLCAyLi4uIDM="
+        assert (
+            v176_txn.binary_encode().hex()
+            == "b01680223bcbcdd9e5040112210f9efa5441ab705226b0628679ed190eb4588b662991747ea3809d93932c01450aeb140c58012cb4afb48e068f976272fefa44ffe0991a8a4350a3687558d602019e9b6f2d43a44046b62836ce8d75c935ff66cbba1e624b3e9755b98ac176a08d22746573742e2e2e20312c20322e2e2e203301c401d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d778080bdf023fbe7e0efec584d254b111655e1c2f81b9488943c3a712b91d9ad3a140cb0949a8868c5f72e08ccded337b79479114bdb4ed05f94dfddb359e1a6124602"
+        )
