@@ -2,7 +2,13 @@ from Jumpscale import j
 from pprint import pprint
 
 from googleapiclient import discovery
-from oauth2client.client import GoogleCredentials
+
+try:
+    from oauth2client.client import GoogleCredentials
+except:
+    j.builders.runtimes.python3.pip_package_install("oauth2client")
+    from oauth2client.client import GoogleCredentials
+
 
 # https://cloud.google.com/compute/docs/reference/latest/instances/list
 JSBASE = j.baseclasses.object_config
@@ -16,15 +22,15 @@ class GoogleCompute(JSBASE):
     projectName = "constant-carver-655" (S)
     """
 
-    def _init(self, zone=None, projectName=None):
+    def _init(self, **kwargs):
 
         self.credentials = None
         self.service = None
         self._projects = None
         self._instances = None
         self._images = {}
-        self.zone = zone
-        self.projectName = projectName
+        self.zone = self.zone
+        self.projectName = self.projectName
         self.credentials = GoogleCredentials.get_application_default()
         self.service = discovery.build("compute", "v1", credentials=self.credentials)
 
