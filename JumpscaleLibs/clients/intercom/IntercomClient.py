@@ -1,5 +1,12 @@
-from intercom.client import Client
 from Jumpscale import j
+
+try:
+    from intercom.client import Client
+except:
+    j.builders.runtimes.python3.pip_package_install("python-intercom")
+    from intercom.client import Client
+
+
 from intercom.errors import HttpError
 import intercom
 
