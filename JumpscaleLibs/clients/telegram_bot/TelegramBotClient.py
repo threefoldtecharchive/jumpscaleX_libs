@@ -1,6 +1,10 @@
-from telegram.ext import Updater, CommandHandler
 from Jumpscale import j
 
+try:
+    from telegram.ext import Updater, CommandHandler
+except:
+    j.builders.runtimes.python3.pip_package_install("python-telegram-bot", reset=True)
+    from telegram.ext import Updater, CommandHandler
 
 JSConfigClient = j.baseclasses.object_config
 
