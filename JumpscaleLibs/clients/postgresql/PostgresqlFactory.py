@@ -1,5 +1,12 @@
 from Jumpscale import j
-import psycopg2
+
+try:
+    import psycopg2
+except:
+    j.builders.system.package.install(["libpq-dev", "python3-dev"])
+    j.builders.runtimes.python3.pip_package_install("psycopg2", reset=True)
+    import psycopg2
+
 from .PostgresqlClient import PostgresClient
 
 JSConfigs = j.baseclasses.object_config_collection

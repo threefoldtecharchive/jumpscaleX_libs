@@ -1,9 +1,16 @@
 from Jumpscale import j
 
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import class_mapper
-from sqlalchemy import *
-from sqlalchemy.event import listen
+try:
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.orm import class_mapper
+    from sqlalchemy import *
+    from sqlalchemy.event import listen
+except:
+    j.builders.runtimes.python3.pip_package_install("sqlalchemy")
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.orm import class_mapper
+    from sqlalchemy import *
+    from sqlalchemy.event import listen
 
 from sqlalchemy.ext.declarative import declarative_base
 from copy import copy

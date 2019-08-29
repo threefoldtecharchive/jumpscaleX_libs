@@ -3,7 +3,7 @@ import base64
 import sendgrid
 from sendgrid.helpers.mail import Email, Content, Mail, Personalization, Attachment as SendGridAttachment
 
-Attachment = namedtuple("Attachment", ["originalfilename", "binarycontent", "type"])
+Attachment = ("Attachment", ["originalfilename", "binarycontent", "type"])
 
 
 class SendGridClient(j.baseclasses.object_config):

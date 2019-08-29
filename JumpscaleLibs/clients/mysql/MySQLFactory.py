@@ -1,8 +1,13 @@
 from Jumpscale import j
 from .MySQLClient import MySQLClient
-import mysql.connector
 import time
 import calendar
+
+try:
+    import mysql.connector
+except:
+    j.builders.runtimes.python3.pip_package_install("mysql-connector")
+    import mysql.connector
 
 JSConfigs = j.baseclasses.object_config_collection
 

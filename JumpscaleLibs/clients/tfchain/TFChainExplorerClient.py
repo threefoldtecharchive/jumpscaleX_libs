@@ -3,7 +3,7 @@ Tfchain Client
 """
 
 from Jumpscale import j
-from JumpscaleLibs.clients.http.HttpClient import HTTPError
+from Jumpscale.clients.http.HttpClient import HTTPError
 
 import random
 

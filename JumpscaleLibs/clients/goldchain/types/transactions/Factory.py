@@ -3,7 +3,7 @@ from Jumpscale import j
 from .Base import TransactionBaseClass, TransactionVersion
 from .Standard import TransactionV1
 from .Minting import TransactionV128, TransactionV129, TransactionV130
-from .Authcoin import TransactionV176
+from .Authcoin import TransactionV176, TransactionV177
 
 
 class TransactionFactory(j.baseclasses.object):
@@ -48,6 +48,12 @@ class TransactionFactory(j.baseclasses.object):
         """
         return TransactionV176
 
+    def auth_condition_update_new(self):
+        """
+        Creates and returns an empty Authcoin AuthConditionUpdate transaction
+        """
+        return TransactionV177
+
     def from_json(self, obj, id=None):
         """
         Create a GoldChain transaction from a JSON string or dictionary.
@@ -74,6 +80,8 @@ class TransactionFactory(j.baseclasses.object):
             txn = TransactionV130.from_json(obj)
         elif tt == TransactionVersion.AUTH_ADDRESS_UPDATE:
             txn = TransactionV176.from_json(obj)
+        elif tt == TransactionVersion.AUTH_CONDITION_UPDATE:
+            txn = TransactionV177.from_json(obj)
         elif tt == TransactionVersion.LEGACY:
             txn = TransactionV1.legacy_from_json(obj)
 
@@ -568,4 +576,34 @@ class TransactionFactory(j.baseclasses.object):
         assert (
             v176_txn.binary_encode().hex()
             == "b01680223bcbcdd9e5040112210f9efa5441ab705226b0628679ed190eb4588b662991747ea3809d93932c01450aeb140c58012cb4afb48e068f976272fefa44ffe0991a8a4350a3687558d602019e9b6f2d43a44046b62836ce8d75c935ff66cbba1e624b3e9755b98ac176a08d22746573742e2e2e20312c20322e2e2e203301c401d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d778080bdf023fbe7e0efec584d254b111655e1c2f81b9488943c3a712b91d9ad3a140cb0949a8868c5f72e08ccded337b79479114bdb4ed05f94dfddb359e1a6124602"
+        )
+
+        # v177 transactions are supported
+        v177_txn_json = {
+            "version": 177,
+            "data": {
+                "nonce": "1oQFzIwsLs8=",
+                "arbitrarydata": "dGVzdC4uLiAxLCAyLi4uIDM=",
+                "authcondition": {
+                    "type": 1,
+                    "data": {
+                        "unlockhash": "01e78fd5af261e49643dba489b29566db53fa6e195fa0e6aad4430d4f06ce88b73e047fe6a0703"
+                    },
+                },
+                "authfulfillment": {
+                    "type": 1,
+                    "data": {
+                        "publickey": "ed25519:d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780",
+                        "signature": "ad59389329ed01c5ee14ce25ae38634c2b3ef694a2bdfa714f73b175f979ba6613025f9123d68c0f11e8f0a7114833c0aab4c8596d4c31671ec8a73923f02305",
+                    },
+                },
+            },
+        }
+        v177_txn = self.from_json(v177_txn_json)
+        assert v177_txn.json() == v177_txn_json
+        assert str(v177_txn._nonce) == "1oQFzIwsLs8="
+        assert str(v177_txn.data) == "dGVzdC4uLiAxLCAyLi4uIDM="
+        assert (
+            v177_txn.binary_encode().hex()
+            == "b1d68405cc8c2c2ecf22746573742e2e2e20312c20322e2e2e2033014201e78fd5af261e49643dba489b29566db53fa6e195fa0e6aad4430d4f06ce88b7301c401d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d778080ad59389329ed01c5ee14ce25ae38634c2b3ef694a2bdfa714f73b175f979ba6613025f9123d68c0f11e8f0a7114833c0aab4c8596d4c31671ec8a73923f02305"
         )

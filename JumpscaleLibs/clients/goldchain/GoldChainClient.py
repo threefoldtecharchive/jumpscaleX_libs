@@ -44,6 +44,7 @@ class GoldChainClient(j.baseclasses.factory_data):
 
     def _init(self, **kwargs):
         self._minter = GoldChainMinterClient(self)
+        self._authcoin = GoldChainAuthcoinClient(self)
 
     @property
     def minter(self):
@@ -51,6 +52,13 @@ class GoldChainClient(j.baseclasses.factory_data):
         Minter Client API.
         """
         return self._minter
+
+    @property
+    def authcoin(self):
+        """
+        AuthCoin Client API
+        """
+        return self._authcoin
 
     @property
     def explorer_addresses(self):
@@ -76,7 +84,7 @@ class GoldChainClient(j.baseclasses.factory_data):
     def minimum_miner_fee(self):
         if self.network == "DEV":
             return j.clients.goldchain.types.currency_new("1")
-        return j.clients.goldchain.types.currency_new("0.1")
+        return j.clients.goldchain.types.currency_new("0.001")
 
     def blockchain_info_get(self):
         """
@@ -648,7 +656,7 @@ class ExplorerBlock:
 class ExplorerMinerPayout:
     def __init__(self, id, value, unlockhash):
         """
-        A single miner payout, as ereported by an explorer.
+        A single miner payout, as reported by an explorer.
         """
         self._id = id
         self._value = value
@@ -714,4 +722,65 @@ class GoldChainMinterClient:
             return j.clients.goldchain.types.conditions.from_json(obj=resp["mintcondition"])
         except KeyError as exc:
             # return a KeyError as an invalid Explorer Response
+            raise j.clients.goldchain.errors.ExplorerInvalidResponse(str(exc), endpoint, resp) from exc
+
+
+class GoldChainAuthcoinClient:
+    """
+    GoldChainAuthcoinClient contains all Auth Coin logic.
+    """
+
+    def __init__(self, client):
+        if not isinstance(client, GoldChainClient):
+            raise j.exceptions.Value("client is expected to be a GoldChainClient")
+        self._client = client
+
+    def condition_get(self, height=None):
+        """
+        Get the latest auth coin condition or the auth coin condition at the specified block height.
+
+        @param height: if defined the block height at which to look up the auth coin condition (if none latest block will be used)
+        """
+        # define the endpoint
+        endpoint = "/explorer/authcoin/condition"
+        if height is not None:
+            if not isinstance(height, (int, str)):
+                raise j.exceptions.Value("invalid block height given")
+            height = int(height)
+            endpoint += "/%d" % (height)
+
+        # get the mint condition
+        resp = self._client.explorer_get(endpoint=endpoint)
+        resp = j.data.serializers.json.loads(resp)
+
+        try:
+            # return the decoded mint condition
+            return j.clients.goldchain.types.conditions.from_json(obj=resp["authcondition"])
+        except KeyError as exc:
+            # return a KeyError as an invalid Explorer Response
+            raise j.clients.goldchain.errors.ExplorerInvalidResponse(str(exc), endpoint, resp) from exc
+
+    def is_authorized(self, unlockhash):
+        """
+        Query the explorer backend to see if an address is currently authorized.
+
+        @param unlockhash: UnlockHash for which to look up the authorizaton state
+        """
+        if not isinstance(unlockhash, UnlockHash):
+            raise j.exceptions.Value("Argument must be of type UnlockHash, got type {}".format(type(unlockhash)))
+        # define endpoint
+        endpoint = "/explorer/authcoin/status?addr={}".format(unlockhash.json())
+        # parse response
+        resp = self._client.explorer_get(endpoint=endpoint)
+        resp = j.data.serializers.json.loads(resp)
+
+        try:
+            # parse response, this returns an array of json booleans, we only check 1 address in this function
+            # so it's always index 0 we are interested in.
+            return resp["auths"][0]
+        except KeyError as exc:
+            # invalid explorer response
+            raise j.clients.goldchain.errors.ExplorerInvalidResponse(str(exc), endpoint, resp) from exc
+        except IndexError as exc:
+            # also invalid explorer response
             raise j.clients.goldchain.errors.ExplorerInvalidResponse(str(exc), endpoint, resp) from exc
