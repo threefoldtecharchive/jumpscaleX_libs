@@ -1,8 +1,13 @@
+import os
+from Jumpscale import j
+
+try:
+    import tarantool
+except:
+    j.builders.db.tarantool.install()
+    import tarantool
 from .TarantoolClient import TarantoolClient
 from .TarantoolDB import TarantoolDB
-import os
-import tarantool
-from Jumpscale import j
 
 JSConfigBaseFactory = j.application.JSFactoryBaseClass
 
