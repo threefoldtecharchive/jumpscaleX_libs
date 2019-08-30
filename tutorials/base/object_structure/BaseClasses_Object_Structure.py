@@ -61,14 +61,9 @@ class World(j.baseclasses.factory):
     """
 
     _CHILDCLASSES = [Cars, Ships, Ship]
-    _SCHEMATEXT = """
-        @url = jumpscale.example.world1
-        name* = ""
-        color = "red,blue" (E)
-        """
 
 
-class World2(j.baseclasses.factory):
+class World2(j.baseclasses.factory_data):
 
     _CHILDCLASSES = [Cars, Ships]
     _SCHEMATEXT = """
