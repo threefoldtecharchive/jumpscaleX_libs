@@ -45,9 +45,6 @@ class DigitalOceanFactory(JSConfigBaseFactory):
         """
         j.core.myenv.interactive = True
 
-        from pudb import set_trace
-
-        set_trace()
         if not self.exists(name="main"):
             self.new("main")
         else:

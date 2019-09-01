@@ -251,12 +251,33 @@ class DigitalOcean(j.baseclasses.object_config):
     @property
     def droplets(self):
         if not self._droplets:
-            self._droplets = self.client.get_all_droplets()
+            self._droplets = []
+            for d in self.client.get_all_droplets():
+                self._droplets.append(d)
         return self._droplets
 
-    def droplets_all_delete(self):
+    def droplets_all_delete(self, ignore=None, interactive=True):
+        if not ignore:
+            ignore = []
+
+        def test(ignore, name):
+            if name.startswith("TF-"):
+                return False
+            for item in ignore:
+                if name.lower().find(item.lower()) != -1:
+                    return False
+            return True
+
+        todo = []
         for droplet in self.droplets:
-            droplet.destroy()
+            if test(ignore, droplet.name):
+                name = droplet.name
+                todo.append(droplet)
+        if todo != []:
+            todotxt = ",".join([i.name for i in todo])
+            if not interactive or j.tools.console.askYesNo("ok to delete:%s" % todotxt):
+                for droplet in todo:
+                    droplet.destroy()
 
     def droplets_all_shutdown(self):
         for droplet in self.droplets:
