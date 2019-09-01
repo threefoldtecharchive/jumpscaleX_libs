@@ -63,11 +63,11 @@ class World(j.baseclasses.factory):
     _CHILDCLASSES = [Cars, Ships, Ship]
 
 
-class WorldWithData(j.baseclasses.factory_data):
+class World2(j.baseclasses.factory_data):
 
     _CHILDCLASSES = [Cars, Ships]
     _SCHEMATEXT = """
-        @url = jumpscale.example.ship.data
+        @url = jumpscale.example.world2
         name* = ""
         color = "red,blue" (E)
         """
@@ -164,8 +164,8 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
 
         assert len(w.cars.find()) == 2
 
-        w2 = WorldWithData()
-        w3 = WorldWithData()
+        w2 = World2()
+        w3 = World2()
         assert isinstance(w2, j.baseclasses.object)
         assert isinstance(w2, j.baseclasses.object_config)
 
