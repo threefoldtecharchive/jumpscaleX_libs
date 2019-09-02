@@ -413,7 +413,7 @@ class NBHClient(JSConfigBase):
         }
         return self._request("NewPosition", params)
 
-    def close_position(self, account_id, ticket_id, amount, price, ref_price, commission, user_defined_date=""):
+    def close_position(self, account_id, ticket_id, amount, price, ref_ask_price, ref_bid_price, commission, user_defined_date=""):
         """The ClosePosition operation is used to close the position that belongs to the given account number
 
         :param account_id: valid account identifier to open position for
@@ -424,8 +424,10 @@ class NBHClient(JSConfigBase):
         :type amount: int
         :param price: at price value to close position on it
         :type price: int
-        :param ref_price: reference symbol price value
-        :type ref_price: int
+        :param ref_ask_price: ask price value for the Reference Symbol
+        :type ref_ask_price: int
+        :param ref_bid_price: bid Price value for the reference Symbol
+        :type ref_bid_price: int
         :param commission: the commision value to be used when closing the position
         :type commission: int
         :param user_defined_date: trade open time, defaults to "" which means now
@@ -439,7 +441,8 @@ class NBHClient(JSConfigBase):
             "TicketID": ticket_id,
             "Amount": amount,
             "Price": price,
-            "RefPrice": ref_price,
+            "RefAskPrice": ref_ask_price,
+            "RefBidPrice": ref_bid_price,
             "Comm": commission,
             "UserDefinedDate": user_defined_date,
         }
