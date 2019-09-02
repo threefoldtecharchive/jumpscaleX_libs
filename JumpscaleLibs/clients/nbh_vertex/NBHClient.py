@@ -413,7 +413,9 @@ class NBHClient(JSConfigBase):
         }
         return self._request("NewPosition", params)
 
-    def close_position(self, account_id, ticket_id, amount, price, ref_ask_price, ref_bid_price, commission, user_defined_date=""):
+    def close_position(
+        self, account_id, ticket_id, amount, price, ref_ask_price, ref_bid_price, commission, user_defined_date=""
+    ):
         """The ClosePosition operation is used to close the position that belongs to the given account number
 
         :param account_id: valid account identifier to open position for
