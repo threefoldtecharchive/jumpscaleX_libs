@@ -4,7 +4,7 @@ import subprocess
 JSBASE = j.baseclasses.object
 
 
-class NginxFactory(j.baseclasses.object):
+class NginxFactory(JSBASE):
     __jslocation__ = "j.sal.nginx"
 
     def get(self, path="/etc/nginx"):
@@ -12,10 +12,9 @@ class NginxFactory(j.baseclasses.object):
         return Nginx()
 
 
-class Nginx(j.baseclasses.object):
-    def __init__(self):
+class Nginx(JSBASE):
+    def _init(self):
         self.configPath = j.tools.path.get("/etc").joinpath("nginx", "conf.d")
-        JSBASE.__init__(self)
 
     def list(self):
         return self.configPath.files()
