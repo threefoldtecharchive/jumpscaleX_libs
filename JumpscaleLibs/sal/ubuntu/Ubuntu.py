@@ -31,8 +31,10 @@ class Ubuntu(JSBaseClass):
         try:
             import apt
         except ImportError:
-            # we dont wont jshell to break, self.check will take of this
-            return
+            j.sal.process.execute("apt-get update", False)
+            j.sal.process.execute("apt-get install python3-apt --force-yes -y")
+            import apt
+
         apt.apt_pkg.init()
         if hasattr(apt.apt_pkg, "Config"):
             cfg = apt.apt_pkg.Config
