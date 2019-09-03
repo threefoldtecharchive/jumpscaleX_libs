@@ -1,7 +1,7 @@
 from Jumpscale import j
-from ..disklayout import mount
-from ..disklayout import lsblk
-from ..disklayout import disks
+from . import mount
+from . import lsblk
+from . import disks
 
 JSBASE = j.baseclasses.object
 
@@ -15,19 +15,15 @@ class DiskManager(j.baseclasses.object):
 
     def _init(self, **kwargs):
         self.disks = []
-        self._executor = j.tools.executorLocal
+        self._executor = j.tools.executor.local_get()
         # self._cache = j.core.cache.get(
         #     db=j.data.kvs.getRedisStore(name="cache",
         #                                    unixsocket=j.sal.fs.joinPaths(j.dirs.TMPDIR, 'redis.sock')))
 
-    @property
-    def prefab(self):
-        return self._executor.prefab
-
     def _loadconfig(self, path):
         path = path + "/.partition_config.yaml"
-        if self.prefab.core.file_exists(path):
-            yaml = self.prefab.core.file_read(path)
+        if self._executor.file_exists(path):
+            yaml = self._executor.file_read(path)
             return j.data.serializers.yaml.loads(yaml)
         return {}
 
