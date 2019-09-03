@@ -1,13 +1,13 @@
 from Jumpscale import j
-from sal.kvm.Network import Network
-from sal.kvm.Interface import Interface
-from sal.kvm.Disk import Disk
-from sal.kvm.Pool import Pool
-from sal.kvm.StorageController import StorageController
-from sal.kvm.KVMController import KVMController
-from sal.kvm.Machine import Machine
-from sal.kvm.CloudMachine import CloudMachine
-from sal.kvm.MachineSnapshot import MachineSnapshot
+from .Network import Network
+from .Interface import Interface
+from .Disk import Disk
+from .Pool import Pool
+from .StorageController import StorageController
+from .KVMController import KVMController
+from .Machine import Machine
+from .CloudMachine import CloudMachine
+from .MachineSnapshot import MachineSnapshot
 
 JSBASE = j.baseclasses.object
 
