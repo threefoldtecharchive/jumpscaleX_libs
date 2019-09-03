@@ -4,7 +4,7 @@ import dns.zone
 from dns.zone import NoSOA
 import dns.rdatatype
 from dns.rdtypes.IN.A import A
-from sal.bind.base import DNS
+from .base import DNS
 from Jumpscale import j
 
 JSBASE = j.baseclasses.object
