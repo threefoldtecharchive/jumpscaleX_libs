@@ -1,13 +1,13 @@
 from Jumpscale import j
 import subprocess
 
-
+JSBASE = j.baseclasses.object
 OP_ADD = "+"
 OP_DEL = "-"
 OP_ERS = "--"
 
 
-class SSHD(j.baseclasses.object):
+class SSHD(JSBASE):
 
     __jslocation__ = "j.sal.sshd"
 

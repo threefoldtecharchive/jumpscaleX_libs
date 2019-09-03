@@ -1,10 +1,9 @@
 from Jumpscale import j
 
-# from .Capacity import Capacity
-JSBaseClass = j.baseclasses.object
+JSBASE = j.baseclasses.object
 
 
-class Ubuntu(JSBaseClass):
+class Ubuntu(JSBASE):
     __jslocation__ = "j.sal.ubuntu"
 
     def _init(self, **kwargs):

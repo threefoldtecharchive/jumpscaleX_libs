@@ -151,7 +151,7 @@ class RuleOp(UFWOperation):
         return " ".join(cmd)
 
 
-class UFWManager(j.baseclasses.object):
+class UFWManager(JSBASE):
     __jslocation__ = "j.sal.ufw"
     ACTION_ALLOW_IN = "allow in"
     ACTION_ALLOW_OUT = "allow out"
