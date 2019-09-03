@@ -7,11 +7,11 @@ OP_DEL = "-"
 OP_ERS = "--"
 
 
-class SSHD:
+class SSHD(j.baseclasses.object):
 
     __jslocation__ = "j.sal.sshd"
 
-    def __init__(self):
+    def _init(self, **kwargs):
         self._keys = None
         self._transactions = []
 
@@ -75,7 +75,7 @@ class SSHD:
 
     def disable_none_key_access(self):
         """ Disable passowrd login to server
-        This action doens't require calling to commit and applies immediately. 
+        This action doens't require calling to commit and applies immediately.
         So if you added your key make sure to commit it before you call this method.
 
         'note': this is not a smart way to do this: there could be
