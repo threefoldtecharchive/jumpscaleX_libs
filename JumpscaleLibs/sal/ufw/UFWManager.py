@@ -164,7 +164,6 @@ class UFWManager(j.baseclasses.object):
         self._rules = None
         self._enabled = None
         self._transactions = []
-        JSBASE.__init__(self)
 
     def _bool(self, status):
         return status == "active"

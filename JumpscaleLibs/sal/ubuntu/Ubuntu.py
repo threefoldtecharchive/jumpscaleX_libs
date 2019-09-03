@@ -11,9 +11,7 @@ class Ubuntu(JSBaseClass):
         self._aptupdated = False
         self._checked = False
         self._cache_ubuntu = None
-        self.installedpackage_names = []
         self._installed_pkgs = None
-        # self.capacity = Capacity(self)
 
     def uptime(self):
         """return system uptime value.
@@ -46,7 +44,6 @@ class Ubuntu(JSBaseClass):
         except BaseException:
             pass
         self._cache_ubuntu = apt.Cache()
-        self.apt_cache = self._cache_ubuntu
         self.apt = apt
 
     def check(self):
@@ -186,13 +183,12 @@ class Ubuntu(JSBaseClass):
         """
         self._log_info("ubuntu remove package:%s" % package_name)
         self.check()
-        if self._cache_ubuntu is None:
-            self.apt_init()
+        self.apt_get_installed()
         pkg = self._cache_ubuntu[package_name]
         if pkg.is_installed:
             pkg.mark_delete()
-        if package_name in self.installedpackage_names:
-            self.installedpackage_names.pop(self.installedpackage_names.index(package_name))
+        if package_name in self._installed_pkgs:
+            self._installed_pkgs.pop(self._installed_pkgs.index(package_name))
         self._cache_ubuntu.commit()
         self._cache_ubuntu.clear()
 
