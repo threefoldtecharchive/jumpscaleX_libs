@@ -43,21 +43,11 @@ JSBASE = j.baseclasses.object
 class WindowsSystem(j.baseclasses.object):
 
     try:
-        mythreads = []
-        _userEveryone = None
-
-        # Singleton pattern
-        __shared_state = {}
-
         _wmi = GetObject("winmgmts:")
     except:
         pass
 
     __jslocation__ = "j.sal.windows"
-
-    def __init__(self):
-        JSBASE.__init__(self)
-        self.__dict__ = self.__shared_state
 
     def checkFileToIgnore(self, path):
         if j.core.platformtype.myplatform.platform_is_windows:
