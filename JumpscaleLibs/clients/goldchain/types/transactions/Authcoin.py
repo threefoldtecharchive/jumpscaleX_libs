@@ -68,7 +68,12 @@ class TransactionV176(TransactionBaseClass):
             self.auth_addresses_add(uh)
 
     def auth_addresses_add(self, uh):
-        self._auth_addresses.append(UnlockHash.from_json(uh))
+        if isinstance(uh, UnlockHash):
+            self._auth_addresses.append(uh)
+        elif isinstance(uh, str):
+            self._auth_addresses.append(UnlockHash.from_json(uh))
+        else:
+            raise j.exceptions.Value("invalid type of uh {} (expected: UnlockHash or str)".format(type(uh)))
 
     @property
     def deauth_addresses(self):
@@ -86,7 +91,12 @@ class TransactionV176(TransactionBaseClass):
             self.deauth_addresses_add(uh)
 
     def deauth_addresses_add(self, uh):
-        self._deauth_addresses.append(UnlockHash.from_json(uh))
+        if isinstance(uh, UnlockHash):
+            self._deauth_addresses.append(uh)
+        elif isinstance(uh, str):
+            self._deauth_addresses.append(UnlockHash.from_json(uh))
+        else:
+            raise j.exceptions.Value("invalid type of uh {} (expected: UnlockHash or str)".format(type(uh)))
 
     def auth_fulfillment_defined(self):
         return self._auth_fulfillment is not None

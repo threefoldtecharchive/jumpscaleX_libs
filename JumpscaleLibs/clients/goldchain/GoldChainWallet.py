@@ -39,7 +39,6 @@ class GoldChainWallet(j.baseclasses.object_config):
         seed = "" (S)
         key_count = 1 (I)
         key_scan_count = -1 (I)
-        reservations_transactions = (LS)
         """
 
     def _init(self, **kwargs):
@@ -74,6 +73,7 @@ class GoldChainWallet(j.baseclasses.object_config):
 
         # add sub-apis
         self._minter = GoldChainMinter(wallet=self)
+        self._authcoin = GoldChainAuthcoin(wallet=self)
         self._atomicswap = GoldChainAtomicSwap(wallet=self)
 
         # scan already for keys once
@@ -87,6 +87,15 @@ class GoldChainWallet(j.baseclasses.object_config):
         has (co-)ownership over the current (coin) minter definition.
         """
         return self._minter
+
+    @property
+    def authcoin(self):
+        """
+        Authcoin used to update the Auth Coin Definition
+        as well as to authorize new addresses, only useable if this wallet
+        has (co-)ownership over the current auth coin definition.
+        """
+        return self._authcoin
 
     @property
     def atomicswap(self):
@@ -735,6 +744,162 @@ class GoldChainMinter:
         Get the current mind condition from the parent GoldChain client.
         """
         return self._wallet.client.minter.condition_get()
+
+    def _transaction_put(self, transaction):
+        """
+        Submit the transaction to the network using the parent's wallet client.
+
+        Returns the transaction ID.
+        """
+        return self._wallet.client.transaction_put(transaction=transaction)
+
+
+class GoldChainAuthcoin:
+    """
+    GoldChainAuthcoin contains all Auth Coin logic.
+    """
+
+    def __init__(self, wallet):
+        if not isinstance(wallet, GoldChainWallet):
+            raise j.exceptions.Value("wallet is expected to be a GoldChainWallet")
+        self._wallet = wallet
+
+    def definition_set(self, authorizer, data=None):
+        """
+        Redefine the current auth coin definition.
+        Arbitrary data can be attached as well if desired.
+
+        The authorizer is one of:
+            - str (or unlockhash): authorizer is a personal wallet
+            - list: authorizer is a MultiSig wallet where all owners (specified as a list of addresses) have to sign
+            - tuple (addresses, sigcount): authorizer is a sigcount-of-addresscount MultiSig wallet
+
+        Returns a TransactionSendResult.
+
+        @param:authorizer see explanation above
+        @param data: optional data that can be attached to the sent transaction (str or bytes), with a max length of 83
+        """
+        # create empty Auth Condition Update Txn, with a newly generated Nonce set already
+        txn = j.clients.goldchain.types.transactions.auth_condition_update_new()
+
+        # set the new mint condition
+        txn.auth_condition = j.clients.goldchain.types.conditions.from_recipient(authorizer)
+        # minter definition must be of unlock type 1 or 3
+        ut = txn.auth_condition.unlockhash.type
+        if ut not in (UnlockHashType.PUBLIC_KEY, UnlockHashType.MULTI_SIG):
+            raise j.exceptions.Value(
+                "{} is an invalid unlock hash type and cannot be used for an authorizer definition".format(ut)
+            )
+
+        # optionally set the data
+        if data is not None:
+            txn.data = data
+
+        # get and set the current auth condition
+        txn.parent_auth_condition = self._current_auth_condition()
+        # create a raw fulfillment based on the current auth condition
+        txn.auth_fulfillment = j.clients.goldchain.types.fulfillments.from_condition(txn.parent_auth_condition)
+
+        # get all signature requests
+        sig_requests = txn.signature_requests_new()
+        if len(sig_requests) == 0:
+            raise Exception("BUG: sig requests should not be empty at this point, please fix or report as an issue")
+
+        # fulfill the signature requests that we can fulfill
+        for request in sig_requests:
+            try:
+                key_pair = self._wallet.key_pair_get(request.wallet_address)
+                input_hash = request.input_hash_new(public_key=key_pair.public_key)
+                signature = key_pair.sign(input_hash)
+                request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
+            except KeyError:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
+
+        submit = txn.is_fulfilled()
+        if submit:
+            txn.id = self._transaction_put(transaction=txn)
+
+        # return the txn, as well as the submit status as a boolean
+        return TransactionSendResult(txn, submit)
+
+    def update_address_authorization(self, recipient, authorize=True, lock=None, data=None):
+        """
+        Update the authorization state of an address.
+        Arbitrary data can be attached as well if desired.
+
+        The recipient is one of:
+            - None: recipient is the Free-For-All wallet
+            - str (or unlockhash/bytes/bytearray): recipient is a personal wallet
+            - list: recipient is a MultiSig wallet where all owners (specified as a list of addresses) have to sign
+            - tuple (addresses, sigcount): recipient is a sigcount-of-addresscount MultiSig wallet
+
+        Authorize is a bool indicating if the address should be authorized (True) or deauthorized (False)
+
+        The lock can be a str, or int:
+            - when it is an int it represents either a block height or an epoch timestamp (in seconds)
+            - when a str it can be a Jumpscale Datetime (e.g. '12:00:10', '31/10/2012 12:30', ...) or a Jumpscale Duration (e.g. '+ 2h', '+7d12h', ...)
+
+        Returns a TransactionSendResult.
+
+        @param recipient: see explanation above
+        @param auithorize: indicates whether the recipient should be authorized or deauthorized
+        @param lock: optional lock that can be used to lock the sent amount to a specific time or block height, see explation above
+        @param data: optional data that can be attached ot the sent transaction (str or bytes), with a max length of 83
+        """
+        # create empty Auth Address Update Txn, with a newly generated Nonce set already
+        txn = j.clients.goldchain.types.transactions.auth_address_update_new()
+
+        # define recipient
+        recipient = j.clients.goldchain.types.conditions.from_recipient(recipient, lock=lock)
+        # and add it as authorize or unauthorize address in the tx
+        if authorize:
+            txn.auth_addresses_add(recipient.unlockhash)
+        else:
+            txn.deauth_addresses_add(recipient.unlockhash)
+
+        # optionally set the data
+        if data is not None:
+            txn.data = data
+
+        # get and set the current mint condition
+        txn.parent_auth_condition = self._current_auth_condition_get()
+        # create a raw fulfillment based on the current auth condition
+        txn.auth_fulfillment = j.clients.goldchain.types.fulfillments.from_condition(txn.parent_auth_condition)
+
+        # get all signature requests
+        sig_requests = txn.signature_requests_new()
+        if len(sig_requests) == 0:
+            raise Exception("BUG: sig requests should not be empty at this point, please fix or report as an issue")
+
+        # fulfill the signature requests that we can fulfill
+        for request in sig_requests:
+            try:
+                key_pair = self._wallet.key_pair_get(request.wallet_address)
+                input_hash = request.input_hash_new(public_key=key_pair.public_key)
+                signature = key_pair.sign(input_hash)
+                request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
+            except KeyError:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
+
+        submit = txn.is_fulfilled()
+        if submit:
+            txn.id = self._transaction_put(transaction=txn)
+
+        # return the txn, as well as the submit status as a boolean
+        return TransactionSendResult(txn, submit)
+
+    @property
+    def _minium_miner_fee(self):
+        """
+        Returns the minimum miner fee
+        """
+        return self._wallet.client.minimum_miner_fee
+
+    def _current_auth_condition_get(self):
+        """
+        Get the current auth condition from the parent GoldChain client.
+        """
+        return self._wallet.client.authcoin.condition_get()
 
     def _transaction_put(self, transaction):
         """
