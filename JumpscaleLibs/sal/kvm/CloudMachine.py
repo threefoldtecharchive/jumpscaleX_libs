@@ -1,5 +1,5 @@
 from Jumpscale import j
-from sal.kvm.Machine import Machine
+from .Machine import Machine
 
 
 class CloudMachine(Machine):

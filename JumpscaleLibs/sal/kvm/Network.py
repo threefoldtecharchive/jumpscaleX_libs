@@ -1,6 +1,10 @@
 from xml.etree import ElementTree
+
+# to install
+# apt-get install libvirt-dev
+# pip3 install libvirt-python
 import libvirt
-from sal.kvm.BaseKVMComponent import BaseKVMComponent
+from .BaseKVMComponent import BaseKVMComponent
 
 
 class Network(BaseKVMComponent):

@@ -1,7 +1,12 @@
 from Jumpscale import j
+
+# to install on ubuntu
+# apt install qemu-kvm libvirt-bin
+# adduser $USER libvirt
 import libvirt
+
 from xml.etree import ElementTree
-from sal.kvm.BaseKVMComponent import BaseKVMComponent
+from .BaseKVMComponent import BaseKVMComponent
 import random
 import re
 

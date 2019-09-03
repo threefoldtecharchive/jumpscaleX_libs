@@ -1,8 +1,8 @@
 from Jumpscale import j
 import libvirt
 from xml.etree import ElementTree
-from sal.kvm.BaseKVMComponent import BaseKVMComponent
-from sal.kvm.StorageController import StorageController
+from .BaseKVMComponent import BaseKVMComponent
+from .StorageController import StorageController
 
 
 class Disk(BaseKVMComponent):
