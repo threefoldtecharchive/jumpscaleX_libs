@@ -14,7 +14,7 @@ class BtfsExtensionFactory(j.baseclasses.object):
         JSBASE.__init__(self)
 
     def getBtrfs(self, executor=None):
-        ex = executor if executor is not None else j.tools.executorLocal
+        ex = executor if executor is not None else j.tools.executor.local_get()
         return BtrfsExtension(ex)
 
 
@@ -25,10 +25,6 @@ class BtrfsExtension(j.baseclasses.object):
         self._executor = executor
         self._disks = None
         JSBASE.__init__(self)
-
-    @property
-    def prefab(self):
-        return self._executor.prefab
 
     def __btrfs(self, command, action, *args):
         cmd = "%s %s %s %s" % (BASECMD, command, action, " ".join(['"%s"' % a for a in args]))
@@ -42,7 +38,7 @@ class BtrfsExtension(j.baseclasses.object):
     @property
     def disks(self):
         if self._disks is None:
-            self._disks = self.prefab.tools.diskmanager.getDisks()
+            self._disks = j.sal.disklayout.getDisks()
         return self._disks
 
     def _snapshotCreate(self, path, dest, readonly=True):
@@ -84,16 +80,14 @@ class BtrfsExtension(j.baseclasses.object):
             self.__btrfs("subvolume", "delete", path)
 
     def subvolumeExists(self, path):
-        if not self._executor.prefab.core.dir_exists(path):
+        if not self._executor.dir_exists(path):
             return False
 
-        rc, res, err = self._executor.prefab.core.run(
-            "btrfs subvolume list %s" % path, checkok=False, die=False, showout=False
-        )
+        rc, res, err = self._executor.execute("btrfs subvolume list %s" % path, checkok=False, die=False, showout=False)
 
         if rc > 0:
             if res.find("can't access") != -1:
-                if self._executor.prefab.core.dir_exists(path):
+                if self._executor.dir_exists(path):
                     raise j.exceptions.RuntimeError(
                         "Path %s exists put is not btrfs subvolume, cannot continue." % path
                     )
