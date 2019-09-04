@@ -55,7 +55,7 @@ class PeeweeFactory(j.baseclasses.object_config_collection_testtools):
         :return:
         """
 
-        j.builders.db.postgres.start()
+        j.builders.db.psql.start()
         cl = j.clients.postgres.db_client_get()
         cl.db_create("pewee_test")
         pw = self.get(name="test", dbname="pewee_test", passwd_="123456")

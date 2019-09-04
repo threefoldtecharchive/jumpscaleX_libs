@@ -24,13 +24,13 @@ class PostgresqlFactory(JSConfigs):
         kosmos 'j.clients.postgres.install()'
         :return:
         """
-        j.builders.db.postgres.install()
+        j.builders.db.psql.install()
 
     def start(self):
-        j.builders.db.postgres.start()
+        j.builders.db.psql.start()
 
     def stop(self):
-        j.builders.db.postgres.stop()
+        j.builders.db.psql.stop()
 
     def db_client_get(self, name="test", dbname="main"):
         """
