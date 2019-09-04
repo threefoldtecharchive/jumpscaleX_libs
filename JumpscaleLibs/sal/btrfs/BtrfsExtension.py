@@ -19,12 +19,10 @@ class BtfsExtensionFactory(j.baseclasses.object):
 
 
 class BtrfsExtension(j.baseclasses.object):
-    def __init__(self, executor):
+    def _init(self, **kwargs):
         self.__conspattern = re.compile("^(?P<key>[^:]+): total=(?P<total>[^,]+), used=(?P<used>.+)$", re.MULTILINE)
         self.__listpattern = re.compile("^ID (?P<id>\d+).+?path (?P<name>.+)$", re.MULTILINE)
-        self._executor = executor
         self._disks = None
-        JSBASE.__init__(self)
 
     def __btrfs(self, command, action, *args):
         cmd = "%s %s %s %s" % (BASECMD, command, action, " ".join(['"%s"' % a for a in args]))

@@ -4,8 +4,7 @@ JSBASE = j.baseclasses.object
 
 
 class DNSMasq(JSBASE):
-    def __init__(self, path):
-        JSBASE.__init__(self)
+    def _init(self, path, **kwargs):
         self._configdir = j.tools.path.get(path)
         j.sal.fs.createDir(self._configdir)
         self._hosts = self._configdir.joinpath("hosts")

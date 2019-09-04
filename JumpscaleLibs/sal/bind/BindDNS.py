@@ -14,11 +14,10 @@ class Zone(j.baseclasses.object):
     CONFIG_FILES_DIR = j.tools.path.get("/etc/bind/")
     NON_ZONE_FILES = ["/etc/bind/named.conf.options"]
 
-    def __init__(self, domain, type, file):
-        JSBASE.__init__(self)
-        self.domain = domain
-        self.type = type
-        self.file = file
+    def _init(self, **kwargs):
+        self.domain = kwargs["domain"]
+        self.type = kwargs["type"]
+        self.file = kwargs["file"]
 
     def __repr__(self):
         return "{domain:%s, type:%s, file:%s}" % (self.domain, self.type, self.file)
