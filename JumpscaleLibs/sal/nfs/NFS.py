@@ -8,7 +8,7 @@ EXPORTS_FILE = j.tools.path.get("/etc/exports")
 
 EXPORT_OPT_REGEXT = re.compile('^(?:([\w/]+)|"([\w\s/]+)")\s+(.+)$')
 CLIENT_OPT_REGEXT = re.compile("\s*([^\(]+)\(([^\)]+)\)")
-JSBASE = j.baseclasses.object
+JSBASE = j.baseclasses.factory
 
 
 class NFSError(Exception):
