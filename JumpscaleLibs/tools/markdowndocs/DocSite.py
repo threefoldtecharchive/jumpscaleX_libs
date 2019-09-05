@@ -602,6 +602,8 @@ class DocSite(j.baseclasses.object):
 
         data_json = j.data.serializers.json.dumps(data)
         j.sal.bcdbfs.file_write(dest + "/.data", data_json, append=False)
+        j.sal.fs.createDir(dest)
+        j.sal.fs.writeFile(dest + "/.data", data_json, append=False)
 
     def write(self, reset=False):
         self.load()
