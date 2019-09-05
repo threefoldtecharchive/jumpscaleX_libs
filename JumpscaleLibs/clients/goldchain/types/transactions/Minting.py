@@ -516,7 +516,7 @@ class TransactionV130(TransactionBaseClass):
         else:
             encoder.add_int8(1)
             encoder.add(self._refund_coin_output)
-        encoder.add_all(self.refund_coin_outputs, self.miner_fees, self.data)
+        encoder.add_all(self.miner_fees, self.data)
         return encoder.data
 
     def _from_json_data_object(self, data):

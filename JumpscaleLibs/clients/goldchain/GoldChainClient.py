@@ -22,7 +22,7 @@ _EXPLORER_NODES = {
         "https://explorer4.nbh-digital.com",
     ],
     "TEST": ["https://explorer.testnet.nbh-digital.com", "https://explorer2.testnet.nbh-digital.com"],
-    "DEV": ["http://localhost:22110"],
+    "DEV": ["http://localhost:22110", "http://192.168.8.200:22110"],
 }
 
 _CHAIN_NETWORK_TYPES = sorted(["STD", "TEST", "DEV"])

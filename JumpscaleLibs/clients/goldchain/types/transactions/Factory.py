@@ -46,13 +46,13 @@ class TransactionFactory(j.baseclasses.object):
         """
         Creates and returns an empty Authcoin AuthAddressUpdate transaction
         """
-        return TransactionV176
+        return TransactionV176()
 
     def auth_condition_update_new(self):
         """
         Creates and returns an empty Authcoin AuthConditionUpdate transaction
         """
-        return TransactionV177
+        return TransactionV177()
 
     def from_json(self, obj, id=None):
         """
