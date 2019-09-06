@@ -24,6 +24,7 @@ class DigitalOceanFactory(JSConfigBaseFactory):
         do:
         kosmos 'j.clients.digitalocean.get_testvm_sshclient()'
         """
+        delete = j.data.types.bool.clean(delete)
         if not self.main.token_:
             token = j.tools.console.askString("digital ocean token")
             self.main.token_ = tokengun
@@ -43,6 +44,7 @@ class DigitalOceanFactory(JSConfigBaseFactory):
         do:
         kosmos 'j.clients.digitalocean.test()'
         """
+        reset = j.data.types.bool.clean(reset)
         j.core.myenv.interactive = True
 
         if not self.exists(name="main"):

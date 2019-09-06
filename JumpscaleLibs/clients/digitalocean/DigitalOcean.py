@@ -156,6 +156,8 @@ class DigitalOcean(j.baseclasses.object_config):
         :param mosh: when mosh will be used to improve ssh experience
         :return: droplet,sshclient
         """
+        delete = j.data.types.bool.clean(delete)
+        sshkey = j.data.types.string.clean(sshkey)
         if not sshkey:
             sshkey_do = self._sshkey_get_default()
             if not sshkey_do:
@@ -257,6 +259,10 @@ class DigitalOcean(j.baseclasses.object_config):
         return self._droplets
 
     def droplets_all_delete(self, ignore=None, interactive=True):
+
+        ignore = j.data.types.bool.clean(ignore)
+        interactive = j.data.types.bool.clean(interactive)
+
         if not ignore:
             ignore = []
 
