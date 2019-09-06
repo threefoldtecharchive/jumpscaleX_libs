@@ -32,6 +32,42 @@ class GitHubClient(JSConfigClient):
         password = self.password if self.password != "" else None
         self.api = github.Github(login_or_token, password, per_page=100)
 
+    def bootstrap_labels(self, org="", repos=[]):
+        if not org:
+            j.exceptions.RuntimeError("no organization name given. Please specify org to bootstrap")
+        labels = [
+            {"color": "e11d21", "name": "priority_critical"},
+            {"color": "f6c6c7", "name": "priority_major"},
+            {"color": "f6c6c7", "name": "priority_minor"},
+            {"color": "d4c5f9", "name": "process_duplicate"},
+            {"color": "d4c5f9", "name": "process_wontfix"},
+            {"color": "bfe5bf", "name": "state_inprogress"},
+            {"color": "bfe5bf", "name": "state_question"},
+            {"color": "bfe5bf", "name": "state_verification"},
+            {"color": "fef2c0", "name": "type_bug"},
+            {"color": "fef2c0", "name": "type_feature"},
+            {"color": "fef2c0", "name": "type_question"},
+            {"color": "fef2c0", "name": "type_story"},
+            {"color": "000000", "name": "state_blocked"},
+        ]
+
+        org = self.api.get_organization(org)
+        if not repos:
+            repos = org.get_repos()
+        else:
+            repos = [org.get_repo(repo) for repo in repos]
+
+        for repo in repos:
+            existing = repo.get_labels()
+            self._log_debug("set labels for repo: {}".format(repo.name))
+            existing = [l.name for l in existing]
+            for label in labels:
+                if label["name"] not in existing:
+                    try:
+                        repo.create_label(name=label["name"], color=label["color"])
+                    except github.GithubException as exception:
+                        self._log_debug(exception)
+
     # def getRepo(self, fullname):
     #     """
     #     fullname e.g. incubaid/myrepo

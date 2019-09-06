@@ -182,7 +182,7 @@ def include(
     try:
         full_path = docsite.file_get(custom_link.path)
         content = j.sal.fs.readFile(full_path)
-    except j.exceptions.BaseJSException:
+    except j.exceptions.Base:
         included_doc = docsite.doc_get(custom_link.path)
         content = included_doc.markdown_source
         full_path = included_doc.path

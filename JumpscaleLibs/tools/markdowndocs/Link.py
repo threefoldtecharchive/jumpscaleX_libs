@@ -28,7 +28,7 @@ SKIPPED_LINKS = [
 
 class MarkdownLinkParser:
     """A link with custom format of `account:repo(branch):path`
-    
+
     THIS IS A PARSER FOR THE MARKDOWN LINKS
 
     account, repo and branch are optional, examples:
@@ -239,7 +239,7 @@ class GithubLinker(Linker):
     def to_custom_link(cls, url):
         match = cls.GITHUB_LINK_RE.match(url)
         if not match:
-            raise j.exceptions.Value("not a valid github url")
+            raise j.exceptions.Value(f"not a valid github url: '{url}'")
 
         account, repo, branch, path = match.groups()
         link = "%s:%s" % (account, repo)

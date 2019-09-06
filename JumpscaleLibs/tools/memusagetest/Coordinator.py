@@ -5,9 +5,10 @@ JSBASE = j.baseclasses.object
 
 class Coordinator(j.baseclasses.object):
     __jslocation__.replace("j.world.", "")
-    def _init(self,**kwargs):
+
+    def _init(self, **kwargs):
         self.services = {}
-        self._name = self.
+        self._name = None
 
     def _service_register(self, klass):
         self.__dict__[klass.__name__] = klass
