@@ -32,7 +32,7 @@ class GiteaClient(JSConfigBase):
         if "/api" not in base_uri:
             self.url = "%s/api/v1" % base_uri
             self.save()
-            self.data.autosave = True
+            self.data._autosave = True
 
         # TODO:*1 need to do more checks that url is properly formated
 
