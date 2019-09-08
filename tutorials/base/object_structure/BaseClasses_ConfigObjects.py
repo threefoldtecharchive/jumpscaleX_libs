@@ -40,10 +40,13 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         """
         to run:
 
-        kosmos 'j.tutorials.baseclasses.configobjects.test()'
+        kosmos -p 'j.tutorials.baseclasses.configobjects.test()'
         """
 
         ships = Ships()
+        ships.delete()
+        r = ships.find()
+        assert r == []
 
         ship1 = ships.get(name="ibizaboat")
         assert ship1.name == "ibizaboat"
@@ -54,11 +57,16 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         # small test to see that the dataprops are visible
         assert len(ship1._dataprops_names_get()) == 3
 
+        assert ship1._autosave == True
+        # will not save yet because its the default == True and does not change
         assert ship1.onsea == True
         ship1.onsea = False
+        # now a change will happen
         assert ship1.onsea == False
 
         allchildren = ships._children_recursive_get()
         assert len(allchildren) == 2
+
+        j.shell()
 
         print("TEST OK")
