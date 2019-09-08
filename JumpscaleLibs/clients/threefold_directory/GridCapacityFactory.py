@@ -12,7 +12,7 @@ JSConfigs = j.baseclasses.object_config_collection
 class Client(JSConfigClient):
     _SCHEMATEXT = """
     @url = jumpscale.threefold_directory.client
-    name* = "" (S)
+    name** = "" (S)
     base_uri = "https://capacity.threefoldtoken.com" (S)
     """
 

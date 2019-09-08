@@ -9,7 +9,7 @@ class GrafanaClient(JSConfigClient):
 
     _SCHEMATEXT = """
         @url = jumpscale.clients.grafana.client
-        name* = "" (S)
+        name** = "" (S)
         url = "" (S)
         username = "" (S)
         password = "" (S)

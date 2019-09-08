@@ -26,7 +26,7 @@ def raise_if_error(data):
 class NBHClient(JSConfigBase):
     _SCHEMATEXT = """
     @url = jumpscale.nbh.client
-    name* = "main"
+    name** = "main"
     username = "" (S)
     password_ = "" (S)
     service_url = "" (S)

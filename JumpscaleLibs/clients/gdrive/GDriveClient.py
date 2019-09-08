@@ -29,7 +29,7 @@ JSConfigClient = j.baseclasses.object_config
 class GDriveClient(JSConfigClient):
     _SCHEMATEXT = """
     @url =  jumpscale.gdrive.client
-    name* = "" (S)
+    name** = "" (S)
     credfile = "" (S)
     """
 

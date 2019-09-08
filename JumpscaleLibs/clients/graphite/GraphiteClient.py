@@ -16,7 +16,7 @@ JSConfigClient = j.baseclasses.object_config
 class GraphiteClient(JSConfigClient):
     _SCHEMATEXT = """
         @url = jumpscale.graphite.client
-        name* = "" (S)
+        name** = "" (S)
         server = "127.0.0.1" (ipaddr)
         carbon_port = 2003 (ipport)
         graphite_port = 8081 (ipport)

@@ -17,7 +17,7 @@ class TelegramBot(JSConfigClient):
 
     _SCHEMATEXT = """
     @url = jumpscale.telegramBot.client
-    name* = "" (S)
+    name** = "" (S)
     bot_token_ = "" (S)
     """
 

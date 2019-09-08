@@ -8,7 +8,7 @@ class LoggerClient(j.baseclasses.object_config):
 
     _SCHEMATEXT = """
         @url = jumpscale.clients.logger.1
-        name* = ""
+        name** = ""
         redis_addr = ""
         redis_port = 22
         redis_secret = ""

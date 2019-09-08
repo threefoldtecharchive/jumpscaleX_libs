@@ -9,7 +9,7 @@ JSConfigClient = j.baseclasses.object_config
 class InfluxClient(JSConfigClient, influxdb.InfluxDBClient):
     _SCHEMATEXT = """
         @url = jumpscale.influxdb.client
-        name* = "" (S)
+        name** = "" (S)
         host = "127.0.0.1" (ipaddr)
         port = 8086 (ipport)
         username = "root" (S)

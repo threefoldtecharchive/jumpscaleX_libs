@@ -38,7 +38,7 @@ class zero_bootClient(JSConfigClient):
 
     _SCHEMATEXT = """
     @url =jumpscale.zeroboot.client
-    name* = "" (S)
+    name** = "" (S)
     sshclient_instance = "" (S)
     zerotier_instance = "" (S)
     network_id = "" (S)

@@ -14,7 +14,7 @@ JSConfigClient = j.baseclasses.object_config
 class SyncthingClient(JSConfigClient):
     _SCHEMATEXT = """
     @url = jumpscale.syncthing.client
-    name* = "" (S)
+    name** = "" (S)
     addr = "localhost" (S)
     port = 8384 (ipport)
     sshport = 22 (ipport)

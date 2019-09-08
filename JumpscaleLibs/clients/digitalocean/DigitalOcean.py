@@ -12,7 +12,7 @@ from .DigitalOceanVM import DigitalOceanVM
 class DigitalOcean(j.baseclasses.object_config):
     _SCHEMATEXT = """
     @url = jumpscale.digitalocean.client
-    name* = "" (S)
+    name** = "" (S)
     token_ = "" (S)
     project_name = "" (S)
     meta = {} (DICT)

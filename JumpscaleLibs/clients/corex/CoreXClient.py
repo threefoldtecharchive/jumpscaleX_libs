@@ -10,7 +10,7 @@ import requests
 class CoreXClient(j.baseclasses.object_config):
     _SCHEMATEXT = """
     @url = jumpscale.corex.client.1
-    name* = "" (S)
+    name** = "" (S)
     addr = "localhost" (S)
     port = 1500 (I)
     login = "" (S)

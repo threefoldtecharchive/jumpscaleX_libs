@@ -12,7 +12,7 @@ class GiteaClient(JSConfigBase):
 
     _SCHEMATEXT = """
     @url = jumpscale.gitea.client
-    name* = "" (S)
+    name** = "" (S)
     url = "" (S)
     gitea_token_ = "" (S)
     """

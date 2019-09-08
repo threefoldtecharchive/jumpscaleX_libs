@@ -13,7 +13,7 @@ JSConfigClient = j.baseclasses.object_config
 class OauthClient(JSConfigClient):
     _SCHEMATEXT = """
         @url = jumpscale.oauth.client
-        name* = "" (S)
+        name** = "" (S)
         addr = "" (S)
         accesstokenaddr = "" (S)
         client_id = "" (S)

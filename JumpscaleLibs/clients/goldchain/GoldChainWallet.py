@@ -35,7 +35,7 @@ class GoldChainWallet(j.baseclasses.object_config):
 
     _SCHEMATEXT = """
         @url = jumpscale.goldchain.wallet
-        name* = "" (S)
+        name** = "" (S)
         seed = "" (S)
         key_count = 1 (I)
         key_scan_count = -1 (I)

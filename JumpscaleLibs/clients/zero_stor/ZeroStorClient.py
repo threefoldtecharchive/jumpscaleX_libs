@@ -12,7 +12,7 @@ JSConfigBase = j.baseclasses.object_config
 class ZeroStorClient(JSConfigBase):
     _SCHEMATEXT = """
     @url = jumpscale.zstor.client
-    name* = "" (S)
+    name** = "" (S)
     ip = "127.0.0.1" (ipaddress)
     port = 8000 (ipport)
     """

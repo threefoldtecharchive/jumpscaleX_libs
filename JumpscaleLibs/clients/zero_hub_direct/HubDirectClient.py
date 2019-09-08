@@ -13,7 +13,7 @@ class HubDirectClient(JSConfigClient):
 
     _SCHEMATEXT = """
     @url = jumpscale.hubdirect.client
-    name* = "" (S)
+    name** = "" (S)
     base_uri = "https://direct.hub.grid.tf" (S)
     jwt_ = "" (S)
     """

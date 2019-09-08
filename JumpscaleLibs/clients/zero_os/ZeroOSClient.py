@@ -7,7 +7,7 @@ from .protocol.Client import Client as ProtocolClient
 class ZeroOSClient(j.baseclasses.object_config, Node):
     _SCHEMATEXT = """
     @url = jumpscale.zos.client.1
-    name* = "" (S)
+    name** = "" (S)
     host = "127.0.0.1" (S)
     port = 6379 (ipport)
     unixsocket = "" (S)

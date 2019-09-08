@@ -9,7 +9,7 @@ Attachment = ("Attachment", ["originalfilename", "binarycontent", "type"])
 class SendGridClient(j.baseclasses.object_config):
     _SCHEMATEXT = """
     @url = jumpscale.sendgrid.client
-    name* = "" (S)
+    name** = "" (S)
     apikey = ""
     """
 

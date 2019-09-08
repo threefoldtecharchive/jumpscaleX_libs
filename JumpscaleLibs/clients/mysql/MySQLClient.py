@@ -8,7 +8,7 @@ JSConfigClient = j.baseclasses.object_config
 class MySQLClient(JSConfigClient):
     _SCHEMATEXT = """
     @url = jumpscale.mysql.client
-    name* = "" (S)
+    name** = "" (S)
     ipaddr = "127.0.0.1" (ipaddr)
     port = 3306 (ipport)
     login = "" (S)

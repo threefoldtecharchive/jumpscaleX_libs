@@ -9,7 +9,7 @@ JSConfigBase = j.baseclasses.object_config
 class Ipmi(JSConfigBase):
     _SCHEMATEXT = """
     @url = jumpscale.ipmi.client
-    name* = "" (S)
+    name** = "" (S)
     bmc = "" (S)
     user = "" (S)
     password_ = "" (S)

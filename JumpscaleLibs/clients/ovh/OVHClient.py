@@ -10,7 +10,7 @@ JSConfigBase = j.baseclasses.object_config
 class OVHClient(JSConfigBase):
     _SCHEMATEXT = """
     @url = jumpscale.ovh.client
-    name* = "" (S)
+    name** = "" (S)
     ipxeBase = "https://bootstrap.grid.tf/ipxe/master" (S)
     endpoint = "soyoustart-eu" (S)
     appkey_ = "" (S)

@@ -2,8 +2,8 @@ from Jumpscale import j
 
 from data.capnp.ModelBaseCollection import ModelBaseCollection
 
-from peewee import *
-import peewee
+from Jumpscale.clients.peewee.peewee import *
+import Jumpscale.clients.peewee.peewee
 import operator
 from playhouse.sqlite_ext import Model
 

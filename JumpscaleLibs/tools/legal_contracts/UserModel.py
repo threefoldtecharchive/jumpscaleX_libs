@@ -5,7 +5,7 @@ SCHEMA = """
 @url = jumpscale.bcdb.acl.1
 groups = (LO) !jumpscale.bcdb.acl.group
 users = (LO) !jumpscale.bcdb.acl.user
-hash* = ""
+hash** = ""
 
 @url = jumpscale.bcdb.acl.group
 uid= 2147483647 (I)

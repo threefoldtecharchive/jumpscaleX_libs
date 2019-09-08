@@ -10,7 +10,7 @@ from tools.issuemanager.models.orgModel import OrgModel
 from tools.issuemanager.models.orgCollection import OrgCollection
 import capnp
 from tools.issuemanager import model_capnp as ModelCapnp
-from peewee import *
+from Jumpscale.clients.peewee.peewee import *
 from playhouse.sqlite_ext import SqliteExtDatabase
 
 JSBASE = j.baseclasses.object

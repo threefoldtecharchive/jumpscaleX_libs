@@ -8,7 +8,7 @@ class Car(j.baseclasses.object_config):
 
     _SCHEMATEXT = """
         @url = jumpscale.example.car.1
-        name* = ""
+        name** = ""
         city = ""
         """
 
@@ -31,7 +31,7 @@ class Ship(j.baseclasses.object_config):
 
     _SCHEMATEXT = """
         @url = jumpscale.example.ship.1
-        name* = ""
+        name** = ""
         location = ""
         onsea = true (b)
         """
@@ -68,7 +68,7 @@ class World2(j.baseclasses.factory_data):
     _CHILDCLASSES = [Cars, Ships]
     _SCHEMATEXT = """
         @url = jumpscale.example.world2
-        name* = ""
+        name** = ""
         color = "red,blue" (E)
         """
 

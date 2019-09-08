@@ -289,7 +289,7 @@ class ZeroTierNetwork:
 class ZerotierClient(JSConfigClient):
     _SCHEMATEXT = """
     @url = jumpscale.zerotier.client
-    name* = "" (S)
+    name** = "" (S)
     instance = "main" (S)
     token_ = "" (S)
     networkid = "" (S)

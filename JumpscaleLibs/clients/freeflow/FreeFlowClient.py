@@ -9,7 +9,7 @@ JSConfigClient = j.baseclasses.object_config
 class FreeFlowClient(JSConfigClient):
     _SCHEMATEXT = """
         @url = jumpscale.freeflow.client
-        name* = "" (S)
+        name** = "" (S)
         base_url = "" (S)
         api_key = "" (S)
     """

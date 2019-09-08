@@ -13,7 +13,7 @@ JSConfigBase = j.baseclasses.object_config
 class CoreDnsClient(JSConfigBase):
     _SCHEMATEXT = """
     @url = jumpscale.coredns.client
-    name* = "" (S)
+    name** = "" (S)
     etcd_instance = "main" (S)
     etcdpath = "hosts" (S)
     secrets_ = "" (S)

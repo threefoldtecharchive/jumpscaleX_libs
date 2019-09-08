@@ -8,7 +8,7 @@ j.builders.apps.odoo.install(reset=True)
 ## start Odoo
 ### Schema
 ```
-name* = "default" (S)
+name** =  "default" (S)
 host = "127.0.0.1" (S)
 port = 8069 (I)
 admin_login = "admin"(S)
@@ -19,7 +19,7 @@ db_passwd_ = "admin"
 databases = (LO) !jumpscale.odoo.server.db.1
            
 @url =  jumpscale.odoo.server.db.1
-name* = "user" (S)
+name** =  "user" (S)
 admin_email = "info@example.com" (S)                      
 admin_passwd_ = "123456" (S)
 country_code = "be"

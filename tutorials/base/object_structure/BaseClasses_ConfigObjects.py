@@ -8,7 +8,7 @@ class Ship(j.baseclasses.object_config):
 
     _SCHEMATEXT = """
         @url = jumpscale.example.ship.1
-        name* = ""
+        name** = ""
         location = ""
         onsea = true (b)
         """

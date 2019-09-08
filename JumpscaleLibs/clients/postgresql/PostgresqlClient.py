@@ -18,7 +18,7 @@ JSConfigClient = j.baseclasses.object_config
 class PostgresClient(JSConfigClient):
     _SCHEMATEXT = """
     @url = jumpscale.postgres.client
-    name* = "" (S)
+    name** = "" (S)
     ipaddr = "" (S)
     port = 5432 (ipport)
     login = "root" (S)

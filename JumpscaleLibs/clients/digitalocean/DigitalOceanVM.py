@@ -9,7 +9,7 @@ JSConfigBase = j.baseclasses.object_config
 class DigitalOceanVM(JSConfigBase):
     _SCHEMATEXT = """
     @url = jumpscale.digitalocean.vm
-    name* = "" (S)
+    name** = "" (S)
     client_name = "" (S)
     project_name = "" (S)
     do_id = "" (S)

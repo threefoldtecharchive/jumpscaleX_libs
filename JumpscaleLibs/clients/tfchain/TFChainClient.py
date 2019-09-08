@@ -38,7 +38,7 @@ class TFChainClient(j.baseclasses.factory_data_testtools):
 
     _SCHEMATEXT = """
         @url = jumpscale.tfchain.client
-        name* = "" (S)
+        name** = "" (S)
         network_type = "STD,TEST,DEV" (E)
         explorer_nodes = (LS)
         """

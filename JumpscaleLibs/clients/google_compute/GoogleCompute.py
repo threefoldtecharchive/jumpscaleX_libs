@@ -17,7 +17,7 @@ JSBASE = j.baseclasses.object_config
 class GoogleCompute(JSBASE):
     _SCHEMATEXT = """
     @url = jumpscale.googlecompute.client
-    name* = "" (S)
+    name** = "" (S)
     zone = "us-east1-b" (S)
     projectName = "constant-carver-655" (S)
     """

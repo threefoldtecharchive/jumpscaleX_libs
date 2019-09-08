@@ -19,7 +19,7 @@ from .generated.client import Client
 class IYOClient(j.baseclasses.object_config):
     _SCHEMATEXT = """
         @url = jumpscale.itsyouonline.1
-        name* = "" (S)
+        name** = "" (S)
         baseurl = "https://itsyou.online/api" (S)
         application_id = "" (S)
         secret = "" (S)

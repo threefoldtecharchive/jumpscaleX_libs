@@ -12,7 +12,7 @@ class GraphQLClient(JSConfigClient):
 
     _SCHEMATEXT = """
         @url = jumpscale.graphql.client
-        name* = "" (S)
+        name** = "" (S)
         url = "http://127.0.0.1" (S)
         port = 7777 (I)
         subscriptions_port = 7778 (I)

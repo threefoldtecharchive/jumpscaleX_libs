@@ -19,7 +19,7 @@ class S3Client(JSConfigBase):
 
     _SCHEMATEXT = """
     @url = jumpscale.s3.client
-    name* = "" (S)
+    name** = "" (S)
     address = "" (S)
     port = 9000 (ipport)
     accesskey_ = "" (S)
