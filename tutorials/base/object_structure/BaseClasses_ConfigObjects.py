@@ -67,6 +67,20 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         allchildren = ships._children_recursive_get()
         assert len(allchildren) == 2
 
+        names = ships._children_names_get("i")
+        assert len(names) == 2
+        names = ships._children_names_get("ibiza")
+        assert len(names) == 2
+        names = ships._children_names_get("ibizq")
+        assert len(names) == 0
+
+        assert ships.exists(name="ibizaboat2")
+
+        assert ships.ibizaboat2 == ship2
+
+        # TODO: REEM
+        print("COMPLETION IN SHELL DOES NOT WORK, TRY SHIPS.[TAB]")
+
         j.shell()
 
         print("TEST OK")
