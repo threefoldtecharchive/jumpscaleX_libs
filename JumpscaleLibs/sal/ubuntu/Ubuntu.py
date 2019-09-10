@@ -313,6 +313,8 @@ stop on runlevel [016]
             self.apt_init()
         if self._cache_ubuntu:
             self._cache_ubuntu.update()
+            self._cache_ubuntu.open()
+            self._cache_ubuntu.commit()
         else:
             j.sal.process.execute("apt-get update", False)
 
@@ -324,7 +326,8 @@ stop on runlevel [016]
         if self._cache_ubuntu is None:
             self.apt_init()
         self.apt_update()
-        self._cache_ubuntu.upgrade()
+        self._cache_ubuntu.upgrade(dist_upgrade=True)
+        self._cache_ubuntu.commit()
 
     def apt_get_cache_keys(self):
         """get all cached keys.
