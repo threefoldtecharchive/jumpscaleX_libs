@@ -6,10 +6,10 @@ import re
 
 JSBASE = j.baseclasses.object
 
-META_RE = re.compile(r'^[ ]{0,3}(?P<key>[A-Za-z0-9_-]+):\s*(?P<value>.*)')
-META_MORE_RE = re.compile(r'^[ ]{4,}(?P<value>.*)')
-BEGIN_RE = re.compile(r'^-{3}(\s.*)?')
-END_RE = re.compile(r'^(-{3}|\.{3})(\s.*)?')
+META_RE = re.compile(r"^[ ]{0,3}(?P<key>[A-Za-z0-9_-]+):\s*(?P<value>.*)")
+META_MORE_RE = re.compile(r"^[ ]{4,}(?P<value>.*)")
+BEGIN_RE = re.compile(r"^-{3}(\s.*)?")
+END_RE = re.compile(r"^(-{3}|\.{3})(\s.*)?")
 
 
 def meta_from_md(md):
@@ -22,11 +22,11 @@ def meta_from_md(md):
     while lines:
         line = lines.pop(0)
         m1 = META_RE.match(line)
-        if line.strip() == '' or END_RE.match(line):
+        if line.strip() == "" or END_RE.match(line):
             break  # blank line or end of YAML header - done
         if m1:
-            key = m1.group('key').lower().strip()
-            value = m1.group('value').strip()
+            key = m1.group("key").lower().strip()
+            value = m1.group("value").strip()
             try:
                 meta[key].append(value)
             except KeyError:
@@ -35,12 +35,13 @@ def meta_from_md(md):
             m2 = META_MORE_RE.match(line)
             if m2 and key:
                 # Add another line to existing key
-                meta[key].append(m2.group('value').strip())
+                meta[key].append(m2.group("value").strip())
             else:
                 lines.insert(0, line)
                 break  # no meta data - done
 
     return meta
+
 
 class MarkdownDocument(j.baseclasses.object):
     def __init__(self, content="", path=""):
@@ -259,7 +260,7 @@ class MarkdownDocument(j.baseclasses.object):
                 if data.strip() != "":
                     try:
                         data2 = j.data.serializers.toml.loads(data)
-                    except RuntimeError:
+                    except j.exceptions.Value:
                         data2 = {"content": data}
                 else:
                     data2 = {}
