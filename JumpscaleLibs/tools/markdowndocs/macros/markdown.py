@@ -10,7 +10,6 @@ def markdown(doc, **kwargs):
     if content.strip() == "":
         raise j.exceptions.Value("no content given for markdown macro for:%s" % doc)
 
-
     client = j.clients.gdrive.get(name="markdown_macro", credfile=CRED_FILE_PATH)
     discovery = client.service_get().files()
 
