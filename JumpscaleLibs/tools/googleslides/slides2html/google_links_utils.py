@@ -1,6 +1,16 @@
 import re
 
 
+def get_document_id(url):
+    """
+        https://docs.google.com/document/d/1N8YWE7ShqmhQphT6L29-AcEKZfZg2QripM4L0AK8mSU/edit
+    """
+
+    res = re.findall("document/d/(.+?)/edit", url)
+    if res:
+        return res[0]
+    return None
+
 def get_presentation_id(url):
     """
         https://docs.google.com/presentation/d/1N8YWE7ShqmhQphT6L29-AcEKZfZg2QripM4L0AK8mSU/edit#slide=id.g4c7fe486b7_0_0
