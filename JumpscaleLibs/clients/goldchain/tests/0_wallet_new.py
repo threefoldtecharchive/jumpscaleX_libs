@@ -10,9 +10,12 @@ def main(self):
     kosmos 'j.clients.goldchain.test(name="wallet_new")'
     """
 
+    # delete goldchain devnet client
+    j.clients.goldchain.delete("devnet_unittest_client")
+
     # create a goldchain client for devnet
-    c = j.clients.goldchain.get("mydevclient", network_type="DEV")
-    # or simply `c = j.goldchain.clients.mydevclient`, should the client already exist
+    c = j.clients.goldchain.get("devnet_unittest_client", network_type="DEV")
+    # or simply `c = j.goldchain.clients.devnet_unittest_client`, should the client already exist
 
     # for standard net you could also immediate create a new wallet using
     # `c = j.goldchain.clients.mydevclient`, or the more explicit form

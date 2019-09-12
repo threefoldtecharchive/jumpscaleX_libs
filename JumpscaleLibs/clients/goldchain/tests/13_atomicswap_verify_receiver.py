@@ -12,9 +12,12 @@ def main(self):
     kosmos 'j.clients.goldchain.test(name="atomicswap_verify_receiver")'
     """
 
+    # delete goldchain devnet client
+    j.clients.goldchain.delete("testnet_unittest_client")
+
     # create a goldchain client for devnet
-    c = j.clients.goldchain.get("mytestclient", network_type="TEST")
-    # or simply `c = j.goldchain.clients.mytestclient`, should the client already exist
+    c = j.clients.goldchain.get("testnet_unittest_client", network_type="TEST")
+    # or simply `c = j.goldchain.clients.testnet_unittest_client`, should the client already exist
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = GoldChainExplorerGetClientStub()

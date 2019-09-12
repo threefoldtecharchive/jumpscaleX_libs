@@ -732,6 +732,88 @@ class GoldChainMinter:
         # return the txn, as well as the submit status as a boolean
         return TransactionSendResult(txn, submit)
 
+    def coins_burn(self, amount, data=None, source=None, refund=None):
+        """
+        Destroy existing coins.
+        Arbitrary data can be attached as well if desired.
+
+        The amount can be a str or an int:
+            - when it is an int, you are defining the amount in the smallest unit (that is 1 == 0.000000001 GFT)
+            - when defining as a str you can use the following space-stripped and case-insentive formats:
+                - '123456789': same as when defining the amount as an int
+                - '123.456': define the amount in GFT (that is '123.456' == 123.456 GFT == 123456000000)
+                - '123456 GFT': define the amount in GFT (that is '123456 GFT' == 123456 GFT == 123456000000000)
+                - '123.456 GFT': define the amount in GFT (that is '123.456 GFT' == 123.456 GFT == 123456000000)
+
+        Returns a TransactionSendResult.
+
+        @param amount: int or str that defines the amount of GFT to set, see explanation above
+        @param data: optional data that can be attached ot the sent transaction (str or bytes), with a max length of 83
+        @param source: one or multiple addresses/unlockhashes from which to fund this coin send transaction, by default all personal wallet addresses are used, only known addresses can be used
+        @param refund: optional refund address, by default is uses the source if it specifies a single address otherwise it uses the default wallet address (recipient type, with None being the exception in its interpretation)
+        """
+        # create empty Coin Destruction Txn
+        txn = j.clients.goldchain.types.transactions.mint_coin_destruction_new()
+
+        # parse the output
+        amount = Currency(value=amount)
+        if amount <= 0:
+            raise j.exceptions.Value("no amount is defined to be sent")
+
+        # fund amount
+        balance = self.balance
+        miner_fee = self.client.minimum_miner_fee
+        inputs, remainder, suggested_refund = balance.fund(amount + miner_fee, source=source)
+
+        # define the refund condition
+        if refund is None:  # automatically choose a refund condition if none is given
+            if suggested_refund is None:
+                refund = j.clients.goldchain.types.conditions.unlockhash_new(unlockhash=self.address)
+            else:
+                refund = suggested_refund
+        else:
+            # use the given refund condition (defined as a recipient)
+            refund = j.clients.goldchain.types.conditions.from_recipient(refund)
+
+        # add coins info to txn
+        txn.coin_inputs = inputs
+        # add refund coin output if needed
+        if remainder > 0:
+            txn.coin_output_add(value=remainder, condition=refund)
+
+        # optionally set the data
+        if data is not None:
+            txn.data = data
+
+        # get all signature requests
+        sig_requests = txn.signature_requests_new()
+        if len(sig_requests) == 0:
+            raise Exception("BUG: sig requests should not be empty at this point, please fix or report as an issue")
+
+        # fulfill the signature requests that we can fulfill
+        for request in sig_requests:
+            try:
+                key_pair = self._wallet.key_pair_get(request.wallet_address)
+                input_hash = request.input_hash_new(public_key=key_pair.public_key)
+                signature = key_pair.sign(input_hash)
+                request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
+            except KeyError:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
+
+        submit = txn.is_fulfilled()
+        if submit:
+            txn.id = self._transaction_put(transaction=txn)
+            # update balance of wallet
+            addresses = self._wallet.addresses + balance.addresses_multisig
+            for idx, co in enumerate(txn.coin_outputs):
+                if str(co.condition.unlockhash) in addresses:
+                    # add the id to the coin_output, so we can track it has been spent
+                    co.id = txn.coin_outputid_new(idx)
+                    balance.output_add(co, confirmed=False, spent=False)
+
+        # return the txn, as well as the submit status as a boolean
+        return TransactionSendResult(txn, submit)
+
     @property
     def _minium_miner_fee(self):
         """
