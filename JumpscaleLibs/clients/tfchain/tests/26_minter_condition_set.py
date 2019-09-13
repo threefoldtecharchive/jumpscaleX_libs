@@ -3,10 +3,7 @@ from Jumpscale import j
 import pytest
 
 from JumpscaleLibs.clients.tfchain.stub.ExplorerClientStub import TFChainExplorerGetClientStub
-from JumpscaleLibs.clients.tfchain.types.FulfillmentTypes import (
-    FulfillmentSingleSignature,
-    FulfillmentMultiSignature,
-)
+from JumpscaleLibs.clients.tfchain.types.FulfillmentTypes import FulfillmentSingleSignature, FulfillmentMultiSignature
 
 
 def main(self):
