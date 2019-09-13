@@ -2,13 +2,13 @@ import nacl
 import pytest
 import time
 from Jumpscale import j
-from JumpscaleLibs.clients.blockchain.tfchain.stub.ExplorerClientStub import TFChainExplorerGetClientStub
-from JumpscaleLibs.clients.blockchain.tfchain.stub.NotaryClientStub import NotaryClientStub
-from JumpscaleLibs.clients.blockchain.tfchain.TFChainClient import ThreeBotRecord
-from JumpscaleLibs.clients.blockchain.tfchain.types.CryptoTypes import PublicKey
-from JumpscaleLibs.clients.blockchain.tfchain.types.Errors import ThreeBotNotFound
-from JumpscaleLibs.clients.blockchain.tfchain.types.ThreeBot import BotName, NetworkAddress
-from JumpscaleLibs.clients.blockchain.tfchain.TFChainCapacity import _signing_key_to_private_key
+from JumpscaleLibs.clients.tfchain.stub.ExplorerClientStub import TFChainExplorerGetClientStub
+from JumpscaleLibs.clients.tfchain.stub.NotaryClientStub import NotaryClientStub
+from JumpscaleLibs.clients.tfchain.TFChainClient import ThreeBotRecord
+from JumpscaleLibs.clients.tfchain.types.CryptoTypes import PublicKey
+from JumpscaleLibs.clients.tfchain.types.Errors import ThreeBotNotFound
+from JumpscaleLibs.clients.tfchain.types.ThreeBot import BotName, NetworkAddress
+from JumpscaleLibs.clients.tfchain.TFChainCapacity import _signing_key_to_private_key
 
 
 def main(self):

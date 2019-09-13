@@ -25,12 +25,6 @@ All methods have docstrings, _read_ them.
 Create a client as follows:
 
 ```python
-c = j.clients.goldchain.my_client
-```
-
-or
-
-```python
 c = j.clients.goldchain.new('my_client')
 # available as `j.clients.goldchain.my_client` from now on
 ```
@@ -48,13 +42,7 @@ The client is a JS config instance that can be saved.
 #### Create a Wallet
 
 ```python
-w = c.wallets.my_wallet # a new seed will be generated
-```
-
-or:
-
-```python
-w = c.wallets.my_wallet.new("my_wallet") # a new seed will be generated
+w = c.wallets.new("my_wallet") # a new seed will be generated
 # available as `c.wallets.my_wallet` from now on
 ```
 
@@ -62,7 +50,7 @@ or:
 
 ```python
 # wallet "recovery"
-w = c.wallets.my_wallet.new("my_wallet", seed="carbon boss inject cover mountain fetch fiber fit tornado cloth wing dinosaur proof joy intact fabric thumb rebel borrow poet chair network expire else")
+w = c.wallets.new("my_wallet", seed="carbon boss inject cover mountain fetch fiber fit tornado cloth wing dinosaur proof joy intact fabric thumb rebel borrow poet chair network expire else")
 # available as `c.wallets.my_wallet` from now on
 ```
 

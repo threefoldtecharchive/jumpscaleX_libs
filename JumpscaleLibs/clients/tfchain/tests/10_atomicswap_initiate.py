@@ -2,9 +2,9 @@ from Jumpscale import j
 
 import pytest
 
-from JumpscaleLibs.clients.blockchain.tfchain.stub.ExplorerClientStub import TFChainExplorerGetClientStub
-from JumpscaleLibs.clients.blockchain.tfchain.types.PrimitiveTypes import BinaryData
-from JumpscaleLibs.clients.blockchain.tfchain.types.AtomicSwap import AtomicSwapContract, AtomicSwapSecretHash
+from JumpscaleLibs.clients.tfchain.stub.ExplorerClientStub import TFChainExplorerGetClientStub
+from JumpscaleLibs.clients.tfchain.types.PrimitiveTypes import BinaryData
+from JumpscaleLibs.clients.tfchain.types.AtomicSwap import AtomicSwapContract, AtomicSwapSecretHash
 
 
 def main(self):

@@ -11,7 +11,7 @@ from .types.Errors import ErrorTypes
 from .TFChainTypesFactory import TFChainTypesFactory
 from .TFChainTime import TFChainTime
 
-JSConfigBaseFactory = j.baseclasses.object_config_collection
+JSConfigBaseFactory = j.baseclasses.object_config_collection_testtools
 
 
 class TFChainClientFactory(JSConfigBaseFactory):
