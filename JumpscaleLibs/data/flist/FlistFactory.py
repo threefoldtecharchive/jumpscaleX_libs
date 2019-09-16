@@ -96,7 +96,7 @@ class Flist(object):
         """
         merge another flist into the current one
         """
-        return self._zflist("merge", path)
+        return self._zflist("merge", flist_path)
 
     def chmod(self, mode, file):
         """
