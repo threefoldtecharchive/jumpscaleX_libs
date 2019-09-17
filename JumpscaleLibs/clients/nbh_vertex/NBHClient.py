@@ -30,9 +30,6 @@ class NBHClient(JSConfigBase):
     username = "" (S)
     password_ = "" (S)
     service_url = "" (S)
-    dealer_id =  (I)
-    nbh_sig_ = "" (S)
-    nbh_wallet_ = "" (S)
     """
 
     def _init(self, **kwargs):
