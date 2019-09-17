@@ -57,6 +57,18 @@ class MarkdownDocument(j.baseclasses.object):
             self._parse()
             self._parse_meta()
 
+    def strip_meta(self, content):
+        if not content.startswith("---"):
+            return content
+
+        lines = content.splitlines()  # we seen a line that starts with --- already
+        idx = 1
+        while idx < len(lines):
+            if lines[idx].startswith("---"):
+                return "".join(lines[idx + 1 :])
+            idx += 1
+        return content
+
     def _parse_meta(self):
         self.meta = meta_from_md(self.content)
 
