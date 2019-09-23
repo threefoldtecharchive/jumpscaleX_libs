@@ -5,7 +5,9 @@ install:
   - apt-get update
   - pip3 install click nose nose-progressive nose-testconfig loguru parameterized
   - eval `ssh-agent -s`; ssh-add
-  - declare strs=('core' 'libs_extra' 'builders' 'threebot') && for s in ${strs[@]}; do cd /sandbox/code/github/threefoldtech/jumpscaleX_$s && git pull; done
+  - rm -rf /sandbox/code/github/threefoldtech/*
+  - cd /sandbox/code/github/threefoldtech/
+  - declare strs=('core' 'libs_extra' 'builders' 'threebot') && for s in ${strs[@]}; do git clone https://github.com/threefoldtech/jumpscaleX_$s.git;  done
   - cp -r /opt/code/github/threefoldtech/jumpscaleX_libs /sandbox/code/github/threefoldtech/jumpscaleX_libs
   - source /sandbox/env.sh; js_init generate
 
