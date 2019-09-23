@@ -1,3 +1,5 @@
 @url = jumpscale.email.folder
 name** = (S)
 subscribed** = (B)
+mtime** = (I)
+sequences = (json)

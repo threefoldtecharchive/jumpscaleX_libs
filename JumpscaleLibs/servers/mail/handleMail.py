@@ -1,6 +1,11 @@
+import time
 import email
-from collections import namedtuple
 import email.utils
+from email import encoders
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from collections import namedtuple
 
 Attachment = namedtuple(
     "Attachment", ["hashedfilename", "hashedfilepath", "hashedfileurl", "originalfilename", "binarycontent", "type"]
@@ -73,9 +78,58 @@ def store_message(model, message, folder="inbox", unseen=True, recent=True):
     mail.folder = folder
     mail.unseen = unseen
     mail.recent = recent
+    mail.uid = 0
+    mail.uid_vv = 0
+    mail.mtime = int(time.time())
     mail.save()
     return mail
 
+def object_to_message(mail):
+    textmessage = None
+    plaintextmessage = None
+    htmlmessage = None
+
+    attachments = []
+    if mail.body:
+        plaintextmessage = MIMEText(mail.body, "plain")
+        textmessage = plaintextmessage
+    if mail.htmlbody:
+        htmlmessage = MIMEText(mail.htmlbody, "html")
+        if textmessage:
+            textmessage = MIMEMultipart("alternative")
+            textmessage.attach(plaintextmessage)
+            textmessage.attach(htmlmessage)
+        else:
+            textmessage = htmlmessage
+
+    for attachment in mail.attachments:
+        if attachment.contenttype:
+            part = MIMEBase(*attachment.contenttype.split("/"))
+        else:
+            part = MIMEBase("application", "octet-stream")
+        part.set_payload(attachment.content)
+        encoders.encode_base64(part)
+        part.add_header("Content-Disposition", f'attachment; filename="{attachment.name}"')
+        attachments.append(part)
+
+    mainmessage = None
+    if attachments:
+        mainmessage = MIMEMultipart("mixed")
+        mainmessage.attach(textmessage)
+    else:
+        mainmessage = textmessage
+
+    mainmessage["from"] = mail.from_email
+    mainmessage["to"] = mail.to_email
+    mainmessage["subject"] = mail.subject
+    for header in mail.headers:
+        if header.key.lower() in ["content-type", "mime-version"]:
+            continue
+        mainmessage[header.key] = header.value
+
+    for attachment in attachments:
+        mainmessage.attach(attachment)
+    return mainmessage
 
 def get_headers(headers):
     rest_headers = []
