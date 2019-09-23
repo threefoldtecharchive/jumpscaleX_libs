@@ -5,6 +5,7 @@ import gevent
 class SmtpdFactory(j.baseclasses.object, j.baseclasses.testtools):
 
     __jslocation__ = "j.servers.smtp"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._running_greenlet = None
@@ -26,10 +27,17 @@ class SmtpdFactory(j.baseclasses.object, j.baseclasses.testtools):
 
     def get_instance(self, address="0.0.0.0", port=7002):
         from .app import MailServer
+
         server = MailServer((address, port))
         return server
 
     def test(self, name=""):
+        try:
+            db = j.data.bcdb.get("mails")
+        except:
+            db = j.data.bcdb.new("mails")
+
+        model = db.models_add("/sandbox/code/github/threefoldtech/jumpscaleX_libs/JumpscaleLibs/servers/mail/models/")
         self.start()
         print(name)
         self._test_run(name=name)
