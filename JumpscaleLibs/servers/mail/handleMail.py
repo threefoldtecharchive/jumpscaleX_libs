@@ -1,7 +1,6 @@
 import email
 from collections import namedtuple
 import email.utils
-from pyblake2 import blake2b
 
 Attachment = namedtuple(
     "Attachment", ["hashedfilename", "hashedfilepath", "hashedfileurl", "originalfilename", "binarycontent", "type"]
@@ -16,7 +15,9 @@ def parse_email_body(body):
     """
 
     message = email.message_from_string(body)
+    return parse_email(message)
 
+def parse_email(message):
     to_mail = message.get("To")
     from_mail = message.get("From")
     subject = message.get("Subject") if message.get("Subject") is not None else ""
@@ -44,21 +45,34 @@ def parse_email_body(body):
         elif part_content_type is not None and part_filename is not None:
             attachments.append({"name": part_filename, "content": part_body, "contentType": part_content_type})
 
-    bhash = blake2b()
-    allData = body + html_body
-    bhash.update(allData)
-    hashed_data = bhash.hexdigest()
     return {
-        "name": hashed_data,
-        "body": body.decode("ascii"),
+        "body": body.decode(),
         "attachments": attachments,
         "to": to_mail,
         "from": from_mail,
         "subject": subject,
-        "htmlbody": html_body.decode("ascii"),
+        "htmlbody": html_body.decode(),
         "headers": headers,
     }
 
+def store_message(model, message, folder="inbox", unseen=True, recent=True):
+    if isinstance(message, str):
+        data = parse_email_body(message)
+    else:
+        data = parse_email(message)
+    mail = model.new()
+    mail.from_email = data["from"]
+    mail.to_email = data["to"]
+    mail.subject = data["subject"]
+    mail.body = data["body"]
+    mail.htmlbody = data["htmlbody"]
+    mail.headers = data["headers"]
+    mail.attachments = data["attachments"]
+    mail.folder = folder
+    mail.unseen = unseen
+    mail.recent = recent
+    mail.save()
+    return mail
 
 def get_headers(headers):
     rest_headers = []

@@ -1,9 +1,10 @@
 @url = jumpscale.email.message
-name** = ""
 from_email = "" (S)
 to_email = "" (S)
 subject = "" (S)
-folder = "" (S)
+folder** = "" (S)
+unseen** = (B)
+recent** = (B)
 headers = (LO)!jumpscale.email.header
 attachments = (LO)!jumpscale.email.attachement
 body = "" (S)

@@ -1,6 +1,6 @@
 from Jumpscale import j
 from .gsmtpd import SMTPServer
-from ..handleMail import parse_email_body
+from ..handleMail import store_message
 
 
 class MailServer(SMTPServer):
@@ -15,22 +15,5 @@ class MailServer(SMTPServer):
         print("------------ Data saved In bcdb ------------")
 
     def store_mail(self, data):
-        result = parse_email_body(data)
-        print("data")
-        print(data)
-
-        print("..................................")
-        print("The result")
-        print(result)
-        print("..................................")
-        mail = self.mail_model.new()
-        mail.name = result["name"]
-        mail.from_email = result["from"]
-        mail.to_email = result["to"]
-        mail.subject = result["subject"]
-        mail.body = result["body"]
-        mail.htmlbody = result["htmlbody"]
-        mail.headers = result["headers"]
-        mail.attachments = result["attachments"]
-        mail.save()
+        store_message(data)
 
