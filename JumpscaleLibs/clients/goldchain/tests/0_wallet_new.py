@@ -10,23 +10,19 @@ def main(self):
     kosmos 'j.clients.goldchain.test(name="wallet_new")'
     """
 
-    # delete goldchain devnet client
-    j.clients.goldchain.delete("devnet_unittest_client")
-
     # create a goldchain client for devnet
-    c = j.clients.goldchain.get("devnet_unittest_client", network_type="DEV")
-    # or simply `c = j.goldchain.clients.devnet_unittest_client`, should the client already exist
+    c = j.clients.goldchain.new("devnet_unittest_client", network_type="DEV", save=False)
 
     # for standard net you could also immediate create a new wallet using
     # `c = j.goldchain.clients.mydevclient`, or the more explicit form
-    # `c = j.clients.goldchain.get("mydevclient", network_type="STD")`
+    # `c = j.clients.goldchain.new("mydevclient", network_type="STD")`
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = GoldChainExplorerGetClientStub()
     c._explorer_get = explorer_client.explorer_get
 
     # create a new devnet wallet
-    w = c.wallets.get("mywallet")  # is the implicit form of `c.wallets.new("mywallet")`
+    w = c.wallets.new("mywallet", save=False)  # is the implicit form of `c.wallets.new("mywallet")`
 
     # a goldchain (JS) wallet uses the underlying goldchain client for all its
     # interaction with the goldchain network
@@ -54,3 +50,6 @@ def main(self):
     # but is meant for dev purposes, not for an end-user
     for address in w.addresses:
         assert address == str(w.key_pair_get(address).unlockhash)
+
+    w.delete()
+    c.delete()

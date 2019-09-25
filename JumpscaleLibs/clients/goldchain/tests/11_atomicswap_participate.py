@@ -13,12 +13,8 @@ def main(self):
     kosmos 'j.clients.goldchain.test(name="atomicswap_participate")'
     """
 
-    # delete goldchain devnet client
-    j.clients.goldchain.delete("testnet_unittest_client")
-
     # create a goldchain client for devnet
-    c = j.clients.goldchain.get("testnet_unittest_client", network_type="TEST")
-    # or simply `c = j.goldchain.clients.testnet_unittest_client`, should the client already exist
+    c = j.clients.goldchain.new("testnet_unittest_client", network_type="TEST", save=False)
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = GoldChainExplorerGetClientStub()
@@ -41,6 +37,7 @@ def main(self):
     w = c.wallets.new(
         "mytestwallet",
         seed="remain solar kangaroo welcome clean object friend later bounce strong ship lift hamster afraid you super dolphin warm emotion curve smooth kiss stem diet",
+        save=False,
     )
     # money is required to be available in the wallet
     assert str(w.balance.available) == "51"
@@ -104,3 +101,6 @@ def main(self):
             amount=c.minimum_miner_fee - "0.000000001 GFT",
             secret_hash="4163d4b31a1708cd3bb95a0a8117417bdde69fd1132909f92a8ec1e3fe2ccdba",
         )
+
+    w.delete()
+    c.delete()

@@ -10,12 +10,8 @@ def main(self):
     kosmos 'j.clients.goldchain.test(name="examples_wallet_statements")'
     """
 
-    # delete goldchain devnet client
-    j.clients.goldchain.delete("devnet_unittest_client")
-
     # create a goldchain client for devnet
-    c = j.clients.goldchain.get("devnet_unittest_client", network_type="DEV")
-    # or simply `c = j.goldchain.clients.devnet_unittest_client`, should the client already exist
+    c = j.clients.goldchain.new("devnet_unittest_client", network_type="DEV", save=False)
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = GoldChainExplorerGetClientStub()
@@ -30,7 +26,7 @@ def main(self):
     DEVNET_GENESIS_SEED = "smooth team admit virus weapon tiny jazz ecology check jump unit thought ankle rice please victory fringe logic patient eager rescue trial hawk veteran"
 
     # create a new devnet wallet
-    w = c.wallets.new("mywallet", seed=DEVNET_GENESIS_SEED)
+    w = c.wallets.new("mywallet", seed=DEVNET_GENESIS_SEED, save=False)
     # we create a new wallet using an existing seed,
     # such that our seed is used and not a new randomly generated seed
 
@@ -136,3 +132,6 @@ def main(self):
 
 """
     assert expected_text == text
+
+    w.delete()
+    c.delete()

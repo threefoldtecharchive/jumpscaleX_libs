@@ -10,12 +10,8 @@ def main(self):
     kosmos 'j.clients.goldchain.test(name="unlockhash_balance")'
     """
 
-    # delete goldchain devnet client
-    j.clients.goldchain.delete("devnet_unittest_client")
-
     # create a goldchain client for devnet
-    c = j.clients.goldchain.get("devnet_unittest_client", network_type="DEV")
-    # or simply `c = j.goldchain.clients.devnet_unittest_client`, should the client already exist
+    c = j.clients.goldchain.new("devnet_unittest_client", network_type="DEV", save=False)
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = GoldChainExplorerGetClientStub()
@@ -96,3 +92,5 @@ def main(self):
     assert str(remainder) == "0.765500001"
     assert str(sum([ci.parent_output.value for ci in inputs])) == "2.000000001"
     assert suggested_refund == None  # no refund is suggested, as there are too many sources to pick from (2)
+
+    c.delete()

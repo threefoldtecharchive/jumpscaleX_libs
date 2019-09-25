@@ -12,12 +12,8 @@ def main(self):
     kosmos 'j.clients.goldchain.test(name="atomicswap_redeem")'
     """
 
-    # delete goldchain devnet client
-    j.clients.goldchain.delete("testnet_unittest_client")
-
     # create a goldchain client for devnet
-    c = j.clients.goldchain.get("testnet_unittest_client", network_type="DEV")
-    # or simply `c = j.goldchain.clients.testnet_unittest_client`, should the client already exist
+    c = j.clients.goldchain.new("testnet_unittest_client", network_type="DEV", save=False)
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = GoldChainExplorerGetClientStub()
@@ -40,6 +36,7 @@ def main(self):
     w = c.wallets.new(
         "mytestwallet",
         seed="remain solar kangaroo welcome clean object friend later bounce strong ship lift hamster afraid you super dolphin warm emotion curve smooth kiss stem diet",
+        save=False,
     )
 
     # balance should be 0 at this point
@@ -60,7 +57,7 @@ def main(self):
         )
 
     # if not authorized, redemption will also fail
-    fw = c.wallets.new("foo")
+    fw = c.wallets.new("foo", save=False)
     with pytest.raises(j.clients.goldchain.errors.AtomicSwapForbidden):
         fw.atomicswap.redeem(
             "dd1babcbab492c742983b887a7408742ad0054ec8586541dd6ee6202877cb486",
@@ -100,3 +97,6 @@ def main(self):
     # should you verify it at this point, you'll get the same exception
     with pytest.raises(j.clients.goldchain.errors.AtomicSwapContractSpent):
         w.atomicswap.verify("dd1babcbab492c742983b887a7408742ad0054ec8586541dd6ee6202877cb486")
+
+    w.delete()
+    c.delete()

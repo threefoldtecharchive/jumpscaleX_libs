@@ -12,12 +12,8 @@ def main(self):
     kosmos 'j.clients.goldchain.test(name="atomicswap_verify_receiver")'
     """
 
-    # delete goldchain devnet client
-    j.clients.goldchain.delete("testnet_unittest_client")
-
     # create a goldchain client for devnet
-    c = j.clients.goldchain.get("testnet_unittest_client", network_type="TEST")
-    # or simply `c = j.goldchain.clients.testnet_unittest_client`, should the client already exist
+    c = j.clients.goldchain.new("testnet_unittest_client", network_type="TEST", save=False)
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = GoldChainExplorerGetClientStub()
@@ -35,6 +31,7 @@ def main(self):
     w = c.wallets.new(
         "mytestwallet",
         seed="remain solar kangaroo welcome clean object friend later bounce strong ship lift hamster afraid you super dolphin warm emotion curve smooth kiss stem diet",
+        save=False,
     )
 
     # one can verify that its transaction is sent as receiver,
@@ -126,3 +123,6 @@ def main(self):
         receiver=True,
         contract=contract,
     )
+
+    w.delete()
+    c.delete()
