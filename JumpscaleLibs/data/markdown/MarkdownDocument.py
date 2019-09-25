@@ -65,7 +65,7 @@ class MarkdownDocument(j.baseclasses.object):
         idx = 1
         while idx < len(lines):
             if lines[idx].startswith("---"):
-                return "".join(lines[idx + 1 :])
+                return "\n".join(lines[idx + 1 :])
             idx += 1
         return content
 
