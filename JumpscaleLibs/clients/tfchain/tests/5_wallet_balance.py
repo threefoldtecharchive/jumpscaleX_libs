@@ -11,8 +11,7 @@ def main(self):
     """
 
     # create a tfchain client for devnet
-    c = j.clients.tfchain.get("mydevclient", network_type="DEV")
-    # or simply `c = j.tfchain.clients.mydevclient`, should the client already exist
+    c = j.clients.tfchain.new("mydevclient", network_type="DEV", save=False)
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = TFChainExplorerGetClientStub()
@@ -40,7 +39,7 @@ def main(self):
     DEVNET_GENESIS_SEED = "image orchard airport business cost work mountain obscure flee alpha alert salmon damage engage trumpet route marble subway immune short tide young cycle attract"
 
     # create a new devnet wallet
-    w = c.wallets.new("mywallet", seed=DEVNET_GENESIS_SEED)
+    w = c.wallets.new("mywallet", seed=DEVNET_GENESIS_SEED, save=False)
     # we create a new wallet using an existing seed,
     # such that our seed is used and not a new randomly generated seed
 
@@ -86,3 +85,6 @@ def main(self):
     assert str(remainder) == "196.7655"
     assert str(sum([ci.parent_output.value for ci in inputs])) == "198"
     assert suggested_refund == None  # no refund is suggested, as there are too many sources to pick from (2)
+
+    w.delete()
+    c.delete()

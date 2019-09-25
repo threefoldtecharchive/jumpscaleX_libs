@@ -11,8 +11,7 @@ def main(self):
     """
 
     # create a tfchain client for devnet
-    c = j.clients.tfchain.get("mytestclient", network_type="TEST")
-    # or simply `c = j.tfchain.clients.mytestclient`, should the client already exist
+    c = j.clients.tfchain.new("mytestclient", network_type="TEST", save=False)
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = TFChainExplorerGetClientStub()
@@ -59,3 +58,5 @@ def main(self):
     for height in [50, 51, 200, 500, 15000]:
         condition = c.minter.condition_get(height)
         assert condition.unlockhash == "037187176be3a123b545209d933f4250a20f4baac78051c0993653500e9d6bc46d290e499b058c"
+
+    c.delete()

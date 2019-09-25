@@ -11,8 +11,7 @@ def main(self):
     """
 
     # create a tfchain client for devnet
-    c = j.clients.tfchain.get("mydevclient", network_type="DEV")
-    # or simply `c = j.tfchain.clients.mydevclient`, should the client already exist
+    c = j.clients.tfchain.new("mydevclient", network_type="DEV", save=False)
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = TFChainExplorerGetClientStub()
@@ -63,3 +62,5 @@ def main(self):
 
     # NOTE: balance.drain also takes an optional parameter 'unconfirmed` which is False by default,
     # if True unconfirmed outputs will also be used when available.
+
+    c.delete()

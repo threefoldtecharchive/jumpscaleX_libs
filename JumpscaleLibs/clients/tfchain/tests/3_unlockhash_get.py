@@ -11,8 +11,7 @@ def main(self):
     """
 
     # create a tfchain client for devnet
-    c = j.clients.tfchain.get("mytestclient", network_type="TEST")
-    # or simply `c = j.tfchain.clients.mytestclient`, should the client already exist
+    c = j.clients.tfchain.new("mytestclient", network_type="TEST", save=False)
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = TFChainExplorerGetClientStub()
@@ -64,3 +63,5 @@ def main(self):
 
     # you can also get multisig addresses linked to the looked up unlockhash
     assert isinstance(result.multisig_addresses, list)
+
+    c.delete()

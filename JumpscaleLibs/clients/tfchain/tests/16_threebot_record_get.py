@@ -16,8 +16,7 @@ def main(self):
     """
 
     # create a tfchain client for devnet
-    c = j.clients.tfchain.get("mytestclient", network_type="DEV")
-    # or simply `c = j.tfchain.clients.mytestclient`, should the client already exist
+    c = j.clients.tfchain.new("mytestclient", network_type="DEV", save=False)
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = TFChainExplorerGetClientStub()
@@ -62,3 +61,5 @@ def main(self):
     # if the 3Bot cannot be found, the j.clients.tfchain.errors.ThreeBotNotFound exception will be raised
     with pytest.raises(j.clients.tfchain.errors.ThreeBotNotFound):
         c.threebot.record_get(1)
+
+    c.delete()
