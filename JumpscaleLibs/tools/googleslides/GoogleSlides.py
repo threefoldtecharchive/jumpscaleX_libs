@@ -9,7 +9,7 @@ SLIDES2HTML_NOT_FOUND_MESSAGE = (
 
 
 class GoogleSlides(j.baseclasses.object):
-    _jslocation__ = "j.tools.googleslides"
+    __jslocation__ = "j.tools.googleslides"
     __imports__ = "Pillow"
 
     def export(
