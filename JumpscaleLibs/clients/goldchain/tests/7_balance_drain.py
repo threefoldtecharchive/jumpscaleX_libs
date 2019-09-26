@@ -1,6 +1,7 @@
 from Jumpscale import j
 
 from JumpscaleLibs.clients.goldchain.stub.ExplorerClientStub import GoldChainExplorerGetClientStub
+from JumpscaleLibs.clients.goldchain.test_utils import cleanup
 
 
 def main(self):
@@ -9,6 +10,8 @@ def main(self):
 
     kosmos 'j.clients.goldchain.test(name="balance_drain")'
     """
+
+    cleanup("devnet_unitttest_client")
 
     # create a goldchain client for devnet
     c = j.clients.goldchain.new("devnet_unittest_client", network_type="DEV", save=False)

@@ -4,6 +4,7 @@ import pytest
 
 from JumpscaleLibs.clients.goldchain.stub.ExplorerClientStub import GoldChainExplorerGetClientStub
 from JumpscaleLibs.clients.goldchain.types.AtomicSwap import AtomicSwapContract
+from JumpscaleLibs.clients.goldchain.test_utils import cleanup
 
 
 def main(self):
@@ -12,6 +13,8 @@ def main(self):
 
     kosmos 'j.clients.goldchain.test(name="atomicswap_participate")'
     """
+
+    cleanup("testnet_unittest_client")
 
     # create a goldchain client for devnet
     c = j.clients.goldchain.new("testnet_unittest_client", network_type="TEST", save=False)

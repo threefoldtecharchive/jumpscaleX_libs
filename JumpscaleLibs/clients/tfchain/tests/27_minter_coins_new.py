@@ -4,6 +4,7 @@ import pytest
 
 from JumpscaleLibs.clients.tfchain.stub.ExplorerClientStub import TFChainExplorerGetClientStub
 from JumpscaleLibs.clients.tfchain.types.FulfillmentTypes import FulfillmentSingleSignature, FulfillmentMultiSignature
+from JumpscaleLibs.clients.tfchain.test_utils import cleanup
 
 
 def main(self):
@@ -13,8 +14,10 @@ def main(self):
     kosmos 'j.clients.tfchain.test(name="wallet_coins_send")'
     """
 
+    cleanup("dev_unittest_client")
+
     # create a tfchain client for devnet
-    c = j.clients.tfchain.new("mydevclient", network_type="DEV", save=False)
+    c = j.clients.tfchain.new("dev_unittest_client", network_type="DEV", save=False)
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = TFChainExplorerGetClientStub()
