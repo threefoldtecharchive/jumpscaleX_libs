@@ -52,12 +52,16 @@ def slideshow(doc, **kwargs):
             if slide_name.startswith("id"):
                 slide_name = slide_name[3:]
             slides.slide_add(slide_name, presentation_guids[presentation_name], footer, slide_num)
-
     output = "```slideshow\n"
     for slide in slides.slides_get():
-        image_tag = '<img src="/gdrive/slide/{presentation_guid}/{slide_name}" alt="{slide_name}" />'.format(
-            presentation_guid=slide.presentation_guid, slide_name=slide.name
-        )
+        filepath = f"/sandbox/var/gdrive/static/slide/{slide.presentation_guid}/{slide.name}.png"
+        dest = j.sal.fs.joinPaths(doc.docsite.outpath, doc.path_dir_rel, slide.name + ".png")
+        j.sal.bcdbfs.file_copy(filepath, dest)
+        base_url = "let img_path=location.protocol + '//' + location.hostname + ':4442'+ '"
+        img = base_url + dest + "';"
+        image_tag = """<script>{img}
+        "<img src='" + img_path +"' alt='{slide_name}'"/>
+        </script>""".format(slide_name=slide.name, img=img)
         output += """
             <section>
                <div class="slide-image">
