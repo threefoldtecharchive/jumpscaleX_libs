@@ -37,6 +37,9 @@ class WebdavClient(JSConfigClient):
     def exists(self, path):
         return self.client.check(path)
 
+    def delete(self, path):
+        return self.client.clean(path)
+
     def create_dir(self, path):
         self.client.mkdir(path)
         return True
