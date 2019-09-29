@@ -34,7 +34,6 @@ def main(self):
     w = c.wallets.new(
         "mytestwallet",
         seed="remain solar kangaroo welcome clean object friend later bounce strong ship lift hamster afraid you super dolphin warm emotion curve smooth kiss stem diet",
-
     )
 
     # one can verify that its transaction is sent as receiver,

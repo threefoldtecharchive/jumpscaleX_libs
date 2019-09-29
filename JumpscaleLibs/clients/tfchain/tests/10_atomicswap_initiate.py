@@ -41,7 +41,6 @@ def main(self):
     w = c.wallets.new(
         "mytestwallet",
         seed="survey exile lab cook license sock rose squirrel noodle point they lounge oval kit tape virus loop scare water gorilla baby educate program wish",
-
     )
     # money is required to be available in the wallet
     assert str(w.balance.available) == "51"
