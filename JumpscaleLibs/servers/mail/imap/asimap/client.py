@@ -1141,6 +1141,7 @@ class Authenticated(BaseClientHandler):
                                  optional=optional)
                 results, seq_changed = self.mbox.fetch(cmd.msg_set,
                                                        cmd.fetch_atts, cmd)
+                break
             except MailboxInconsistency as e:
                 self.server.msg_cache.clear_mbox(self.mbox.name)
                 self.log.warn("do_fetch: %s, Try %d", str(e), attempt)

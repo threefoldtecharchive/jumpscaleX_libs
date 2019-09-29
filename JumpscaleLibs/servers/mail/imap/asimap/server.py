@@ -59,9 +59,9 @@ class Server:
                 self.socket = socket
 
             def push(self, data):
-                print(f"S: {data.splitlines()[0].strip()}")
+                print(f"S: {data.splitlines()[0].strip()} # {len(data)}")
                 try:
-                    return self.socket.send(data.encode())
+                    return self.socket.sendall(data.encode())
                 except:
                     if client_handler.state == "logged_out":
                         return
