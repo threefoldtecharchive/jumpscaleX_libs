@@ -93,7 +93,6 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         assert len(ships.find()) == 0
         assert len(ships._model.find()) == 0
         assert len(ships._model.find(name="ibizaboat")) == 0  # also need to check that find on name is 0
-        assert ships._model.index._ids_exists() == False  # means no id's in index
 
         ship1 = ships.get(name="ibizaboat")
 
@@ -105,7 +104,6 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         assert len(ships._model._list_ids()) == 1
         assert len(ships.find()) == 1
         assert len(ships._model.find()) == 1
-        assert ships._model.index._ids_exists()  # means there need to be id's
 
         # small test to see that the dataprops are visible
         assert len(ship1._dataprops_names_get()) == 3

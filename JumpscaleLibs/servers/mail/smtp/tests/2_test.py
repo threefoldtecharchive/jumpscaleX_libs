@@ -28,4 +28,3 @@ def main(self):
     db.destroy()
     # Stop the server
     j.servers.smtp.stop()
-

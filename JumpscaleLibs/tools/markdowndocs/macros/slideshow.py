@@ -61,7 +61,9 @@ def slideshow(doc, **kwargs):
         img = base_url + dest + "';"
         image_tag = """<script>{img}
         "<img src='" + img_path +"' alt='{slide_name}'"/>
-        </script>""".format(slide_name=slide.name, img=img)
+        </script>""".format(
+            slide_name=slide.name, img=img
+        )
         output += """
             <section>
                <div class="slide-image">

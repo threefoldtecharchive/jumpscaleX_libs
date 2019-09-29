@@ -17,6 +17,7 @@ def parse_email_body(body):
     message = email.message_from_string(body)
     return parse_email(message)
 
+
 def parse_email(message):
     to_mail = message.get("To")
     from_mail = message.get("From")
@@ -55,6 +56,7 @@ def parse_email(message):
         "headers": headers,
     }
 
+
 def store_message(model, message, folder="inbox", unseen=True, recent=True):
     if isinstance(message, str):
         data = parse_email_body(message)
@@ -73,6 +75,7 @@ def store_message(model, message, folder="inbox", unseen=True, recent=True):
     mail.recent = recent
     mail.save()
     return mail
+
 
 def get_headers(headers):
     rest_headers = []

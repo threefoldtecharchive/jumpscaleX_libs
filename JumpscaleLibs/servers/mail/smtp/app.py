@@ -16,4 +16,3 @@ class MailServer(SMTPServer):
 
     def store_mail(self, data):
         store_message(data)
-
