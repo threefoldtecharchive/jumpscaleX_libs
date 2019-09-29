@@ -16,7 +16,7 @@ def main(self):
     cleanup("test_unittest_client")
 
     # create a tfchain client for devnet
-    c = j.clients.tfchain.new("test_unittest_client", network_type="TEST", save=False)
+    c = j.clients.tfchain.new("test_unittest_client", network_type="TEST")
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = TFChainExplorerGetClientStub()
@@ -34,7 +34,7 @@ def main(self):
     w = c.wallets.new(
         "mytestwallet",
         seed="remain solar kangaroo welcome clean object friend later bounce strong ship lift hamster afraid you super dolphin warm emotion curve smooth kiss stem diet",
-        save=False,
+
     )
 
     # one can verify that its transaction is sent as receiver,
@@ -127,5 +127,5 @@ def main(self):
         contract=contract,
     )
 
-    w.delete()
+    c.wallets.delete()
     c.delete()

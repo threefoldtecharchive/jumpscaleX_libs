@@ -16,7 +16,7 @@ def main(self):
     cleanup("test_unittest_client")
 
     # create a tfchain client for devnet
-    c = j.clients.tfchain.new("test_unittest_client", network_type="TEST", save=False)
+    c = j.clients.tfchain.new("test_unittest_client", network_type="TEST")
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = TFChainExplorerGetClientStub()
@@ -43,7 +43,7 @@ def main(self):
     DEVNET_GENESIS_SEED = "remain solar kangaroo welcome clean object friend later bounce strong ship lift hamster afraid you super dolphin warm emotion curve smooth kiss stem diet"
 
     # create a new devnet wallet
-    w = c.wallets.new("mywallet", seed=DEVNET_GENESIS_SEED, save=False)
+    w = c.wallets.new("mywallet", seed=DEVNET_GENESIS_SEED)
 
     # ERC20 addresses can be found for a given wallet address, by defining
     # its address index, or by specifying its address
@@ -91,5 +91,5 @@ def main(self):
     assert results[0].address_erc20 == "0x24a905c0b713044b19e049d60b946ebe1cbe38e3"
     assert results[0].confirmations == 1549
 
-    w.delete()
+    c.wallets.delete()
     c.delete()

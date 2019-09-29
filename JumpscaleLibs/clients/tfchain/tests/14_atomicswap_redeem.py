@@ -16,7 +16,7 @@ def main(self):
     cleanup("test_unittest_client")
 
     # create a tfchain client for devnet
-    c = j.clients.tfchain.new("test_unittest_client", network_type="DEV", save=False)
+    c = j.clients.tfchain.new("test_unittest_client", network_type="DEV")
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = TFChainExplorerGetClientStub()
@@ -39,7 +39,7 @@ def main(self):
     w = c.wallets.new(
         "mytestwallet",
         seed="remain solar kangaroo welcome clean object friend later bounce strong ship lift hamster afraid you super dolphin warm emotion curve smooth kiss stem diet",
-        save=False,
+
     )
 
     # balance should be 0 at this point
@@ -60,7 +60,7 @@ def main(self):
         )
 
     # if not authorized, redemption will also fail
-    fw = c.wallets.new("foo", save=False)
+    fw = c.wallets.new("foo")
     with pytest.raises(j.clients.tfchain.errors.AtomicSwapForbidden):
         fw.atomicswap.redeem(
             "dd1babcbab492c742983b887a7408742ad0054ec8586541dd6ee6202877cb486",
@@ -101,6 +101,5 @@ def main(self):
     with pytest.raises(j.clients.tfchain.errors.AtomicSwapContractSpent):
         w.atomicswap.verify("dd1babcbab492c742983b887a7408742ad0054ec8586541dd6ee6202877cb486")
 
-    fw.delete()
-    w.delete()
+    c.wallets.delete()
     c.delete()

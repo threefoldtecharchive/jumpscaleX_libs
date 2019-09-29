@@ -18,7 +18,7 @@ def main(self):
     cleanup("testnet_unittest_client")
 
     # create a goldchain client for devnet
-    c = j.clients.goldchain.new("testnet_unittest_client", network_type="TEST", save=False)
+    c = j.clients.goldchain.new("testnet_unittest_client", network_type="TEST")
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = GoldChainExplorerGetClientStub()
@@ -41,7 +41,6 @@ def main(self):
     w = c.wallets.new(
         "mytestwallet",
         seed="survey exile lab cook license sock rose squirrel noodle point they lounge oval kit tape virus loop scare water gorilla baby educate program wish",
-        save=False,
     )
     # money is required to be available in the wallet
     assert str(w.balance.available) == "51"
@@ -104,5 +103,5 @@ def main(self):
             amount=c.minimum_miner_fee - "0.000000001 GFT",
         )
 
-    w.delete()
+    c.wallets.delete()
     c.delete()

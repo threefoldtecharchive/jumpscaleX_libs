@@ -14,7 +14,7 @@ def main(self):
     cleanup("devnet_unittest_client")
 
     # create a goldchain client for devnet
-    c = j.clients.goldchain.new("devnet_unittest_client", network_type="DEV", save=False)
+    c = j.clients.goldchain.new("devnet_unittest_client", network_type="DEV")
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = GoldChainExplorerGetClientStub()
@@ -29,7 +29,7 @@ def main(self):
     DEVNET_GENESIS_SEED = "smooth team admit virus weapon tiny jazz ecology check jump unit thought ankle rice please victory fringe logic patient eager rescue trial hawk veteran"
 
     # create a new devnet wallet
-    w = c.wallets.new("mywallet", seed=DEVNET_GENESIS_SEED, save=False)
+    w = c.wallets.new("mywallet", seed=DEVNET_GENESIS_SEED)
     # we create a new wallet using an existing seed,
     # such that our seed is used and not a new randomly generated seed
 
@@ -136,5 +136,5 @@ def main(self):
 """
     assert expected_text == text
 
-    w.delete()
+    c.wallets.delete()
     c.delete()

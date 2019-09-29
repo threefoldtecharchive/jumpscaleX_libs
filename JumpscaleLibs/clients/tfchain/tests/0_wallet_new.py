@@ -14,7 +14,7 @@ def main(self):
     cleanup("dev_unittest_client")
 
     # create a tfchain client for devnet
-    c = j.clients.tfchain.new("dev_unittest_client", network_type="DEV", save=False)
+    c = j.clients.tfchain.new("dev_unittest_client", network_type="DEV")
 
     # for standard net you could also immediate create a new wallet using
     # `c = j.tfchain.clients.dev_unittest_client`, or the more explicit form
@@ -25,7 +25,7 @@ def main(self):
     c._explorer_get = explorer_client.explorer_get
 
     # create a new devnet wallet
-    w = c.wallets.new("mywallet", save=False)
+    w = c.wallets.new("mywallet")
 
     # a tfchain (JS) wallet uses the underlying tfchain client for all its
     # interaction with the tfchain network
@@ -54,5 +54,5 @@ def main(self):
     for address in w.addresses:
         assert address == str(w.key_pair_get(address).unlockhash)
 
-    w.delete()
+    c.wallets.delete()
     c.delete()

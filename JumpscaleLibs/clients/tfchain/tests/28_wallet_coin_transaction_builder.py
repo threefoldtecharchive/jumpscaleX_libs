@@ -16,7 +16,7 @@ def main(self):
     cleanup("dev_unittest_client")
 
     # create a tfchain client for devnet
-    c = j.clients.tfchain.new("dev_unittest_client", network_type="DEV", save=False)
+    c = j.clients.tfchain.new("dev_unittest_client", network_type="DEV")
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = TFChainExplorerGetClientStub()
@@ -45,7 +45,7 @@ def main(self):
     DEVNET_GENESIS_SEED = "image orchard airport business cost work mountain obscure flee alpha alert salmon damage engage trumpet route marble subway immune short tide young cycle attract"
 
     # create a new devnet wallet
-    w = c.wallets.new("mywallet", seed=DEVNET_GENESIS_SEED, save=False)
+    w = c.wallets.new("mywallet", seed=DEVNET_GENESIS_SEED)
     # we create a new wallet using an existing seed,
     # such that our seed is used and not a new randomly generated seed
 
@@ -106,5 +106,5 @@ def main(self):
     )  # source and refund can be added as well
     assert result.submitted  # it is expected the transaction is submitted
 
-    w.delete()
+    c.wallets.delete()
     c.delete()

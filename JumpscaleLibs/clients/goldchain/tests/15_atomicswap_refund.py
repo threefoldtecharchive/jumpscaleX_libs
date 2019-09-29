@@ -16,7 +16,7 @@ def main(self):
     cleanup("testnet_unittest_client")
 
     # create a goldchain client for devnet
-    c = j.clients.goldchain.new("testnet_unittest_client", network_type="DEV", save=False)
+    c = j.clients.goldchain.new("testnet_unittest_client", network_type="DEV")
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = GoldChainExplorerGetClientStub()
@@ -44,7 +44,6 @@ def main(self):
     w = c.wallets.new(
         "mytestwallet",
         seed="remain solar kangaroo welcome clean object friend later bounce strong ship lift hamster afraid you super dolphin warm emotion curve smooth kiss stem diet",
-        save=False,
     )
 
     # balance should be 0 at this point
@@ -55,7 +54,7 @@ def main(self):
         w.atomicswap.refund("a5e0159688d300ed7a8f2685829192d8dd1266ce6e82a0d04a3bbbb080de30d5")
 
     # if not authorized, refund will also fail
-    fw = c.wallets.new("foo", save=False)
+    fw = c.wallets.new("foo")
     with pytest.raises(j.clients.goldchain.errors.AtomicSwapForbidden):
         fw.atomicswap.refund("a5e0159688d300ed7a8f2685829192d8dd1266ce6e82a0d04a3bbbb080de30d0")
 
@@ -99,6 +98,5 @@ def main(self):
     with pytest.raises(j.clients.goldchain.errors.AtomicSwapContractSpent):
         w.atomicswap.verify("a5e0159688d300ed7a8f2685829192d8dd1266ce6e82a0d04a3bbbb080de30d0")
 
-    fw.delete()
-    w.delete()
+    c.wallets.delete()
     c.delete()

@@ -19,7 +19,7 @@ def main(self):
     cleanup("test_unittest_client")
 
     # create a tfchain client for devnet
-    c = j.clients.tfchain.new("test_unittest_client", network_type="DEV", save=False)
+    c = j.clients.tfchain.new("test_unittest_client", network_type="DEV")
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = TFChainExplorerGetClientStub()

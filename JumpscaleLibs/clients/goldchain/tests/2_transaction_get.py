@@ -13,7 +13,7 @@ def main(self):
     cleanup("testnet_unittest_client")
 
     # create a goldchain client for devnet
-    c = j.clients.goldchain.new("testnet_unittest_client", network_type="TEST", save=False)
+    c = j.clients.goldchain.new("testnet_unittest_client", network_type="TEST")
 
     # (we replace internal client logic with custom logic as to ensure we can test without requiring an active network)
     explorer_client = GoldChainExplorerGetClientStub()
