@@ -140,7 +140,7 @@ def main(self):
     assert txn.json() == expected_transaction
 
     # if no names to be transfered are defined, a ValueError is raised
-    with pytest.raises(ValueError):
+    with pytest.raises(j.exceptions.Value):
         w.threebot.name_transfer(sender=3, receiver=5, names=[])
 
     # if names are defined to be transfered but one of the two 3Bots do no exist,

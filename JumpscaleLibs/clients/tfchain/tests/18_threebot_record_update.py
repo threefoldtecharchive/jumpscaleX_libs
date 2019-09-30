@@ -136,7 +136,7 @@ def main(self):
     assert txn.json() == expected_transaction
 
     # if no data is given to update, a ValueError exception will be raised
-    with pytest.raises(ValueError):
+    with pytest.raises(j.exceptions.Value):
         w.threebot.record_update(3)
 
     # if data is given to update,

@@ -59,7 +59,7 @@ def main(self):
         )
 
     # if not authorized, redemption will also fail
-    fw = c.wallets.new("foo")
+    fw = c.wallets.new("foobar")
     with pytest.raises(j.clients.goldchain.errors.AtomicSwapForbidden):
         fw.atomicswap.redeem(
             "dd1babcbab492c742983b887a7408742ad0054ec8586541dd6ee6202877cb486",

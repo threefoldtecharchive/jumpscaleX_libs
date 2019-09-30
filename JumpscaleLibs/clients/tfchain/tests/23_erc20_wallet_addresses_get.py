@@ -68,13 +68,13 @@ def main(self):
 
     # if the value is invalid (e.g. negative index or one beyond upper bounds),
     # or it is of the wrong type, a ValueError is returned
-    with pytest.raises(ValueError):
+    with pytest.raises(j.exceptions.Value):
         w.erc20.address_get(value=False)
-    with pytest.raises(ValueError):
+    with pytest.raises(j.exceptions.Value):
         w.erc20.address_get(value="01blabla")
-    with pytest.raises(ValueError):
+    with pytest.raises(j.exceptions.Value):
         w.erc20.address_get(value=-1)
-    with pytest.raises(ValueError):
+    with pytest.raises(j.exceptions.Value):
         w.erc20.address_get(value=3)
 
     # if a wallet address is used that is not owned by this wallet,

@@ -119,11 +119,11 @@ def main(self):
     )
 
     # if an invalid recipient is given it, a ValueError or TypeError is raised
-    with pytest.raises(ValueError):
+    with pytest.raises(j.exceptions.Value):
         w.minter.definition_set(minter=None)
-    with pytest.raises(ValueError):
+    with pytest.raises(j.exceptions.Value):
         w.minter.definition_set(minter="0123bla")
-    with pytest.raises(TypeError):
+    with pytest.raises(j.exceptions.Value):
         w.minter.definition_set(minter=1)
 
     # (3) if the wallet has no powers to redefine the powers,

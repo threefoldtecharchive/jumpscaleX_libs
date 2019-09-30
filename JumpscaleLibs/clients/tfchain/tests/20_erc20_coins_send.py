@@ -72,13 +72,13 @@ def main(self):
     # you do need to be aware that it is not allowed to specify a lock or data,
     # as these are not allowed for ERC20 Convert Transactions,
     # a ValueError will be raised if you do try to use one or both of these properties
-    with pytest.raises(ValueError):
+    with pytest.raises(j.exceptions.Value):
         result = w.coins_send(recipient="0x828de486adc50aa52dab52a2ec284bcac75be211", amount="200.5 TFT", lock="+5d")
-    with pytest.raises(ValueError):
+    with pytest.raises(j.exceptions.Value):
         result = w.coins_send(
             recipient="0x828de486adc50aa52dab52a2ec284bcac75be211", amount="200.5 TFT", data="some data"
         )
-    with pytest.raises(ValueError):
+    with pytest.raises(j.exceptions.Value):
         result = w.coins_send(
             recipient="0x828de486adc50aa52dab52a2ec284bcac75be211", amount="200.5 TFT", lock=100, data="some data"
         )

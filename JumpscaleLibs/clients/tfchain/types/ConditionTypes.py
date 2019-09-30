@@ -67,7 +67,7 @@ class ConditionFactory(j.baseclasses.object):
                 else:
                     condition = self.multi_signature_new(min_nr_sig=recipient[1], unlockhashes=recipient[0])
             else:
-                raise j.exceptions.Value("invalid type for recipient parameter: {}", type(recipient))
+                raise j.exceptions.Value("invalid type for recipient parameter: {}".format(type(recipient)))
 
         # if lock is defined, define it as a locktime value
         if lock is not None:

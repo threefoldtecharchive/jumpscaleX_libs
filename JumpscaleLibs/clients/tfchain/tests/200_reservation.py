@@ -101,7 +101,7 @@ def main(self):
     reservation = box.decrypt(reservation)
     reservation = j.data.serializers.msgpack.loads(reservation)
     schema = j.data.schema.get_from_url(url="tfchain.reservation.zos_vm")
-    o = schema.new(data=reservation)
+    o = schema.new(reservation)
     assert o.type == "vm"
     assert o.size == 1
     assert o.email == "user@mail.com"
@@ -130,7 +130,7 @@ def main(self):
 
     # test validation of location
     # use a non existing location here
-    with pytest.raises(ValueError):
+    with pytest.raises(j.exceptions.Value):
         result = w.capacity.reserve_s3("user@mail.com", "user3bot", j.data.idgenerator.generateGUID())
 
     # try to reserve a namespace
@@ -155,7 +155,7 @@ def main(self):
     assert o.password == ""
 
     # try to reserve a 0-os VM with an expiration date past the bot's expiration
-    with pytest.raises(ValueError):
+    with pytest.raises(j.exceptions.Value):
         w.capacity.reserve_zos_vm("user@mail.com", "user3bot", "ac1f6b47a04c", duration=2)
 
     assert w.capacity.reservations_transactions_list() == w.reservations_transactions

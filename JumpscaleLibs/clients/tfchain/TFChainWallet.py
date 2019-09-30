@@ -399,6 +399,8 @@ class TFChainWallet(j.baseclasses.object_config):
                 input_hash = request.input_hash_new(public_key=key_pair.public_key)
                 signature = key_pair.sign(input_hash)
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
+            except j.exceptions.NotFound:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
             except KeyError:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
 
@@ -494,6 +496,8 @@ class TFChainWallet(j.baseclasses.object_config):
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
                 signature_count += 1
             except KeyError:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
 
         # check if fulfilled, and if so, we'll submit unless the callee does not want that
@@ -673,6 +677,8 @@ class TFChainMinter:
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
             except KeyError:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
 
         submit = txn.is_fulfilled()
         if submit:
@@ -751,6 +757,8 @@ class TFChainMinter:
                 signature = key_pair.sign(input_hash)
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
             except KeyError:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
 
         submit = txn.is_fulfilled()
@@ -1207,6 +1215,8 @@ class TFChainAtomicSwap:
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
             except KeyError:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
 
         # assign all coin output ID's for atomic swap contracts,
         # as we always care about the contract's output ID and
@@ -1261,6 +1271,8 @@ class TFChainAtomicSwap:
                 signature = key_pair.sign(input_hash)
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
             except KeyError:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
 
         # submit if possible
@@ -1533,6 +1545,8 @@ class TFChainThreeBot:
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
             except KeyError:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
 
         # txn should be fulfilled now
         submit = txn.is_fulfilled()
@@ -1642,6 +1656,10 @@ class TFChainERC20:
                 if isinstance(value, str):
                     value = UnlockHash.from_json(value)
                 raise j.clients.tfchain.errors.ERC20RegistrationForbidden(address=value) from exc
+            except j.exceptions.NotFound as exc:
+                if isinstance(value, str):
+                    value = UnlockHash.from_json(value)
+                raise j.clients.tfchain.errors.ERC20RegistrationForbidden(address=value) from exc
         elif isinstance(value, int) and not isinstance(value, bool):
             addresses = self._wallet.addresses
             if value < 0 or value >= len(addresses):
@@ -1685,6 +1703,10 @@ class TFChainERC20:
             try:
                 public_key = self._wallet.key_pair_get(unlockhash=value).public_key
             except KeyError as exc:
+                if isinstance(value, str):
+                    value = UnlockHash.from_json(value)
+                raise j.clients.tfchain.errors.AddressNotInWallet(address=value) from exc
+            except j.exceptions.NotFound as exc:
                 if isinstance(value, str):
                     value = UnlockHash.from_json(value)
                 raise j.clients.tfchain.errors.AddressNotInWallet(address=value) from exc
@@ -1775,6 +1797,8 @@ class TFChainERC20:
                 signature = key_pair.sign(input_hash)
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
             except KeyError:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
 
         # txn should be fulfilled now
@@ -2673,6 +2697,8 @@ class CoinTransactionBuilder:
                 signature = key_pair.sign(input_hash)
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
             except KeyError:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
 
         # txn should be fulfilled now

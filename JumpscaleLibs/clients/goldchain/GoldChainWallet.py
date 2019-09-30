@@ -368,6 +368,8 @@ class GoldChainWallet(j.baseclasses.object_config):
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
             except KeyError:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
 
         # txn should be fulfilled now
         submit = txn.is_fulfilled()
@@ -459,6 +461,8 @@ class GoldChainWallet(j.baseclasses.object_config):
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
                 signature_count += 1
             except KeyError:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
 
         # check if fulfilled, and if so, we'll submit unless the callee does not want that
@@ -638,6 +642,8 @@ class GoldChainMinter:
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
             except KeyError:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
 
         submit = txn.is_fulfilled()
         if submit:
@@ -716,6 +722,8 @@ class GoldChainMinter:
                 signature = key_pair.sign(input_hash)
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
             except KeyError:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
 
         submit = txn.is_fulfilled()
@@ -798,6 +806,8 @@ class GoldChainMinter:
                 signature = key_pair.sign(input_hash)
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
             except KeyError:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
 
         submit = txn.is_fulfilled()
@@ -896,6 +906,8 @@ class GoldChainAuthcoin:
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
             except KeyError:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
 
         submit = txn.is_fulfilled()
         if submit:
@@ -961,6 +973,8 @@ class GoldChainAuthcoin:
                 signature = key_pair.sign(input_hash)
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
             except KeyError:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
 
         submit = txn.is_fulfilled()
@@ -1412,6 +1426,8 @@ class GoldChainAtomicSwap:
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
             except KeyError:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
 
         # assign all coin output ID's for atomic swap contracts,
         # as we always care about the contract's output ID and
@@ -1466,6 +1482,8 @@ class GoldChainAtomicSwap:
                 signature = key_pair.sign(input_hash)
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
             except KeyError:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
 
         # submit if possible
@@ -2378,6 +2396,8 @@ class CoinTransactionBuilder:
                 signature = key_pair.sign(input_hash)
                 request.signature_fulfill(public_key=key_pair.public_key, signature=signature)
             except KeyError:
+                pass  # this is acceptable due to how we directly try the key_pair_get method
+            except j.exceptions.NotFound:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
 
         # txn should be fulfilled now

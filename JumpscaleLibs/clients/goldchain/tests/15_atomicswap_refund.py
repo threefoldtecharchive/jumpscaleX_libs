@@ -54,7 +54,7 @@ def main(self):
         w.atomicswap.refund("a5e0159688d300ed7a8f2685829192d8dd1266ce6e82a0d04a3bbbb080de30d5")
 
     # if not authorized, refund will also fail
-    fw = c.wallets.new("foo")
+    fw = c.wallets.new("foobar")
     with pytest.raises(j.clients.goldchain.errors.AtomicSwapForbidden):
         fw.atomicswap.refund("a5e0159688d300ed7a8f2685829192d8dd1266ce6e82a0d04a3bbbb080de30d0")
 
