@@ -222,11 +222,17 @@ stop on runlevel [016]
         if env is not None:
             for key, value in list(env.items()):
                 cmd += "env %s=%s\n" % (key, value)
-        cmd += "exec %s %s\n" % (daemon_path, args)
+        cmd += "exec %s %s\n" % (j.sal.fs.joinPaths(daemon_path, service_name), args)
 
-        cmd = j.dirs.replace_txt_dir_vars(cmd)
+        path = "/etc/init/%s.conf" % service_name
+        if not j.sal.fs.exists(path):
+            dir_path = j.sal.fs.getDirName(path)
+            if not j.sal.fs.exists(dir_path):
+                j.sal.fs.createDir(dir_path)
 
-        j.tools.path.get("/etc/init/%s.conf" % service_name).write_text(cmd)
+            j.sal.fs.createEmptyFile(path)
+
+        j.tools.path.get(path).write_text(cmd)
         if reload:
             j.sal.process.execute("initctl reload-configuration", useShell=True)
 
