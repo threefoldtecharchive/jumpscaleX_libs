@@ -3,6 +3,7 @@ from_email = "" (S)
 to_email = "" (S)
 subject = "" (S)
 folder** = "" (S)
+mtime** = (I)
 unseen** = (B)
 recent** = (B)
 headers = (LO)!jumpscale.email.header
