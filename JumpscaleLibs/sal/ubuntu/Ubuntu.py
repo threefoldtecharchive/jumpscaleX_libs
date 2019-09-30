@@ -387,8 +387,8 @@ stop on runlevel [016]
         :rtype: list
         """
         from aptsources import sourceslist
-
-        return sourceslist.SourcesList()
+        sources = sourceslist.SourcesList().list
+        return [str(source) for source in sources if not source.line.startswith("#") and source.line != "\n"]
 
     def apt_sources_uri_add(self, url):
         """add a new apt source url.
