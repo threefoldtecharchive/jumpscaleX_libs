@@ -134,11 +134,11 @@ class TFChainCapacity:
             "reverse_proxy": "tfchain.reservation.reverse_proxy",
         }
         reservation["duration"] = duration
-        reservation = j.data.schema.get_from_url(url=templates[reservation["type"]]).new(data=reservation)
+        reservation = j.data.schema.get_from_url(url=templates[reservation["type"]]).new(datadict=reservation)
 
         amount = reservation_amount(reservation)
         extension = j.data.schema.get_from_url(url="tfchain.reservation.extend").new(
-            data={"duration": duration, "transaction_id": transaction.id, "email": email}
+            datadict={"duration": duration, "transaction_id": transaction.id, "email": email}
         )
 
         signature = self._sign_reservation(threebot_id, extension)
@@ -173,7 +173,7 @@ class TFChainCapacity:
         """
 
         reservation = j.data.schema.get_from_url(url="tfchain.reservation.s3").new(
-            data={
+            datadict={
                 "size": size,
                 "email": email,
                 "created": j.data.time.epoch,
@@ -269,7 +269,7 @@ class TFChainCapacity:
         :rtype: tuple
         """
         reservation = j.data.schema.get_from_url(url="tfchain.reservation.zdb_namespace").new(
-            data={
+            datadict={
                 "type": "namespace",
                 "size": size,
                 "email": email,
@@ -311,7 +311,7 @@ class TFChainCapacity:
         :rtype: tuple
         """
         reservation = j.data.schema.get_from_url(url="tfchain.reservation.reverse_proxy").new(
-            data={
+            datadict={
                 "type": "reverse_proxy",
                 "email": email,
                 "created": j.data.time.epoch,

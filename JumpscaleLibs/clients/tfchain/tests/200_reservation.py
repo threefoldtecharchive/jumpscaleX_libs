@@ -101,7 +101,7 @@ def main(self):
     reservation = box.decrypt(reservation)
     reservation = j.data.serializers.msgpack.loads(reservation)
     schema = j.data.schema.get_from_url(url="tfchain.reservation.zos_vm")
-    o = schema.new(reservation)
+    o = schema.new(datadict=reservation)
     assert o.type == "vm"
     assert o.size == 1
     assert o.email == "user@mail.com"
@@ -117,7 +117,7 @@ def main(self):
     reservation = box.decrypt(reservation)
     reservation = j.data.serializers.msgpack.loads(reservation)
     schema = j.data.schema.get_from_url(url="tfchain.reservation.zos_vm")
-    o = schema.new(data=reservation)
+    o = schema.new(datadict=reservation)
     assert o.type == "s3"
     assert o.size == 2
     assert o.email == "user@mail.com"
@@ -144,7 +144,7 @@ def main(self):
     reservation = box.decrypt(reservation)
     reservation = j.data.serializers.msgpack.loads(reservation)
     schema = j.data.schema.get_from_url(url="tfchain.reservation.zdb_namespace")
-    o = schema.new(data=reservation)
+    o = schema.new(datadict=reservation)
     assert o.type == "namespace"
     assert o.size == 2
     assert o.email == "user@mail.com"
