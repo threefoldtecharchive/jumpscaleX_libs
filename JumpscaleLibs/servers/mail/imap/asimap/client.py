@@ -473,7 +473,6 @@ class Authenticated(BaseClientHandler):
         self.server = user_server
         self.port = client.port  # Used for debug messages
         self.name = "Client:%d" % client.port
-        self.db = user_server.db
         self.mbox = None
         self.models = models
         self.state = "authenticated"
@@ -741,8 +740,7 @@ class Authenticated(BaseClientHandler):
                 pass
 
         mbox = self.server.get_mailbox(cmd.mailbox_name)
-        mbox.subscribed = True
-        mbox.commit_to_db()
+        mbox.subscribe()
         return None
 
     ##################################################################
@@ -767,8 +765,7 @@ class Authenticated(BaseClientHandler):
                 pass
 
         mbox = self.server.get_mailbox(cmd.mailbox_name)
-        mbox.subscribed = False
-        mbox.commit_to_db()
+        mbox.unsubscribe()
         return None
 
     ##################################################################

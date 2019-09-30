@@ -46,6 +46,14 @@ class BCDBMailbox(mailbox.Mailbox):
         file.seek(0)
         return file
 
+    def subscribe(self):
+        self._obj.subscribed = True
+        self._obj.save()
+
+    def unsubscribe(self):
+        self._obj.subscribed = False
+        self._obj.save()
+
     def __len__(self):
         return self._models.message.count(folder=self._obj.name)
 
@@ -69,6 +77,9 @@ class BCDBMailbox(mailbox.Mailbox):
     def get_uid(self, key):
         return self._obj.id, key
 
+    def get_uid_vv(self):
+        return self._obj.id
+
     def set_uid(self, key, uid_vv, uid):
         return self._obj.id, key
 
@@ -81,6 +92,11 @@ class BCDBMailbox(mailbox.Mailbox):
         for folder in self._models.folder.find():
             folders.append(folder.name)
         return folders
+
+    def query_folder(self, fields, extra="", values=None):
+        query = "select {} from {} ".format(",".join(fields), self._models.folder.index.sql_table_name)
+        query += extra
+        return self._models.folder.query(query, values)
 
     def lock(self):
         locks[self._obj.name].acquire()

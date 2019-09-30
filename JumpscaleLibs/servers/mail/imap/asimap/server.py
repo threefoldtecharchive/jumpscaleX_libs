@@ -8,6 +8,7 @@ from . import parse
 from gevent.server import StreamServer
 
 import re
+import logging
 import traceback
 
 sessions = {}
@@ -15,12 +16,40 @@ sessions = {}
 
 RE_LITERAL_STRING_START = re.compile(r'\{(\d+)\+?\}$')
 
+USED_REGEXPS = {}
+
+def regexp(expr, item):
+    """
+    sqlite supports a regexp syntax but needs us to supply the function to
+    use. This is that function.
+
+    Arguments:
+    - `expr`: regular expression
+    - `item`: item to apply regular expression to
+    """
+    log = logging.getLogger("%s.regexp()" % __name__)
+    try:
+        if expr in USED_REGEXPS:
+            reg = USED_REGEXPS[expr]
+        else:
+            reg = re.compile(expr)
+            USED_REGEXPS[expr] = reg
+        return reg.search(item) is not None
+    except Exception as e:
+        log.error("got exception: %s" % e)
+    return None
+
+
 class Server:
     def __init__(self, address, port, models):
         self.models = models
         self.address = address
         self.port = port
         self.server = StreamServer((self.address, self.port), self.handle)
+        self.add_regex_function()
+
+    def add_regex_function(self):
+        self.models.folder.index.db.register_function(regexp, "REGEXP", 2)
 
     def handle_msg(self, socket, msg, client_handler):
         try:

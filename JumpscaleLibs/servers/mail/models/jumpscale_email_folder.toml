@@ -2,4 +2,5 @@
 name** = (S)
 subscribed** = (B)
 mtime** = (I)
+attributes** = (S)
 sequences = (json)

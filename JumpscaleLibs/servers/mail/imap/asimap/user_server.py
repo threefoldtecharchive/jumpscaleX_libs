@@ -21,7 +21,6 @@ import errno
 import random
 
 # jumpscale
-from Jumpscale import j
 from JumpscaleLibs.servers.mail.imap import bcdbmailbox
 
 # asimap imports
@@ -29,7 +28,6 @@ from JumpscaleLibs.servers.mail.imap import bcdbmailbox
 
 from . import mbox as asmbox, message_cache
 from .exceptions import MailboxLock, MailboxInconsistency
-from .db import Database
 
 # By default every file is its own logging module. Kind of simplistic
 # but it works for now.
@@ -95,19 +93,6 @@ class IMAPUserServer:
         self.username = username
         self.mailbox = bcdbmailbox.BCDBMailboxdir(models)
 
-        # A global counter for the next available uid_vv is stored in the user
-        # server object. Mailboxes will get this value and increment it when
-        # they need a new uid_vv.
-        #
-        self.uid_vv = 0
-
-        # A handle to the sqlite3 database where we store our persistent
-        # information.
-        #
-        maildir = os.path.join(j.dirs.VARDIR, "mails", self.username)
-        j.sal.fs.createDir(maildir)
-        self.db = Database(maildir)
-
         # A dict of the active mailboxes. An active mailbox is one that has an
         # instance of an asimap.mbox.Mailbox class.
         #
@@ -138,27 +123,6 @@ class IMAPUserServer:
         # and finally restore any pesistent state stored in the db for the user
         # server.
         #
-        self._restore_from_db()
-        return
-
-    ##################################################################
-    #
-    def _restore_from_db(self):
-        """
-        Restores any user server persistent state we may have in the db.
-        If there is none saved yet then we save a bunch of default values.
-        """
-        c = self.db.cursor()
-        c.execute("select uid_vv from user_server order by id desc limit 1")
-        results = c.fetchone()
-        if results is None:
-            c.execute("insert into user_server (uid_vv) values (?)",
-                      str(self.uid_vv))
-            c.close()
-            self.db.commit()
-        else:
-            self.uid_vv = int(results[0])
-            c.close()
         return
 
     ##################################################################
@@ -254,20 +218,6 @@ class IMAPUserServer:
                        "commands. Took %f seconds" % (now - start_time))
 
         return
-
-    ##################################################################
-    #
-    def get_next_uid_vv(self):
-        """
-        Return the next uid_vv. Also update the underlying database
-        so that its uid_vv state remains up to date.
-        """
-        self.uid_vv += 1
-        c = self.db.cursor()
-        c.execute("update user_server set uid_vv = ?", (str(self.uid_vv),))
-        c.close()
-        self.db.commit()
-        return self.uid_vv
 
     ##################################################################
     #

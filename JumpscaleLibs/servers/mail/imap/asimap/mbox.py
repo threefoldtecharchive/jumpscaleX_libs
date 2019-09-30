@@ -127,24 +127,16 @@ class Mailbox(object):
             __name__, self.__class__.__name__, name
         ))
         # XXX we appear to use the self.server for 3 things:
-        #     1) get the unix path to the mbox so we can get its mtime,
         #     2) get the message cache
-        #     3) get a cursor from the open db object
-        #     4) get the open db object so we can call commit()
-        #     5) get the next uid_vv value
         #
         #     If we can remove the server object we make unit testing
         #     the mailbox easier.
-        #
-        #     Only one of the above that is remotely tricky is the
-        #     'get_next_uid_vv()' function
         #
         #    Maybe we only need to make a mock server object for
         #    testing instead of pulling everything out?
         #
         self.server = server
         self.name = name
-        self.id = None
         self.uid_vv = None
         self.mtime = 0
         self.next_uid = 1
@@ -363,7 +355,6 @@ class Mailbox(object):
             self.mtime = Mailbox.get_actual_mtime(
                 self.server.mailbox, self.name
             )
-            self.commit_to_db()
             return
 
         # Get the mtime of the folder at the start so when we need to check to
@@ -503,7 +494,6 @@ class Mailbox(object):
         #
         self.check_set_haschildren_attr()
 
-        self.commit_to_db()
         return
 
     ##################################################################
@@ -813,141 +803,6 @@ class Mailbox(object):
 
     ##################################################################
     #
-    def _update_msg_uids(self, msgs, seq):
-        """
-        This will loop through all of the msgs whose keys were passed in the
-        msgs list. We assume these keys are in order. We see if they have
-        UID_VV.UID's in them. If they do not or it is out of sequence (UID's
-        must be monotonically increasing at all times) then we have to generate
-        new UID's for every message after the out-of-sequence one we
-        encountered.
-
-        NOTE: The important thing to note is that we store the uid_vv / uid for
-              message _in the message_ itself. This way if the message is moved
-              around we will know if it is out of sequence, a totally new
-              message, or from a different mailbox.
-
-              The downside is that we need to pick at every message to find
-              this header information but we will try to do this as efficiently
-              as possible.
-
-        NOTE: My big worry is the spam mailboxes which get many many messages
-              per minute which means we will be scanning that directory
-              constantly and that load may be just too much even for our
-              'acceptably slow server'.
-
-              We may need to add an attribute to a mailbox like "do not scan"
-              so that it is never looked at. We generally do not care if we get
-              new mail in the spam folder anyways.
-
-        Arguments:
-        - `msgs`: A list of the message keys that we need to check. NOTE: This
-          will frequently be a subset of all messages in the folder.
-
-        - `seq`: The existing sequences for this folder (may not be in sync
-          with self.sequences for differencing purposes, and is passed in to
-          save us from having to load them from disk again.
-        """
-
-        # We may need to re-write the .mh_sequences file if we need to tag
-        # messages with 'Recent'. If we do that then we need a flag to let us
-        # know the write the sequences back out to disk.
-        #
-        seq_changed = False
-
-        # As we go through messages we need to know if the current UID we are
-        # looking at is proper (ie: greater than the one of the previous
-        # message.)
-        #
-        # If we hit one that is not then from that message on we need to
-        # re-number all of their UID's.
-        #
-        redoing_rest_of_folder = False
-        prev_uid = 0
-
-        # We keep track of all of the UID's we find and any new ones we set.
-        # This will allow us to compare with the UID's that were already in
-        # our list of messages and lets us see if we need to issue any
-        # 'EXPUNGE's for messages that have been removed.
-        #
-        uids_found = []
-
-        # Loop through all of the messages in this mailbox.
-        #
-        # For each message see if it has the header that we use to define the
-        # uid_vv / uid for a message.
-        #
-        # If the message does not, or if it has a uid lower than the previous
-        # uid, or if its uid_vv does not match the uid_vv of this mailbox then
-        # 'redoing' goes to true and we now update this message and every
-        # successive message adding a proper uid_vv/uid header.
-        #
-        for i, msg in enumerate(msgs):
-            if i % 200 == 0:
-                self.log.debug("check/update uids, at count %d, msg: %d out "
-                               "of %d" % (i, msg, len(msgs)))
-
-            if not redoing_rest_of_folder:
-                # If the uid_vv is different or the uid is NOT
-                # monotonically increasing from the previous uid then
-                # we have to redo the rest of the folder.
-                #
-                uid_vv, uid = self.get_uid_from_msg(msg)
-                if (uid_vv != self.uid_vv or uid <= prev_uid or
-                        uid_vv is None or uid is None):
-                    redoing_rest_of_folder = True
-                    self.log.debug("Found msg %d uid_vv/uid %s.%s out of "
-                                   "sequence. Redoing rest of folder." %
-                                   (msg, uid_vv, uid))
-                else:
-                    uids_found.append(uid)
-                    prev_uid = uid
-
-            if redoing_rest_of_folder:
-                # We are either replacing or adding a new UID header to this
-                # message no matter what so do that.
-                #
-                uid_vv, uid = self.set_uid_in_msg(msg, self.next_uid)
-                uids_found.append(self.next_uid)
-                self.next_uid += 1
-
-                # If the uid_vv we previously retrieved from the message is
-                # different thant he uid_vv of this folder then this message is
-                # new to this folder and needed to be added to the Recent
-                # sequence.
-                #
-                if uid_vv != self.uid_vv:
-                    # Make sure that seq has a 'Recent' sequence
-                    #
-                    if 'Recent' not in seq:
-                        seq['Recent'] = []
-
-                    # IF the msg is not already in the Recent sequence add it.
-                    #
-                    if msg not in seq['Recent']:
-                        seq['Recent'].append(msg)
-                        seq_changed = True
-
-        # If we had to redo the folder then we believe it is indeed now
-        # interesting so set the \Marked attribute on it.
-        #
-        if redoing_rest_of_folder:
-            self.marked(True)
-
-            # If seq_changed is True then we modified the sequencees too
-            # so we need to re-write the sequences file.
-            #
-            if seq_changed is True:
-                self.mailbox.set_sequences(seq)
-
-        # And we are done.. we return the list of the uid's of all of the
-        # messages we looked at or re-wrote (in order in which we encountered
-        # them.)
-        #
-        return uids_found
-
-    ##################################################################
-    #
     def _restore_from_db(self):
         """
         Restores this mailbox's persistent state from the database.  If this
@@ -959,122 +814,78 @@ class Mailbox(object):
         We return False if we had to create the record for this mailbox in the
         db.
         """
-        c = self.server.db.cursor()
-        c.execute("select id, uid_vv,attributes,mtime,next_uid,num_msgs,"
-                  "num_recent,uids,last_resync,subscribed from mailboxes "
-                  "where name=?", (self.name,))
-        results = c.fetchone()
-
-        # If we got back no results than this mailbox does not exist in the
-        # database so we need to create it.
-        #
-        if results is None:
-            # Create the entry in the db reflects what is on the disk as
-            # far as we know.
-            #
-            self.check_set_haschildren_attr()
-            self.mtime = Mailbox.get_actual_mtime(
-                self.server.mailbox, self.name
-            )
-            self.uid_vv = self.server.get_next_uid_vv()
-            c.execute("insert into mailboxes (id, name, uid_vv, attributes, "
-                      "mtime, next_uid, num_msgs, num_recent) "
-                      "values (NULL,?,?,?,?,?,?,0)",
-                      (self.name,
-                       self.uid_vv,
-                       ",".join(self.attributes),
-                       self.mtime,
-                       self.next_uid,
-                       len(list(self.mailbox.keys()))))
-
-            # After we insert the record we pull it out again because we need
-            # the mailbox id to relate the mailbox to its sequences.
-            #
-            c.execute("select id from mailboxes where name=?", (self.name,))
-            results = c.fetchone()
-            self.id = results[0]
-
-            # For every sequence we store it in the db also so we can later on
-            # do smart diffs of sequence changes between mailbox resyncs.
-            #
-            self.sequences = self.mailbox.get_sequences()
-            for name, values in self.sequences.items():
-                c.execute("insert into sequences (id,name,mailbox_id,sequence)"
-                          " values (NULL,?,?,?)",
-                          (name,
-                           self.id,
-                           ",".join([str(x) for x in values])))
-            c.close()
-            self.server.db.commit()
-            return False
-        else:
-            # We got back an actual result. Fill in the values in the mailbox.
-            #
-            (self.id, self.uid_vv, attributes, self.mtime, self.next_uid,
-             self.num_msgs, self.num_recent, uids, self.last_resync,
-             self.subscribed) = results
-            self.attributes = set(attributes.split(","))
-            if len(uids) == 0:
-                self.uids = []
-            else:
-                self.uids = [int(x) for x in uids.split(",")]
-
-            # And fill in the sequences we find for this mailbox.
-            #
-            results = c.execute("select name, sequence from sequences where "
-                                "mailbox_id=?", (self.id,))
-            for row in results:
-                name, values = row
-                self.sequences[name] = set([int(x) for x in values.split(",") if values])
-            c.close()
+        self.uid_vv = self.mailbox.get_uid_vv()
+        self.sequences = self.mailbox.get_sequences()
+        self.check_set_haschildren_attr()
+        self.mtime = Mailbox.get_actual_mtime(
+            self.server.mailbox, self.name
+        )
         return True
+        #c = self.server.db.cursor()
+        #c.execute("select id, uid_vv,attributes,mtime,next_uid,num_msgs,"
+        #          "num_recent,uids,last_resync,subscribed from mailboxes "
+        #          "where name=?", (self.name,))
+        #results = c.fetchone()
 
-    ##################################################################
-    #
-    def commit_to_db(self):
-        """
-        Write the state of the mailbox back to the database for persistent
-        storage.
-        """
-        values = (self.uid_vv, ",".join(self.attributes), self.next_uid,
-                  self.mtime, self.num_msgs, self.num_recent,
-                  ",".join([str(x) for x in self.uids]), self.last_resync,
-                  self.subscribed, self.id)
-        c = self.server.db.cursor()
-        c.execute("update mailboxes set uid_vv=?, attributes=?, next_uid=?,"
-                  "mtime=?, num_msgs=?, num_recent=?, uids=?, last_resync=?, "
-                  "subscribed=? where id=?", values)
+        ## If we got back no results than this mailbox does not exist in the
+        ## database so we need to create it.
+        ##
+        #if results is None:
+        #    # Create the entry in the db reflects what is on the disk as
+        #    # far as we know.
+        #    #
+        #    c.execute("insert into mailboxes (id, name, uid_vv, attributes, "
+        #              "mtime, next_uid, num_msgs, num_recent) "
+        #              "values (NULL,?,?,?,?,?,?,0)",
+        #              (self.name,
+        #               self.uid_vv,
+        #               ",".join(self.attributes),
+        #               self.mtime,
+        #               self.next_uid,
+        #               len(list(self.mailbox.keys()))))
 
-        # For the sequences we have to do a fetch before a store because we
-        # need to delete the sequence entries from the db for sequences that
-        # are no longer in this mailbox's list of sequences.
-        #
-        old_names = set()
-        r = c.execute("select name from sequences where mailbox_id=?",
-                      (self.id,))
-        for row in r:
-            old_names.add(row[0])
-        new_names = set(self.sequences.keys())
-        names_to_delete = old_names.difference(new_names)
-        names_to_insert = new_names.difference(old_names)
-        names_to_update = new_names.intersection(old_names)
-        for name in names_to_delete:
-            c.execute("delete from sequences where mailbox_id=? and name=?",
-                      (self.id, name))
-        for name in names_to_insert:
-            c.execute("insert into sequences (id,name,mailbox_id,sequence) "
-                      "values (NULL,?,?,?)",
-                      (name,
-                       self.id,
-                       ",".join([str(x) for x in self.sequences[name]])))
-        for name in names_to_update:
-            c.execute("update sequences set sequence=? where mailbox_id=? "
-                      "and name=?",
-                      (",".join([str(x) for x in self.sequences[name]]),
-                       self.id, name))
-        c.close()
-        self.server.db.commit()
-        return
+        #    # After we insert the record we pull it out again because we need
+        #    # the mailbox id to relate the mailbox to its sequences.
+        #    #
+        #    c.execute("select id from mailboxes where name=?", (self.name,))
+        #    results = c.fetchone()
+        #    self.id = results[0]
+
+        #    # For every sequence we store it in the db also so we can later on
+        #    # do smart diffs of sequence changes between mailbox resyncs.
+        #    #
+        #    self.sequences = self.mailbox.get_sequences()
+        #    for name, values in self.sequences.items():
+        #        c.execute("insert into sequences (id,name,mailbox_id,sequence)"
+        #                  " values (NULL,?,?,?)",
+        #                  (name,
+        #                   self.id,
+        #                   ",".join([str(x) for x in values])))
+        #    c.close()
+        #    self.server.db.commit()
+        #    return False
+        #else:
+        #    # We got back an actual result. Fill in the values in the mailbox.
+        #    #
+        #    (self.id, self.uid_vv, attributes, self.mtime, self.next_uid,
+        #     self.num_msgs, self.num_recent, uids, self.last_resync,
+        #     self.subscribed) = results
+        #    self.attributes = set(attributes.split(","))
+        #    if len(uids) == 0:
+        #        self.uids = []
+        #    else:
+        #        self.uids = [int(x) for x in uids.split(",")]
+
+        #    # And fill in the sequences we find for this mailbox.
+        #    #
+        #    results = c.execute("select name, sequence from sequences where "
+        #                        "mailbox_id=?", (self.id,))
+        #    for row in results:
+        #        name, values = row
+        #        self.sequences[name] = set([int(x) for x in values.split(",") if values])
+        #    c.close()
+        #return True
+
 
     ##################################################################
     #
@@ -2156,7 +1967,6 @@ class Mailbox(object):
             if '\\Noselect' in mbox.attributes:
                 mbox.attributes.remove('\\Noselect')
                 mbox.check_set_haschildren_attr()
-                mbox.commit_to_db()
             else:
                 raise MailboxExists("Mailbox %s already exists" % name)
 
@@ -2186,7 +1996,6 @@ class Mailbox(object):
         #
         for m in mboxes_created:
             m.check_set_haschildren_attr()
-            m.commit_to_db()
 
         return
 
@@ -2219,6 +2028,8 @@ class Mailbox(object):
         - `name`: The name of the mailbox to delete
         - `server`: The user server object
         """
+        raise Bad("not implemented")
+        # TODO this is not implemented
         log = logging.getLogger("%s.%s.delete()" % (__name__, cls.__name__))
 
         if name == "inbox":
@@ -2273,7 +2084,6 @@ class Mailbox(object):
             if len(inferior_mailboxes) > 0 or mbox.subscribed:
                 mbox.attributes.add("\\Noselect")
                 mbox.uid_vv = server.get_next_uid_vv()
-                mbox.commit_to_db()
             else:
                 # We have no inferior mailboxes. This mailbox is gone. If it
                 # is active we remove it from the list of active mailboxes
@@ -2307,7 +2117,6 @@ class Mailbox(object):
         if parent_name != "":
             parent_mbox = server.get_mailbox(parent_name, expiry=0)
             parent_mbox.check_set_haschildren_attr()
-            parent_mbox.commit_to_db()
 
         # And remove the mailbox from the filesystem.
         #
@@ -2339,6 +2148,7 @@ class Mailbox(object):
         - `new_name`: the new name of the mailbox
         - `server`: the user server object
         """
+        raise Bad("not implemented")
         log = logging.getLogger("%s.%s.rename()" % (__name__, cls.__name__))
         mbox = server.get_mailbox(old_name, expiry=0)
 
@@ -2419,7 +2229,6 @@ class Mailbox(object):
             if old_p_name != "":
                 m = server.get_mailbox(old_p_name, expiry=0)
                 m.check_set_haschildren_attr()
-                m.commit_to_db()
 
             # See if the mailbox under its new name has a parent and if it does
             # update that parent's children flags.
@@ -2428,7 +2237,6 @@ class Mailbox(object):
             if new_p_name != "":
                 m = server.get_mailbox(new_p_name, expiry=0)
                 m.check_set_haschildren_attr()
-                m.commit_to_db()
 
             return
         else:
@@ -2468,8 +2276,16 @@ class Mailbox(object):
 
         return
 
+    def subscribe(self):
+        self.mailbox.subscribe()
+
+
+    def unsubscribe(self):
+        self.mailbox.unsubscribe()
+
     ####################################################################
     #
+
     @classmethod
     def list(cls, ref_mbox_name, mbox_match, server, lsub=False):
         """
@@ -2536,7 +2352,6 @@ class Mailbox(object):
         #
         mbox_match = mbox_match.replace(r'\*', r'.*').replace(r'\%', r'[^\/]*')
         results = []
-        c = server.db.cursor()
         if lsub:
             subscribed = 'and subscribed=1'
         else:
@@ -2544,10 +2359,8 @@ class Mailbox(object):
 
         # NOTE: We do not present to the IMAP client any folders that
         #       have the flag 'ignore' set on them.
-        r = c.execute("select name,attributes from mailboxes where name "
-                      "regexp ? %s and attributes not like '%%ignored%%' "
-                      "order by name" % subscribed,
-                      (mbox_match,))
+        extra = "where name regexp ? %s and attributes not like '%%ignored%%' order by name" % subscribed
+        r = server.mailbox.query_folder(["name", "attributes"], extra, (mbox_match, ))
 
         for row in r:
             mbox_name, attributes = row
@@ -2559,5 +2372,4 @@ class Mailbox(object):
                 mbox_name = "INBOX"
 
             results.append((mbox_name, attributes))
-        c.close()
         return results
