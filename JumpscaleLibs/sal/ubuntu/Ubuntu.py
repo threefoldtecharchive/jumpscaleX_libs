@@ -154,11 +154,10 @@ class Ubuntu(JSBASE):
         :param remove_downloaded: remove tmp download file
         :type remove_downloaded: bool
         """
-        j.sal.fs.changeDir(j.dirs.TMPDIR)  # will go to tmp
-        path = j.sal.nettools.download(url, "")
+        path = j.sal.nettools.download(url, "/tmp", overwrite=False)
         self.deb_install(path)
         if remove_downloaded:
-            j.tools.path.get(path).rmtree_p()
+            j.sal.fs.remove(path)
 
     def pkg_list(self, pkg_name, regex=""):
         """list files of dpkg. if regex used only output the ones who are matching regex
@@ -223,11 +222,17 @@ stop on runlevel [016]
         if env is not None:
             for key, value in list(env.items()):
                 cmd += "env %s=%s\n" % (key, value)
-        cmd += "exec %s %s\n" % (daemon_path, args)
+        cmd += "exec %s %s\n" % (j.sal.fs.joinPaths(daemon_path, service_name), args)
 
-        cmd = j.dirs.replace_txt_dir_vars(cmd)
+        path = "/etc/init/%s.conf" % service_name
+        if not j.sal.fs.exists(path):
+            dir_path = j.sal.fs.getDirName(path)
+            if not j.sal.fs.exists(dir_path):
+                j.sal.fs.createDir(dir_path)
 
-        j.tools.path.get("/etc/init/%s.conf" % service_name).write_text(cmd)
+            j.sal.fs.createEmptyFile(path)
+
+        j.tools.path.get(path).write_text(cmd)
         if reload:
             j.sal.process.execute("initctl reload-configuration", useShell=True)
 
@@ -388,8 +393,8 @@ stop on runlevel [016]
         :rtype: list
         """
         from aptsources import sourceslist
-
-        return sourceslist.SourcesList()
+        sources = sourceslist.SourcesList().list
+        return [str(source) for source in sources if not source.line.startswith("#") and source.line != "\n"]
 
     def apt_sources_uri_add(self, url):
         """add a new apt source url.
