@@ -40,6 +40,7 @@ class BaseAuth(object):
     that they will basically combine several systems in a certain
     ordering.
     """
+
     #########################################################################
     #
     def __init__(self):
@@ -103,10 +104,10 @@ class TestAuth(BaseAuth):
 
         alpha_num = string.ascii_uppercase + string.ascii_lowercase + string.digits
 
-        self.username = ''.join(random.choice(alpha_num) for i in range(16))
-        self.password = ''.join(random.choice(alpha_num) for i in range(16))
+        self.username = "".join(random.choice(alpha_num) for i in range(16))
+        self.password = "".join(random.choice(alpha_num) for i in range(16))
 
-        for path in ('test_mode', 'test/test_mode'):
+        for path in ("test_mode", "test/test_mode"):
             maildir = os.path.join(self.cwd, path)
             if os.path.isdir(maildir):
                 self.maildir = maildir
@@ -115,27 +116,22 @@ class TestAuth(BaseAuth):
         # There is no maildir to use so do nothing.
         # No possibiity of logging in via test_mode.
         if self.maildir is None:
-            self.log.debug("Unable to initialize the TestAuth module, "
-                           "no suitable test_mode maildir found")
+            self.log.debug("Unable to initialize the TestAuth module, " "no suitable test_mode maildir found")
             return
 
-        creds_file = os.path.join(self.maildir, 'test_mode_creds.txt')
-        with open(creds_file, 'w') as f:
+        creds_file = os.path.join(self.maildir, "test_mode_creds.txt")
+        with open(creds_file, "w") as f:
             f.write("{}:{}".format(self.username, self.password))
 
-        self.log.debug("Using maildir: {}".format(
-            os.path.abspath(self.maildir)
-        ))
+        self.log.debug("Using maildir: {}".format(os.path.abspath(self.maildir)))
         self.log.debug("Credentials file: {}".format(creds_file))
-        self.log.debug("Username: '{}', password: '{}'".format(
-            self.username, self.password
-        ))
+        self.log.debug("Username: '{}', password: '{}'".format(self.username, self.password))
 
     #########################################################################
     #
     def authenticate(self, username, password):
         # @TODO: authentication
-        return User(username, os.getlogin(), 'mail')
+        return User(username, os.getlogin(), "mail")
 
 
 ##################################################################
@@ -158,9 +154,10 @@ class SimpleAuth(BaseAuth):
     def authenticate(self, username, password):
         return User(username, username)
 
+
 AUTH_SYSTEMS = {"test_auth": TestAuth()}
 
 try:
-    AUTH_SYSTEMS['simple_auth'] = SimpleAuth()
+    AUTH_SYSTEMS["simple_auth"] = SimpleAuth()
 except (OSError, IOError) as e:
     log.warn("Unable to initialize the SimpleAuth module: %s" % str(e))

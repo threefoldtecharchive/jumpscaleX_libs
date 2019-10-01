@@ -78,8 +78,7 @@ class IMAPUserServer:
         """
         # self.options = options
 
-        self.log = logging.getLogger("%s.%s" % (__name__,
-                                                self.__class__.__name__))
+        self.log = logging.getLogger("%s.%s" % (__name__, self.__class__.__name__))
 
         # Do NOT create our socket if we are running in standalone mode
         #
@@ -131,12 +130,11 @@ class IMAPUserServer:
         """
         Returns True if any active mailbox has queued commands.
         """
-        return any(active_mbox.has_queued_commands()
-                   for active_mbox in list(self.active_mailboxes.values()))
+        return any(active_mbox.has_queued_commands() for active_mbox in list(self.active_mailboxes.values()))
 
     ##################################################################
     #
-    def process_queued_commands(self, ):
+    def process_queued_commands(self,):
         """
         See if any active mailboxes have queued commands that still need to be
         processed and let them run if they do.
@@ -161,25 +159,23 @@ class IMAPUserServer:
         # the command queue this should generally work through the queued
         # commands in a fair fashion.
         #
-        mboxes = [x for x in
-                  list(self.active_mailboxes.values()) if x.has_queued_commands()]
+        mboxes = [x for x in list(self.active_mailboxes.values()) if x.has_queued_commands()]
         if not mboxes:
             return
 
         start_time = time.time()
 
         num_queued_cmds = sum(len(x.command_queue) for x in mboxes)
-        self.log.debug("process_queued_command: ** START Number of queued "
-                       "commands: %d" % num_queued_cmds)
+        self.log.debug("process_queued_command: ** START Number of queued " "commands: %d" % num_queued_cmds)
 
         random.shuffle(mboxes)
 
         for mbox in mboxes:
             if len(mbox.command_queue) == 0:
                 continue
-            self.log.debug("process_queued_command:    mbox: %s - commands in "
-                           "queue: %d" % (mbox.name,
-                                          len(mbox.command_queue)))
+            self.log.debug(
+                "process_queued_command:    mbox: %s - commands in " "queue: %d" % (mbox.name, len(mbox.command_queue))
+            )
             client, imap_cmd = mbox.command_queue.pop(0)
 
             # If the client's network connectionis closed then we do not
@@ -190,17 +186,16 @@ class IMAPUserServer:
                 continue
 
             try:
-                self.log.debug("process_queued_command mbox: %s, client: "
-                               "%s, cmd: %s" % (mbox.name, client.name,
-                                                str(imap_cmd)))
+                self.log.debug(
+                    "process_queued_command mbox: %s, client: " "%s, cmd: %s" % (mbox.name, client.name, str(imap_cmd))
+                )
                 client.command(imap_cmd)
             except Exception:
                 # We catch all exceptions and log them similar to what
                 # asynchat does when processing a message.
                 #
                 nil, t, v, tbinfo = asyncore.compact_traceback()
-                self.log.error("Exception handling queued command: "
-                               "%s:%s %s" % (t, v, tbinfo))
+                self.log.error("Exception handling queued command: " "%s:%s %s" % (t, v, tbinfo))
 
             # If we have been processing queued commands for more than n (5?)
             # seconds that is enough. Return to let the main loop read more
@@ -208,14 +203,16 @@ class IMAPUserServer:
             #
             now = time.time()
             if now - start_time > 5:
-                self.log.debug("process_queued_command: ** Running for %f "
-                               "seconds. Will run more commands later" %
-                               (now - start_time))
+                self.log.debug(
+                    "process_queued_command: ** Running for %f "
+                    "seconds. Will run more commands later" % (now - start_time)
+                )
                 return
 
         now = time.time()
-        self.log.debug("process_queued_command: ** Finished all queued "
-                       "commands. Took %f seconds" % (now - start_time))
+        self.log.debug(
+            "process_queued_command: ** Finished all queued " "commands. Took %f seconds" % (now - start_time)
+        )
 
         return
 
@@ -291,8 +288,7 @@ class IMAPUserServer:
                     # transient.  we will skip it. The command processor in
                     # client.py knows how to handle these better.
                     #
-                    self.log.warn("check-all-active: skipping '%s' due to: "
-                                  "%s" % (name, str(e)))
+                    self.log.warn("check-all-active: skipping '%s' due to: " "%s" % (name, str(e)))
         return
 
     ##################################################################
@@ -307,9 +303,7 @@ class IMAPUserServer:
         #
         expired = []
         for mbox_name, mbox in self.active_mailboxes.items():
-            if len(mbox.clients) == 0 and \
-                    mbox.expiry is not None and \
-                    mbox.expiry < time.time():
+            if len(mbox.clients) == 0 and mbox.expiry is not None and mbox.expiry < time.time():
                 expired.append(mbox_name)
 
         for mbox_name in expired:
@@ -317,8 +311,7 @@ class IMAPUserServer:
             del self.active_mailboxes[mbox_name]
             self.msg_cache.clear_mbox(mbox_name)
         if len(expired) > 0:
-            self.log.debug("expire_inactive_folders: Expired %d folders" %
-                           len(expired))
+            self.log.debug("expire_inactive_folders: Expired %d folders" % len(expired))
         return
 
     ##################################################################
@@ -344,7 +337,7 @@ class IMAPUserServer:
 
         # The user_server's CWD is the root of our mailboxes.
         #
-        for root, dirs, files in os.walk('.', followlinks=True):
+        for root, dirs, files in os.walk(".", followlinks=True):
             for d in dirs:
                 dirname = os.path.normpath(os.path.join(root, d))
                 if dirname not in extant_mboxes:
@@ -358,8 +351,7 @@ class IMAPUserServer:
         for mbox_name in mboxes_to_create:
             self.log.debug("Creating mailbox '%s'" % mbox_name)
             self.get_mailbox(mbox_name, expiry=0)
-        self.log.debug("find_all_folders: FINISHED. Took %f seconds" %
-                       (time.time() - start_time))
+        self.log.debug("find_all_folders: FINISHED. Took %f seconds" % (time.time() - start_time))
 
     ##################################################################
     #
@@ -389,8 +381,7 @@ class IMAPUserServer:
         #
         mboxes = []
         c = self.db.cursor()
-        c.execute("select name, mtime from mailboxes where attributes "
-                  "not like '%%ignored%%' order by name")
+        c.execute("select name, mtime from mailboxes where attributes " "not like '%%ignored%%' order by name")
         for row in c:
             mboxes.append(row)
         c.close()
@@ -410,24 +401,23 @@ class IMAPUserServer:
             # queued command. It might cause messages to be generated and reset
             # various bits of state that are important to the queued command.
             #
-            if (mbox_name in self.active_mailboxes and
-                (any(x.idling
-                     for x in
-                     self.active_mailboxes[mbox_name].clients.values()) or
-                 len(self.active_mailboxes[mbox_name].command_queue) > 0)):
+            if mbox_name in self.active_mailboxes and (
+                any(x.idling for x in self.active_mailboxes[mbox_name].clients.values())
+                or len(self.active_mailboxes[mbox_name].command_queue) > 0
+            ):
                 continue
 
             path = os.path.join(self.mailbox._path, mbox_name)
             seq_path = os.path.join(path, ".mh_sequences")
             try:
-                fmtime = asmbox.Mailbox.get_actual_mtime(self.mailbox,
-                                                              mbox_name)
+                fmtime = asmbox.Mailbox.get_actual_mtime(self.mailbox, mbox_name)
                 if (fmtime > mtime) or force:
                     # The mtime differs.. force the mailbox to resync.
                     #
-                    self.log.debug("check_all_folders: doing resync on '%s' "
-                                   "stored mtime: %d, actual mtime: %d" %
-                                   (mbox_name, mtime, fmtime))
+                    self.log.debug(
+                        "check_all_folders: doing resync on '%s' "
+                        "stored mtime: %d, actual mtime: %d" % (mbox_name, mtime, fmtime)
+                    )
                     m = self.get_mailbox(mbox_name, 30)
                     if (m.mtime >= fmtime) and not force:
                         # Looking at the actual mailbox its mtime is NOT
@@ -444,14 +434,12 @@ class IMAPUserServer:
                 # transient.  we will skip it. The command processor in
                 # client.py knows how to handle these better.
                 #
-                self.log.warn("check_all_folders: skipping '%s' due to: "
-                              "%s" % (mbox_name, str(e)))
+                self.log.warn("check_all_folders: skipping '%s' due to: " "%s" % (mbox_name, str(e)))
             except (OSError, IOError) as e:
                 if e.errno == errno.ENOENT:
-                    self.log.error("check_all_folders: One of %s or %s does "
-                                   "not exist for mtime check" % (path,
-                                                                  seq_path))
+                    self.log.error(
+                        "check_all_folders: One of %s or %s does " "not exist for mtime check" % (path, seq_path)
+                    )
 
-        self.log.debug("check_all_folders finished, Took %f seconds" %
-                       (time.time() - start_time))
+        self.log.debug("check_all_folders finished, Took %f seconds" % (time.time() - start_time))
         return

@@ -14,9 +14,10 @@ import traceback
 sessions = {}
 
 
-RE_LITERAL_STRING_START = re.compile(r'\{(\d+)\+?\}$')
+RE_LITERAL_STRING_START = re.compile(r"\{(\d+)\+?\}$")
 
 USED_REGEXPS = {}
+
 
 def regexp(expr, item):
     """
@@ -80,9 +81,10 @@ class Server:
                 socket.close()
 
     def handle(self, socket, address):
-        #socket.setblocking(True)
+        # socket.setblocking(True)
         terminator = "\r\n"
         file = socket.makefile("rw", newline=terminator)
+
         class Client:
             def __init__(self, socket):
                 self.socket = socket
@@ -110,9 +112,8 @@ class Server:
         c = Client(socket)
 
         reading_string_literal = True
-        client_handler = PreAuthenticated(c, AUTH_SYSTEMS['simple_auth'], self.models)
-        socket.send(b'* OK [IMAP4REV1 IDLE ID SELECT UNSELECT UIDPLUS LITERAL+ CHILDREN]\r\n')
-
+        client_handler = PreAuthenticated(c, AUTH_SYSTEMS["simple_auth"], self.models)
+        socket.send(b"* OK [IMAP4REV1 IDLE ID SELECT UNSELECT UIDPLUS LITERAL+ CHILDREN]\r\n")
 
         while socket is not None:
             if reading_string_literal:
@@ -134,18 +135,20 @@ class Server:
             if m:
                 neededdata = int(m.group(1)) + 2
                 reading_string_literal = True
-                #file.writelines(["+ Ready for more input"])
+                # file.writelines(["+ Ready for more input"])
                 data += file.read(neededdata)
-            if not data.endswith('\r\n'):
-                data = data + '\r\n'
+            if not data.endswith("\r\n"):
+                data = data + "\r\n"
             self.handle_msg(socket, data, client_handler)
-            if isinstance(client_handler, PreAuthenticated) and client_handler.state == 'authenticated':
-                client_handler = Authenticated(c, IMAPUserServer(client_handler.user.imap_username, self.models), self.models)
+            if isinstance(client_handler, PreAuthenticated) and client_handler.state == "authenticated":
+                client_handler = Authenticated(
+                    c, IMAPUserServer(client_handler.user.imap_username, self.models), self.models
+                )
             elif client_handler.state == "logged_out":
                 socket.close()
                 socket = None
         # Handle client disconnection
-        print('Client disconnected')
+        print("Client disconnected")
         client_handler.state = "non_authenticated"
         client_handler.user = None
         if socket:
@@ -153,4 +156,3 @@ class Server:
 
     def start(self):
         self.server.serve_forever()
-

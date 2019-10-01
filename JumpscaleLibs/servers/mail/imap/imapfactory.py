@@ -3,10 +3,11 @@ from collections import namedtuple
 from .asimap.server import Server
 import os
 
+
 class ImapServer(j.baseclasses.factory):
     __jslocation__ = "j.servers.imap"
 
-    def start(self, address="0.0.0.0" , port=7143):
+    def start(self, address="0.0.0.0", port=7143):
         self.get_instance(address, port).serve_forever()
 
     def get_instance(self, address, port):

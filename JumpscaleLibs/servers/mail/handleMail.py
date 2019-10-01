@@ -84,6 +84,7 @@ def store_message(model, message, folder="inbox", unseen=True, recent=True):
     mail.save()
     return mail
 
+
 def object_to_message(mail):
     textmessage = None
     plaintextmessage = None
@@ -130,6 +131,7 @@ def object_to_message(mail):
     for attachment in attachments:
         mainmessage.attach(attachment)
     return mainmessage
+
 
 def get_headers(headers):
     rest_headers = []

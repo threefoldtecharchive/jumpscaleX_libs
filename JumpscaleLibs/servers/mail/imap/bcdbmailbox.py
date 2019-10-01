@@ -7,6 +7,7 @@ from ..handleMail import store_message, object_to_message
 
 locks = defaultdict(Semaphore)
 
+
 class BCDBMailbox(mailbox.Mailbox):
     def __init__(self, models, obj, create=False):
         self._models = models
@@ -23,7 +24,7 @@ class BCDBMailbox(mailbox.Mailbox):
     def iterkeys(self):
         for key in sorted(self._models.message.find_ids(folder=self._obj.name)):
             yield key
-    
+
     def get_sequences(self):
         return self._obj.sequences
 
@@ -58,7 +59,7 @@ class BCDBMailbox(mailbox.Mailbox):
         return self._models.message.count(folder=self._obj.name)
 
     def pack(self):
-        pass # we don't need this in our implementation
+        pass  # we don't need this in our implementation
 
     def get_message(self, key):
         obj = self.get_object(key)
@@ -120,4 +121,3 @@ class BCDBMailboxdir(BCDBMailbox):
         folder.name = name
         folder.save()
         return BCDBMailbox(self._models, folder)
-

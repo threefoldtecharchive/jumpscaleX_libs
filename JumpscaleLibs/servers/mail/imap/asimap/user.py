@@ -45,5 +45,4 @@ class User(object):
     ##################################################################
     #
     def __str__(self):
-        return "IMAP username: '%s', local username: '%s'" % \
-            (self.imap_username, self.local_username)
+        return "IMAP username: '%s', local username: '%s'" % (self.imap_username, self.local_username)
