@@ -15,4 +15,4 @@ class MailServer(SMTPServer):
         print("------------ Data saved In bcdb ------------")
 
     def store_mail(self, data):
-        store_message(data)
+        store_message(self.mail_model, data)
