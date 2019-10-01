@@ -6,6 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from collections import namedtuple
+from dateutil.parser import parse
 
 Attachment = namedtuple(
     "Attachment", ["hashedfilename", "hashedfilepath", "hashedfileurl", "originalfilename", "binarycontent", "type"]
@@ -28,6 +29,9 @@ def parse_email(message):
     from_mail = message.get("From")
     subject = message.get("Subject") if message.get("Subject") is not None else ""
     headers = get_headers(message.items())
+    # Get the date from the headers
+    val = [item["value"] for item in headers if item["key"] == "Date"]
+    date = val[0] if len(val) != 0 else ""
     body = b""
     html_body = b""
     attachments = []
@@ -59,6 +63,7 @@ def parse_email(message):
         "subject": subject,
         "htmlbody": html_body.decode(),
         "headers": headers,
+        "date": date,
     }
 
 
@@ -74,6 +79,9 @@ def store_message(model, message, folder="inbox", unseen=True, recent=True):
     mail.body = data["body"]
     mail.htmlbody = data["htmlbody"]
     mail.headers = data["headers"]
+    new_format = "%d/%m/%Y %H:%M"
+    old_date_format = parse(data["date"])
+    mail.date = old_date_format.strftime(new_format)
     mail.attachments = data["attachments"]
     mail.folder = folder
     mail.unseen = unseen
@@ -144,7 +152,7 @@ def get_headers(headers):
 
 if __name__ == "__main__":
     data = 'To: rafy@gmail.com\nFrom: Rafy <rafy@incubaid.com>\nSubject: testing subject\nMessage-ID: <ace3555b-1715-3177-d707-ad8a982f0aeb@incubaid.com>\nDate: Thu, 19 Sep 2019 12:29:06 +0200\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101\n Thunderbird/60.8.0\nMIME-Version: 1.0\nContent-Type: multipart/mixed;\n boundary="------------54B39785043A597FAEBBBA3E"\nContent-Language: en-US\n\nThis is a multi-part message in MIME format.\n--------------54B39785043A597FAEBBBA3E\nContent-Type: multipart/alternative;\n boundary="------------7235A5D86007E410F6A6660D"\n\n\n--------------7235A5D86007E410F6A6660D\nContent-Type: text/plain; charset=utf-8; format=flowed\nContent-Transfer-Encoding: 7bit\n\ntesting body\n\n\n  Testing html\n\n\n\n--------------7235A5D86007E410F6A6660D\nContent-Type: text/html; charset=utf-8\nContent-Transfer-Encoding: 7bit\n\n<html>\n  <head>\n\n    <meta http-equiv="content-type" content="text/html; charset=UTF-8">\n  </head>\n  <body text="#000000" bgcolor="#FFFFFF">\n    <p>testing body <br>\n    </p>\n    <h1>Testing html </h1>\n    <p><br>\n    </p>\n  </body>\n</html>\n\n--------------7235A5D86007E410F6A6660D--\n\n--------------54B39785043A597FAEBBBA3E\nContent-Type: text/plain; charset=UTF-8;\n name="how to scedule a job"\nContent-Transfer-Encoding: base64\nContent-Disposition: attachment;\n filename="how to scedule a job"\n\nZnJvbSBKdW1wc2NhbGUuc2VydmVycy5teWpvYnMuTXlKb2JzRmFjdG9yeSBpbXBvcnQgYWRk\nCmouc2VydmVycy5teWpvYnMud29ya2VycwpqLnNlcnZlcnMubXlqb2JzLnNjaGVkdWxlKGFk\nZCw1NDU0NTMpCgo=\n--------------54B39785043A597FAEBBBA3E--'
-    data = "To: testing@dd.com\nFrom: Rafy <rafy@incubaid.com>\nSubject: trial 2\nMessage-ID: <34cefd88-2af6-906d-0ce1-889ba50ea117@incubaid.com>\nDate: Sun, 22 Sep 2019 16:23:31 +0200\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101\n Thunderbird/60.8.0\nMIME-Version: 1.0\nContent-Type: text/plain; charset=utf-8; format=flowed\nContent-Transfer-Encoding: 7bit\nContent-Language: en-US\n\ntesting the second trial\n"
+    # data = "To: testing@dd.com\nFrom: Rafy <rafy@incubaid.com>\nSubject: trial 2\nMessage-ID: <34cefd88-2af6-906d-0ce1-889ba50ea117@incubaid.com>\nDate: Sun, 22 Sep 2019 16:23:31 +0200\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101\n Thunderbird/60.8.0\nMIME-Version: 1.0\nContent-Type: text/plain; charset=utf-8; format=flowed\nContent-Transfer-Encoding: 7bit\nContent-Language: en-US\n\ntesting the second trial\n"
     result = parse_email_body(data)
     print("done")
 

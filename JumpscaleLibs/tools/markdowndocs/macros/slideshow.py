@@ -59,10 +59,10 @@ def slideshow(doc, **kwargs):
         j.sal.bcdbfs.file_copy(filepath, dest)
         base_url = "let img_path=location.protocol + '//' + location.hostname + ':4442'+ '"
         img = base_url + dest + "';"
-        image_tag = """<script>{img}
-        "<img src='" + img_path +"' alt='{slide_name}'"/>
-        </script>""".format(
-            slide_name=slide.name, img=img
+        image_tag = """
+        <img src="$path{dest}" alt='{slide_name}'"/>
+        """.format(
+            slide_name=slide.name, dest=dest
         )
         output += """
             <section>
