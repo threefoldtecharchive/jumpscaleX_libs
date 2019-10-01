@@ -21,6 +21,10 @@ class Slide:
 
 
 def slideshow(doc, **kwargs):
+    gdrive_cl = j.clients.gdrive.get("slideshow_macro_client", credfile="/sandbox/var/cred.json")
+    slides_path = j.sal.fs.joinPaths("sandbox", "var", "gdrive", "static", "slide")
+    j.sal.fs.createDir(slides_path)
+
     def _content_parse(content):
         data = dict()
         for line in content.splitlines():
@@ -54,11 +58,10 @@ def slideshow(doc, **kwargs):
             slides.slide_add(slide_name, presentation_guids[presentation_name], footer, slide_num)
     output = "```slideshow\n"
     for slide in slides.slides_get():
-        filepath = f"/sandbox/var/gdrive/static/slide/{slide.presentation_guid}/{slide.name}.png"
+        gdrive_cl.exportSlides(slide.presentation_guid, slides_path)
+        filepath = f"{slides_path}/{slide.presentation_guid}/{slide.name}.png"
         dest = j.sal.fs.joinPaths(doc.docsite.outpath, doc.path_dir_rel, slide.name + ".png")
         j.sal.bcdbfs.file_copy(filepath, dest)
-        base_url = "let img_path=location.protocol + '//' + location.hostname + ':4442'+ '"
-        img = base_url + dest + "';"
         image_tag = """
         <img src="$path{dest}" alt='{slide_name}'"/>
         """.format(
