@@ -99,7 +99,7 @@ class SMTPServer(StreamServer):
     """Abstrcted SMTP server
     """
 
-    def __init__(self, localaddr=None, remoteaddr=None, timeout=600, data_size_limit=10240000, **kwargs):
+    def __init__(self, localaddr=None, remoteaddr=None, timeout=1200, data_size_limit=10240000, **kwargs):
         """Initialize SMTP Server
 
         :param localaddr: tuple pair that start server, like `('127.0.0.1', 25)`

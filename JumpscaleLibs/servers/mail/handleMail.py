@@ -7,6 +7,8 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from collections import namedtuple
 from dateutil.parser import parse
+from Jumpscale import j
+
 
 Attachment = namedtuple(
     "Attachment", ["hashedfilename", "hashedfilepath", "hashedfileurl", "originalfilename", "binarycontent", "type"]
@@ -32,8 +34,8 @@ def parse_email(message):
     # Get the date from the headers
     val = [item["value"] for item in headers if item["key"] == "Date"]
     date = val[0] if len(val) != 0 else ""
-    body = b""
-    html_body = b""
+    body = ""
+    html_body = ""
     attachments = []
     g = message.walk()
     if message.is_multipart():
@@ -41,8 +43,7 @@ def parse_email(message):
 
     for part in g:
         part_content_type = part.get_content_type()
-        part_body = part.get_payload(decode=True)
-
+        part_body = part.get_payload()
         part_filename = part.get_param("filename", None, "content-disposition")
 
         # get the body of the mail
@@ -56,12 +57,12 @@ def parse_email(message):
             attachments.append({"name": part_filename, "content": part_body, "contentType": part_content_type})
 
     return {
-        "body": body.decode(),
+        "body": body,
         "attachments": attachments,
         "to": to_mail,
         "from": from_mail,
         "subject": subject,
-        "htmlbody": html_body.decode(),
+        "htmlbody": html_body,
         "headers": headers,
         "date": date,
     }
