@@ -393,6 +393,7 @@ stop on runlevel [016]
         :rtype: list
         """
         from aptsources import sourceslist
+
         sources = sourceslist.SourcesList().list
         return [str(source) for source in sources if not source.line.startswith("#") and source.line != "\n"]
 
