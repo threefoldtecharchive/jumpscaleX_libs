@@ -9,8 +9,14 @@ class Ubuntu(JSBASE):
     def _init(self, **kwargs):
         self._aptupdated = False
         self._checked = False
-        self._cache_ubuntu = None
+        self._cache_dict = None
         self._installed_pkgs = None
+
+    @property
+    def _cache_ubuntu(self):
+        if self._cache_dict is None:
+            self.apt_init()
+        return self._cache_dict
 
     def uptime(self):
         """return system uptime value.
@@ -44,7 +50,7 @@ class Ubuntu(JSBASE):
             cfg.set("APT::Install-Suggests", "0")
         except BaseException:
             pass
-        self._cache_ubuntu = apt.Cache()
+        self._cache_dict = apt.Cache()
         self.apt = apt
 
     def check(self):
@@ -211,6 +217,10 @@ class Ubuntu(JSBASE):
         :type reload: bool
         """
 
+        service_path = j.sal.fs.joinPaths(daemon_path, service_name)
+        if not j.sal.fs.exists(service_path):
+            raise j.exceptions.Value("Service daemon doesn't exist: %s" % service_path)
+
         cmd = """
 start on runlevel [2345]
 stop on runlevel [016]
@@ -314,8 +324,6 @@ stop on runlevel [016]
 
         """
         self.check()
-        if self._cache_ubuntu is None:
-            self.apt_init()
         if self._cache_ubuntu:
             self._cache_ubuntu.update()
             self._cache_ubuntu.open()
@@ -328,8 +336,6 @@ stop on runlevel [016]
 
         """
         self.check()
-        if self._cache_ubuntu is None:
-            self.apt_init()
         self.apt_update()
         self._cache_ubuntu.upgrade(dist_upgrade=True)
         self._cache_ubuntu.commit()
@@ -348,8 +354,6 @@ stop on runlevel [016]
         :return: list of installed list
         :rtype: list
         """
-        if self._cache_ubuntu is None:
-            self.apt_init()
         if self._installed_pkgs is None:
             self._installed_pkgs = []
             for p in self._cache_ubuntu:
@@ -367,8 +371,6 @@ stop on runlevel [016]
         :rtype: list
         """
         package_name = package_name.lower().strip().replace("_", "").replace("_", "")
-        if self._cache_ubuntu is None:
-            self.apt_init()
         result = []
         for item in self._cache_ubuntu.keys():
             if item.replace("_", "").replace("_", "").lower().find(package_name) != -1:
