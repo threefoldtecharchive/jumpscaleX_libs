@@ -11,3 +11,4 @@ attachments = (LO)!jumpscale.email.attachement
 body = "" (S)
 htmlbody = "" (S)
 date = (T)
+priority = (B)

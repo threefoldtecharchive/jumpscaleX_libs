@@ -11,6 +11,10 @@ class ImapServer(j.baseclasses.factory):
         self.get_instance(address, port).serve_forever()
 
     def get_instance(self, address, port):
+        models = self.get_models()
+        return Server(address, port, models).server
+
+    def get_models(self):
         try:
             bcdb = j.data.bcdb.get(name="mails")
         except j.exceptions.Input:
@@ -28,4 +32,4 @@ class ImapServer(j.baseclasses.factory):
         message_model = bcdb.model_get(url="jumpscale.email.message")
         Models = namedtuple("Models", "message folder")
         models = Models(message_model, folder_model)
-        return Server(address, port, models).server
+        return models
