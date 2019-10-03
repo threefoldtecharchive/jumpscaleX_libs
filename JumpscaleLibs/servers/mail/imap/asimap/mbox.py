@@ -2100,7 +2100,7 @@ class Mailbox(object):
     ####################################################################
     #
     @classmethod
-    def rename(cls, old_name, new_name, server):
+    def rename( cls, old_name, new_name, server):
         """
         Rename a mailbox from odl_name to new_name.
 
@@ -2115,131 +2115,16 @@ class Mailbox(object):
         - `new_name`: the new name of the mailbox
         - `server`: the user server object
         """
-        raise Bad("not implemented")
-        log = logging.getLogger("%s.%s.rename()" % (__name__, cls.__name__))
-        mbox = server.get_mailbox(old_name, expiry=0)
+        server.mailbox.rename_folder(old_name,new_name)
+        mb = server.active_mailboxes[old_name]
+        del server.active_mailboxes[old_name]
+        mb.name = new_name
+        mb.mailbox = server.mailbox.get_folder(new_name)
+        server.active_mailboxes[new_name] = mb
 
-        # The mailbox we are moving to must not exist.
-        #
-        try:
-            server.mailbox.get_folder(new_name)
-        except mailbox.NoSuchMailboxError:
-            pass
-        else:
-            raise MailboxExists("Destination mailbox '%s' exists" % new_name)
-
-        # Inbox is handled specially.
-        #
-        if mbox.name.lower() != "inbox":
-
-            c = server.db.cursor()
-
-            # Get all of the mailboxes that either have the name we are
-            # changing or are children of the mailbox whose name we are
-            # changing and change their names to reflect the rename.
-            #
-            affected_mailboxes = []
-            to_change = []
-            r = c.execute(
-                "select name,id from mailboxes where name=? " "or name like ?", (old_name, "%s/%%" % old_name)
-            )
-            for mbox_old_name, mbox_id in r:
-
-                # Compute the mailbox's changed name.
-                #
-                old_name_len = len(old_name)
-                mbox_new_name = new_name + mbox_old_name[old_name_len:]
-                to_change.append((mbox_new_name, mbox_old_name, mbox_id))
-
-                # If this mailbox is also an active mailbox hold on to its old
-                # name and new name so we can update all the active mailboxes.
-                #
-                if mbox_old_name in server.active_mailboxes:
-                    affected_mailboxes.append((mbox_old_name, mbox_new_name))
-
-            # Change all of the affected old names to their new names.
-            #
-            for new_mbox_name, old_mbox_name, mbox_id in to_change:
-                c.execute("update mailboxes set name=? where id=?", (new_mbox_name, mbox_id))
-
-            # Rename the top folder in the file system.
-            #
-            old_dir = mbox_msg_path(server.mailbox, old_name)
-            new_dir = mbox_msg_path(server.mailbox, new_name)
-            log.debug("rename(): renaming dir '%s' to '%s'" % (old_dir, new_dir))
-            os.rename(old_dir, new_dir)
-
-            # Go through all of the active mailboxes whose name changed and
-            # update the key they are stored under in the active_mailboxes
-            # dict, their name, and their mailbox.MH reference to the
-            # underlying MH mail folder.
-            #
-            for mbox_old_name, mbox_new_name in affected_mailboxes:
-                mb = server.active_mailboxes[mbox_old_name]
-                del server.active_mailboxes[mbox_old_name]
-                mb.name = mbox_new_name
-                mb.mailbox = server.mailbox.get_folder(mbox_new_name)
-                server.active_mailboxes[mbox_new_name] = mb
-
-                # Flush the old name from the message cache..
-                #
-                server.msg_cache.clear_mbox(mbox_old_name)
-
-            c.close()
-            server.db.commit()
-
-            # See if the mailbox HAD a parent mailbox and update that parent
-            # mailbox's children flags.
-            #
-            old_p_name = os.path.dirname(old_name)
-            if old_p_name != "":
-                m = server.get_mailbox(old_p_name, expiry=0)
-                m.check_set_haschildren_attr()
-
-            # See if the mailbox under its new name has a parent and if it does
-            # update that parent's children flags.
-            #
-            new_p_name = os.path.dirname(new_name)
-            if new_p_name != "":
-                m = server.get_mailbox(new_p_name, expiry=0)
-                m.check_set_haschildren_attr()
-
-            return
-        else:
-            # when you rename 'inbox' what happens is you create a new mailbox
-            # with the new name and all messages in 'inbox' are moved to this
-            # new mailbox. Inferior mailboxes of 'inbox' are unchanged and not
-            # copied.
-            #
-            cls.create(new_name, server)
-
-            # Now move all the messages currently in inbox to the new mailbox.
-            #
-            new_mbox = server.get_mailbox(new_name, expiry=0)
-            try:
-                # mbox.mailbox.lock()
-                # new_mbox.mailbox.lock()
-                for key in mbox.mailbox.keys():
-                    try:
-                        fp = mbox.mailbox.get_file(key)
-                        full_msg = mailbox.MHMessage(HeaderParser().parse(fp))
-                    finally:
-                        fp.close()
-                    new_uid = "%010d.%010d" % (new_mbox.uid_vv, new_mbox.next_uid)
-                    new_mbox.next_uid += 1
-                    del full_msg["X-asimapd-uid"]
-                    full_msg["X-asimapd-uid"] = new_uid
-                    new_mbox.add(full_msg)
-
-                mbox.clear()
-                mbox.resync()
-                new_mbox.resync()
-            finally:
-                # mbox.mailbox.unlock()
-                # new_mbox.mailbox.unlock()
-                pass
-
+        server.msg_cache.clear_mbox(old_name)
         return
+
 
     def subscribe(self):
         self.mailbox.subscribe()

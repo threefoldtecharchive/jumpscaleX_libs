@@ -105,6 +105,15 @@ class BCDBMailbox(mailbox.Mailbox):
     def unlock(self):
         locks[self._obj.name].release()
 
+    def rename_folder(self, old_name, new_name):
+        folder = self._models.folder.find(name=old_name)
+        messages = self._models.message.find(folder=old_name)
+        folder[0].name = new_name
+        folder[0].save()
+        for message in messages:
+            message.folder = new_name
+            message.save()
+
 
 class BCDBMailboxdir(BCDBMailbox):
     def __init__(self, models):
