@@ -114,6 +114,13 @@ class BCDBMailbox(mailbox.Mailbox):
     def unlock(self):
         locks[self._obj.name].release()
 
+    def get_messages(self, query):
+        if query:
+            return self._models.message.query(
+                "SELECT * FROM {} {}".format(self._models.message.index.sql_table_name, query)
+            )
+        return self._models.message.find()
+
     def rename_folder(self, old_name, new_name):
         folder = self._models.folder.find(name=old_name)
         messages = self._models.message.find(folder=old_name)
