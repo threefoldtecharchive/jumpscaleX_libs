@@ -2115,14 +2115,19 @@ class Mailbox(object):
         - `new_name`: the new name of the mailbox
         - `server`: the user server object
         """
-        server.mailbox.rename_folder(old_name,new_name)
-        mb = server.active_mailboxes[old_name]
-        del server.active_mailboxes[old_name]
-        mb.name = new_name
-        mb.mailbox = server.mailbox.get_folder(new_name)
-        server.active_mailboxes[new_name] = mb
-
-        server.msg_cache.clear_mbox(old_name)
+        
+        try:
+            server.mailbox.get_folder(new_name)
+        except mailbox.NoSuchMailboxError:
+            server.mailbox.rename_folder(old_name,new_name)
+            mb = server.active_mailboxes[old_name]
+            del server.active_mailboxes[old_name]
+            mb.name = new_name
+            mb.mailbox = server.mailbox.get_folder(new_name)
+            server.active_mailboxes[new_name] = mb
+            server.msg_cache.clear_mbox(old_name)
+        else:
+            raise MailboxExists("Destination mailbox '%s' exists" % new_name)
         return
 
 
