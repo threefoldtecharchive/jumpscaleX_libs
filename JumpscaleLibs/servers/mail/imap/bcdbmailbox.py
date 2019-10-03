@@ -61,6 +61,9 @@ class BCDBMailbox(mailbox.Mailbox):
     def pack(self):
         pass  # we don't need this in our implementation
 
+    def close(self):
+        pass
+
     def get_message(self, key):
         obj = self.get_object(key)
         message = object_to_message(obj)
@@ -94,6 +97,12 @@ class BCDBMailbox(mailbox.Mailbox):
             folders.append(folder.name)
         return folders
 
+    def list_subfolders(self, folder_name, values=None):
+        query = "select * from {} WHERE name LIKE {} and name NOT LIKE {}".format(
+            self._models.folder.index.sql_table_name, "'%" + folder_name + "%'", "'" + folder_name + "'"
+        )
+        return self._models.folder.query(query, values)
+
     def query_folder(self, fields, extra="", values=None):
         query = "select {} from {} ".format(",".join(fields), self._models.folder.index.sql_table_name)
         query += extra
@@ -120,6 +129,13 @@ class BCDBMailbox(mailbox.Mailbox):
         for message in messages:
             message.folder = new_name
             message.save()
+
+    def remove_folder(self, folder_name):
+        messages = self._models.message.find(folder=folder_name)
+        folder = self._models.folder.find(name=folder_name)
+        folder[0].delete()
+        for message in messages:
+            message.delete()
 
 
 class BCDBMailboxdir(BCDBMailbox):
