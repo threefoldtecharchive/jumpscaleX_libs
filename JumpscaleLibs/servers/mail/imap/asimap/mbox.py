@@ -1998,7 +1998,7 @@ class Mailbox(object):
         - `name`: The name of the mailbox to delete
         - `server`: The user server object
         """
-        raise Bad("not implemented")
+        # raise Bad("not implemented")
         # TODO this is not implemented
         log = logging.getLogger("%s.%s.delete()" % (__name__, cls.__name__))
 
@@ -2014,7 +2014,8 @@ class Mailbox(object):
         do_delete = False
         try:
             # mailbox.mailbox.lock()
-            inferior_mailboxes = mbox.mailbox.list_folders()
+            # inferior_mailboxes = mbox.mailbox.list_folders()
+            inferior_mailboxes = mbox.mailbox.list_subfolders(name).fetchall()
 
             # You can not delete a mailbox that has the '\Noselect' attribute
             # and has inferior mailboxes.
@@ -2049,9 +2050,10 @@ class Mailbox(object):
             # from the db no imap client will confuse it with the existing
             # mailbox.
             #
+
             if len(inferior_mailboxes) > 0 or mbox.subscribed:
                 mbox.attributes.add("\\Noselect")
-                mbox.uid_vv = server.get_next_uid_vv()
+                # mbox.uid_vv = server.get_next_uid_vv()
             else:
                 # We have no inferior mailboxes. This mailbox is gone. If it
                 # is active we remove it from the list of active mailboxes
@@ -2062,12 +2064,13 @@ class Mailbox(object):
 
                 # Delete all traces of the mailbox from our db.
                 #
-                c = server.db.cursor()
-                c.execute("delete from mailboxes where id = ?", (mbox.id,))
-                c.execute("delete from sequences where mailbox_id = ?", (mbox.id,))
-                c.close()
-                server.db.commit()
+                # c = server.db.cursor()
+                # c.execute("delete from mailboxes where id = ?", (mbox.id,))
+                # c.execute("delete from sequences where mailbox_id = ?", (mbox.id,))
+                # c.close()
+                # server.db.commit()
 
+                server.mailbox.remove_folder(name)
                 # We need to delay the 'delete' of the actual mailbox until
                 # after we release the lock.. but we only delete the actual
                 # mailbox outside of the try/finally close if we are actually
@@ -2080,21 +2083,21 @@ class Mailbox(object):
         # if this mailbox was the child of another mailbox than we may need to
         # update that mailbox's 'has children' attributes.
         #
-        parent_name = os.path.dirname(name)
-        if parent_name != "":
-            parent_mbox = server.get_mailbox(parent_name, expiry=0)
-            parent_mbox.check_set_haschildren_attr()
+        # parent_name = os.path.dirname(name)
+        # if parent_name != "":
+        #     parent_mbox = server.get_mailbox(parent_name, expiry=0)
+        #     parent_mbox.check_set_haschildren_attr()
 
         # And remove the mailbox from the filesystem.
         #
-        if do_delete:
-            try:
-                server.mailbox.remove_folder(name)
-            except mailbox.NotEmptyError as e:
-                log.warn("mailbox %s 'not empty', %s" % (name, str(e)))
-                path = mbox_msg_path(server.mailbox, name)
-                log.info("using shutil to delete '%s'" % path)
-                shutil.rmtree(path)
+        # if do_delete:
+        #     try:
+        #         server.mailbox.remove_folder(name)
+        #     except mailbox.NotEmptyError as e:
+        #         log.warn("mailbox %s 'not empty', %s" % (name, str(e)))
+        #         path = mbox_msg_path(server.mailbox, name)
+        #         log.info("using shutil to delete '%s'" % path)
+        #         shutil.rmtree(path)
         return
 
     ####################################################################
