@@ -2103,7 +2103,7 @@ class Mailbox(object):
     ####################################################################
     #
     @classmethod
-    def rename( cls, old_name, new_name, server):
+    def rename(cls, old_name, new_name, server):
         """
         Rename a mailbox from odl_name to new_name.
 
@@ -2118,11 +2118,11 @@ class Mailbox(object):
         - `new_name`: the new name of the mailbox
         - `server`: the user server object
         """
-        
+
         try:
             server.mailbox.get_folder(new_name)
         except mailbox.NoSuchMailboxError:
-            server.mailbox.rename_folder(old_name,new_name)
+            server.mailbox.rename_folder(old_name, new_name)
             mb = server.active_mailboxes[old_name]
             del server.active_mailboxes[old_name]
             mb.name = new_name
@@ -2132,7 +2132,6 @@ class Mailbox(object):
         else:
             raise MailboxExists("Destination mailbox '%s' exists" % new_name)
         return
-
 
     def subscribe(self):
         self.mailbox.subscribe()
