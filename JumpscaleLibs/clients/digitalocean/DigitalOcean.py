@@ -246,7 +246,7 @@ class DigitalOcean(j.baseclasses.object_config):
         return self._vm_get(name, new=False) != None
 
     def droplet_get(self, name):
-        if not self._vm_exists(name):
+        if not self.droplet_exists(name):
             raise j.exceptions.Input("could not find vm with name:%s" % name)
         return self._droplet_get(name)
 
