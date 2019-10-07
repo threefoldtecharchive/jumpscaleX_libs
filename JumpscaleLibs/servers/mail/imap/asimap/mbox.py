@@ -1998,8 +1998,6 @@ class Mailbox(object):
         - `name`: The name of the mailbox to delete
         - `server`: The user server object
         """
-        # raise Bad("not implemented")
-        # TODO this is not implemented
         log = logging.getLogger("%s.%s.delete()" % (__name__, cls.__name__))
 
         if name == "inbox":
