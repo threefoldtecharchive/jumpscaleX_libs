@@ -114,7 +114,8 @@ class BCDBMailbox(mailbox.Mailbox):
     def unlock(self):
         locks[self._obj.name].release()
 
-    def get_messages(self, query):
+    def get_messages(self, query=None):
+
         if query:
             return self._models.message.query(
                 "SELECT * FROM {} {}".format(self._models.message.index.sql_table_name, query)

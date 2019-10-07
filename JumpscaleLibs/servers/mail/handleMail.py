@@ -71,6 +71,9 @@ def parse_email(message):
 def store_message(model, message, folder="inbox", unseen=True, recent=True):
     if isinstance(message, str):
         data = parse_email_body(message)
+    elif isinstance(message, dict):
+        message = dict_to_message(message)
+        data = parse_email_body(message.as_string())
     else:
         data = parse_email(message)
     mail = model.new()
@@ -81,8 +84,9 @@ def store_message(model, message, folder="inbox", unseen=True, recent=True):
     mail.htmlbody = data["htmlbody"]
     mail.headers = data["headers"]
     new_format = "%d/%m/%Y %H:%M"
-    old_date_format = parse(data["date"])
-    mail.date = old_date_format.strftime(new_format)
+    if data.get("date"):
+        old_date_format = parse(data.get("date"))
+        mail.date = old_date_format.strftime(new_format)
     mail.attachments = data["attachments"]
     mail.folder = folder
     mail.unseen = unseen
@@ -133,6 +137,54 @@ def object_to_message(mail):
     mainmessage["to"] = mail.to_email
     mainmessage["subject"] = mail.subject
     for header in mail.headers:
+        if header.key.lower() in ["content-type", "mime-version"]:
+            continue
+        mainmessage[header.key] = header.value
+
+    for attachment in attachments:
+        mainmessage.attach(attachment)
+    return mainmessage
+
+
+def dict_to_message(mail):
+    textmessage = None
+    plaintextmessage = None
+    htmlmessage = None
+
+    attachments = []
+    if mail.get("body"):
+        plaintextmessage = MIMEText(mail.get("body"), "plain")
+        textmessage = plaintextmessage
+    if mail.get("htmlbody"):
+        htmlmessage = MIMEText(mail.get("htmlbody"), "html")
+        if textmessage:
+            textmessage = MIMEMultipart("alternative")
+            textmessage.attach(plaintextmessage)
+            textmessage.attach(htmlmessage)
+        else:
+            textmessage = htmlmessage
+
+    for attachment in mail.get("attachments"):
+        if attachment.contenttype:
+            part = MIMEBase(*attachment.contenttype.split("/"))
+        else:
+            part = MIMEBase("application", "octet-stream")
+        part.set_payload(attachment.content)
+        encoders.encode_base64(part)
+        part.add_header("Content-Disposition", f'attachment; filename="{attachment.name}"')
+        attachments.append(part)
+
+    mainmessage = None
+    if attachments:
+        mainmessage = MIMEMultipart("mixed")
+        mainmessage.attach(textmessage)
+    else:
+        mainmessage = textmessage
+
+    mainmessage["from"] = mail.get("From")
+    mainmessage["to"] = mail.get("To")
+    mainmessage["subject"] = mail.get("subject")
+    for header in mail.get("headers"):
         if header.key.lower() in ["content-type", "mime-version"]:
             continue
         mainmessage[header.key] = header.value
