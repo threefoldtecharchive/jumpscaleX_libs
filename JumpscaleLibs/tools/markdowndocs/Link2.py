@@ -65,8 +65,14 @@ class Link(j.baseclasses.object):
         return msg
 
     def _process(self):
+
+        ##the basics:
+
+        # get inside ()
         self.link_source = self.source.rsplit("(", 1)[1].split(")", 1)[0]  # find inside ()
+        # remove ' & "
         self.link_source = self.link_source.replace('"', "").replace("'", "")
+        # get inside []
         self.link_descr = (
             self.source.split("[", 1)[1].split("]", 1)[0].replace('"', "").replace("'", "")
         )  # find inside []
@@ -85,9 +91,10 @@ class Link(j.baseclasses.object):
 
         self.extension = j.sal.fs.getFileExtension(lsource)
 
-        if "http" in self.link_source or "https" in self.link_source:
+        if "http:" in self.link_source or "https:" in self.link_source:
             self.link_source_original = self.link_source
-            if self.source.startswith("!"):
+            ## WORK TO PROCESS IMAGE WHICH WE CAN DOWNLOAD
+            if self.source.startswith("!"):  # means its an image
                 if "?" in self.link_source:
                     link_source = self.link_source.split("?", 1)[0]
                 else:

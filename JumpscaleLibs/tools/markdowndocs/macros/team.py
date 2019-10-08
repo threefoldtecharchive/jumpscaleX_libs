@@ -34,7 +34,7 @@ def filter_on_mapping(mapping, data):
     return new_data
 
 
-def team(doc, link, order="random", projects=None, contribution_types=None, **kwargs):
+def team(doc, link, order="random", projects=None, contribution_types=None, pull=False, **kwargs):
     """generate the json requried for docify team plugin
        for the full list of project ids, contribution types, also the toml data see
        https://github.com/threefoldfoundation/data_team/tree/master/README.md
@@ -54,7 +54,7 @@ def team(doc, link, order="random", projects=None, contribution_types=None, **kw
     """
 
     repo = doc.docsite.get_real_source(MarkdownLinkParser(link))
-    path = j.clients.git.getContentPathFromURLorPath(repo, pull=True)
+    path = j.clients.git.getContentPathFromURLorPath(repo, pull=pull)
 
     # options passed to team plugin (docsify)
     options = {"order": order}
