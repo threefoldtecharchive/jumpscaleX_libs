@@ -14,8 +14,6 @@ class DigitalOcean(j.baseclasses.object_config):
     @url = jumpscale.digitalocean.client
     name** = "" (S)
     token_ = "" (S)
-    project_name = "" (S)
-    meta = {} (DICT)
     vms = (LO) !jumpscale.digitalocean.vm
 
     @url = jumpscale.digitalocean.vm
