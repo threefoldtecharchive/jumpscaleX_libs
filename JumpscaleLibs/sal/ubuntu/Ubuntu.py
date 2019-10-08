@@ -243,7 +243,9 @@ WorkingDirectory={pwd}
 Environment={env}
 [Install]
 WantedBy=multi-user.target
-                """.format(servicename=service_name, daemonpath=service_path, args=args, pwd=pwd, env=env)
+                """.format(
+                servicename=service_name, daemonpath=service_path, args=args, pwd=pwd, env=env
+            )
 
             path = "/etc/systemd/system/%s.service" % service_name
 
@@ -253,7 +255,9 @@ set -e
 cd {pwd}
 rm -f {logdir}/{servicename}.log
 exec {demonpath} {args} >> {logdir}/{servicename}.log 2>&1
-            """.format(pwd=pwd, servicename=service_name,demonpath=service_path, args=args, logdir=j.dirs.LOGDIR)
+            """.format(
+                pwd=pwd, servicename=service_name, demonpath=service_path, args=args, logdir=j.dirs.LOGDIR
+            )
             path = "/etc/service/%s/run" % service_name
 
         if not j.sal.fs.exists(path):
@@ -340,7 +344,7 @@ exec {demonpath} {args} >> {logdir}/{servicename}.log 2>&1
         :rtype: bool
         """
         exitcode, output, error = self._service_command(service_name, "status")
-        return  "run:" in output or  "active (running)" in output
+        return "run:" in output or "active (running)" in output
 
     def service_disable_start_boot(self, service_name):
         """remove all links for a script
