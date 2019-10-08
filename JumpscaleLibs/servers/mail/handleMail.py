@@ -32,7 +32,7 @@ def parse_email(message):
     subject = message.get("Subject") if message.get("Subject") is not None else ""
     headers = get_headers(message.items())
     # Get the date from the headers
-    val = [item["value"] for item in headers if item["key"] == "Date"]
+    val = [item["value"] for item in headers if item["key"].lower() == "date"]
     date = val[0] if len(val) != 0 else ""
     body = ""
     html_body = ""
@@ -184,6 +184,7 @@ def dict_to_message(mail):
     mainmessage["from"] = mail.get("From")
     mainmessage["to"] = mail.get("To")
     mainmessage["subject"] = mail.get("subject")
+    mainmessage["date"] = mail.get("date")
     for header in mail.get("headers"):
         if header.key.lower() in ["content-type", "mime-version"]:
             continue
