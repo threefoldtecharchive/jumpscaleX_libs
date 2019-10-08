@@ -250,7 +250,8 @@ WantedBy=multi-user.target
             path = "/etc/systemd/system/%s.service" % service_name
 
         else:
-            cmd = """#!/bin/sh
+            cmd = """\
+#!/bin/sh
 set -e
 cd {pwd}
 rm -f {logdir}/{servicename}.log
@@ -269,7 +270,7 @@ exec {demonpath} {args} >> {logdir}/{servicename}.log 2>&1
 
         j.sal.fs.writeFile(path, cmd)
         if init == "my_init":
-            j.sal.unix.chmod(path, 777)
+            j.sal.unix.chmod(path, 0o755)
 
         if reload and init == "systemd":
             j.sal.process.execute("systemctl daemon-reload;systemctl enable %s" % service_name, useShell=True)
@@ -297,9 +298,9 @@ exec {demonpath} {args} >> {logdir}/{servicename}.log 2>&1
         if init == "my_init":
             cmd = "sv %s %s" % (command, service_name)
         else:
-            cmd = "service %s %s" % (service_name, command)
+            cmd = "systemctl %s %s" % (command, service_name)
 
-        return j.sal.process.execute(cmd, useShell=True, die=False)
+        return j.sal.process.execute(cmd, die=False)
 
     def service_start(self, service_name):
         """start an ubuntu service.
