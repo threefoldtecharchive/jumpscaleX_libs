@@ -305,6 +305,7 @@ class DocSite(j.baseclasses.object):
             "mov",
             "py",
             "svg",
+            "json",
         ]:
             self._log_debug("found file:%s" % path)
             base = self._clean(base)
@@ -331,8 +332,16 @@ class DocSite(j.baseclasses.object):
         """
         self.load()
         name = self._clean(name)
+
         if name in self.files:
             return self.files[name]
+
+        name = name.replace(j.sal.fs.getFileExtension(name), "")
+        for path in self.files.values():
+            partial_path = path.lower().replace(j.sal.fs.getFileExtension(path), "")
+            if partial_path.endswith(name):
+                return path
+
         if die:
             raise j.exceptions.Input(message="Did not find file:%s in %s" % (name, self))
         return None
@@ -398,7 +407,7 @@ class DocSite(j.baseclasses.object):
                 break
 
         if die:
-            raise j.exceptions.Input(message="Cannot find doc with name:%s (nr docs found:%s)" % (name, nr), level=1)
+            raise j.exceptions.Input(message="Cannot find doc with name:%s (nr docs found:%s)" % (name, nr))
         else:
             return None
 

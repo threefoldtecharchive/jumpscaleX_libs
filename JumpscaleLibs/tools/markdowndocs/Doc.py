@@ -360,6 +360,8 @@ class Doc(j.baseclasses.object):
             try:
                 part.result = method(self, *args, **kwargs)
             except Exception as e:
+                if hasattr(e, "message"):
+                    e = e.message
                 block = "```python\nERROR IN MACRO*** TODO: *1 ***\nmacro:\n%s\nERROR:\n%s\n```\n" % (macro_name, e)
                 self._log_error(block)
                 self.docsite.error_raise(block, doc=self)
