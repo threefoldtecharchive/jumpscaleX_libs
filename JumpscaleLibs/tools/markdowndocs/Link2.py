@@ -114,7 +114,6 @@ class Link(j.baseclasses.object):
                 self.cat = "link"
                 if self.docsite.links_verify:
                     self.link_verify()
-
                 self.filename = None  # because is e.g. other site
 
         else:
@@ -138,30 +137,31 @@ class Link(j.baseclasses.object):
             if self.filename.strip() == "":
                 return self.error("filename is empty")
 
-            # only possible for images (video, image)
-            if self.source.startswith("!"):
-                self.cat = "image"
-                if not self.extension in ["png", "jpg", "jpeg", "mov", "mp4", "svg"]:
-                    return self.error("found unsupported image file: extension:%s" % self.extension)
+    def _file_process(self, fname):
+        # only possible for images (video, image)
+        if self.source.startswith("!"):
+            self.cat = "image"
+            if not self.extension in ["png", "jpg", "jpeg", "mov", "mp4", "svg"]:
+                return self.error("found unsupported image file: extension:%s" % self.extension)
 
-            if self.cat == "":
-                if self.extension in ["png", "jpg", "jpeg", "mov", "mp4", "svg"]:
-                    self.cat = "imagelink"
-                elif self.extension in ["doc", "docx", "pdf", "xls", "xlsx", "pdf"]:
-                    self.cat = "officedoc"
-                elif self.extension in ["md", "", None]:
-                    self.cat = "doc"  # link to a markdown document
-                    try:
-                        self.link_to_doc = self.docsite.doc_get(self.link_source, die=True)
-                    except Exception as e:
-                        if "Cannot find doc" in str(e):
-                            return self.error(str(e))
-                        raise e
-                else:
-                    # j.shell()
-                    return self.error("found unsupported extension")
+        if self.cat == "":
+            if self.extension in ["png", "jpg", "jpeg", "mov", "mp4", "svg"]:
+                self.cat = "imagelink"
+            elif self.extension in ["doc", "docx", "pdf", "xls", "xlsx", "pdf"]:
+                self.cat = "officedoc"
+            elif self.extension in ["md", "", None]:
+                self.cat = "doc"  # link to a markdown document
+            else:
+                return self.error("found unsupported extension")
 
-            self.filepath = self.doc.docsite.file_get(self.filename, die=False)
+    def _doc_get(self):
+        try:
+            self.link_to_doc = self.docsite.doc_get(self.link_source, die=True)
+        except Exception as e:
+            if "Cannot find doc" in str(e):
+                return self.error(str(e))
+            raise e
+        self.filepath = self.doc.docsite.file_get(self.filename, die=False)
 
     @property
     def markdown(self):
