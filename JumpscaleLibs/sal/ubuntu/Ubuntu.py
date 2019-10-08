@@ -198,7 +198,15 @@ class Ubuntu(JSBASE):
         self._cache_ubuntu.commit()
         self._cache_ubuntu.clear()
 
-    def service_install(self, service_name, daemon_path, args="", respawn=True, pwd=None, env=None, reload=True):
+    def _check_init_process(self):
+        process = j.sal.process.getProcessObject(1)
+        name = process.name()
+        if not name == "my_init" and not name == "systemd":
+            raise j.exceptions.RuntimeError("Unsupported init system process")
+
+        return name
+
+    def service_install(self, service_name, daemon_path, args="", respawn=True, pwd="/", env=None, reload=True):
         """Install an ubuntu service.
 
         :param service_name: ubuntu service name
@@ -216,25 +224,38 @@ class Ubuntu(JSBASE):
         :param reload: reload
         :type reload: bool
         """
+        init = self._check_init_process()
 
         service_path = j.sal.fs.joinPaths(daemon_path, service_name)
         if not j.sal.fs.exists(service_path):
             raise j.exceptions.Value("Service daemon doesn't exist: %s" % service_path)
 
-        cmd = """
-start on runlevel [2345]
-stop on runlevel [016]
-"""
-        if respawn:
-            cmd += "respawn\n"
-        if pwd:
-            cmd += "chdir %s\n" % pwd
-        if env is not None:
-            for key, value in list(env.items()):
-                cmd += "env %s=%s\n" % (key, value)
-        cmd += "exec %s %s\n" % (j.sal.fs.joinPaths(daemon_path, service_name), args)
+        if init == "systemd":
+            cmd = """
+[Unit]
+Description={servicename}
+Wants=network-online.target
+After=network-online.target
+[Service]
+ExecStart={daemonpath} {args}
+Restart=always
+WorkingDirectory={pwd}
+Environment={env}
+[Install]
+WantedBy=multi-user.target
+                """.format(servicename=service_name, daemonpath=service_path, args=args, pwd=pwd, env=env)
 
-        path = "/etc/init/%s.conf" % service_name
+            path = "/etc/systemd/system/%s.service" % service_name
+
+        else:
+            cmd = """#!/bin/sh
+set -e
+cd {pwd}
+rm -f {logdir}/{servicename}.log
+exec {demonpath} {args} >> {logdir}/{servicename}.log 2>&1
+            """.format(pwd=pwd, servicename=service_name,demonpath=service_path, args=args, logdir=j.dirs.LOGDIR)
+            path = "/etc/service/%s/run" % service_name
+
         if not j.sal.fs.exists(path):
             dir_path = j.sal.fs.getDirName(path)
             if not j.sal.fs.exists(dir_path):
@@ -242,18 +263,39 @@ stop on runlevel [016]
 
             j.sal.fs.createEmptyFile(path)
 
-        j.tools.path.get(path).write_text(cmd)
-        if reload:
-            j.sal.process.execute("initctl reload-configuration", useShell=True)
+        j.sal.fs.writeFile(path, cmd)
+        if init == "my_init":
+            j.sal.unix.chmod(path, 777)
 
-    def service_uninstall(self, service_name):
+        if reload and init == "systemd":
+            j.sal.process.execute("systemctl daemon-reload;systemctl enable %s" % service_name, useShell=True)
+
+    def service_uninstall(self, service_name, reload=True):
         """remove an ubuntu service.
 
         :param service_name: ubuntu service name
         :type service_name: str
         """
         self.service_stop(service_name)
-        j.tools.path.get("/etc/init/%s.conf" % service_name).remove_p()
+        init = self._check_init_process()
+
+        if init == "systemd":
+            if reload:
+                j.sal.process.execute("systemctl daemon-reload; systemctl disable %s" % service_name, useShell=True)
+            path = "/etc/systemd/system/%s.service" % service_name
+        else:
+            path = "/etc/service/%s/run" % service_name
+
+        j.sal.fs.remove(path)
+
+    def _service_command(self, service_name, command):
+        init = self._check_init_process()
+        if init == "my_init":
+            cmd = "sv %s %s" % (command, service_name)
+        else:
+            cmd = "service %s %s" % (service_name, command)
+
+        return j.sal.process.execute(cmd, useShell=True, die=False)
 
     def service_start(self, service_name):
         """start an ubuntu service.
@@ -263,10 +305,10 @@ stop on runlevel [016]
         :return: start service output
         :rtype: bool
         """
-        self._log_debug("start service on ubuntu for:%s" % service_name)
-        if not self.service_status(service_name):
-            cmd = "service %s start" % service_name
-            return j.sal.process.execute(cmd, useShell=True)
+        if self.service_status(service_name):
+            return
+
+        return self._service_command(service_name, "start")
 
     def service_stop(self, service_name):
         """stop an ubuntu service.
@@ -276,8 +318,8 @@ stop on runlevel [016]
         :return: start service output
         :rtype: bool
         """
-        cmd = "service %s stop" % service_name
-        return j.sal.process.execute(cmd, useShell=True)
+
+        return self._service_command(service_name, "stop")
 
     def service_restart(self, service_name):
         """restart an ubuntu service.
@@ -287,7 +329,7 @@ stop on runlevel [016]
         :return: start service output
         :rtype: bool
         """
-        return j.sal.process.execute("service %s restart" % service_name)
+        return self._service_command(service_name, "restart")
 
     def service_status(self, service_name):
         """check service status.
@@ -297,11 +339,8 @@ stop on runlevel [016]
         :return: True if service is running
         :rtype: bool
         """
-        exitcode, output, error = j.sal.process.execute("service %s status" % service_name, die=False)
-        if "%s is running" % service_name in output:
-            return True
-        elif "%s is not running" % service_name in output:
-            return False
+        exitcode, output, error = self._service_command(service_name, "status")
+        return  "run:" in output or  "active (running)" in output
 
     def service_disable_start_boot(self, service_name):
         """remove all links for a script
