@@ -169,7 +169,7 @@ class MarkDownDocs(j.baseclasses.object):
         # else:
         #     self._log_debug("macros not loaded, already there")
 
-    def load(self, path="", name="", sonic_client=None, pull=True):
+    def load(self, path="", name="", sonic_client=None, pull=False, download=False):
         self.macros_load()
         if path.startswith("http"):
             # check if we already have a git repo, then the current checked-out branch
