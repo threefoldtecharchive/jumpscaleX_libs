@@ -1,8 +1,12 @@
 import os
 import re
 from functools import partial
+
 from Jumpscale import j
 from JumpscaleLibs.tools.markdowndocs.Link import MarkdownLinkParser, GithubLinker, Link
+
+
+COMMON_LANG_EXT = {"py": "python", "rb": "ruby", "sh": "bash", "cpp": "c++", "cc": "c++", "pl": "perl"}
 
 
 def with_code_block(content, _type=""):
@@ -179,9 +183,15 @@ def include(
             docsite = j.tools.markdowndocs.load(url, name=new_link.repo)
             custom_link.path = new_link.path
 
+    is_file = False
+
     try:
         full_path = docsite.file_get(custom_link.path)
         content = j.sal.fs.readFile(full_path)
+        if not codeblock_type:
+            ext = j.sal.fs.getFileExtension(full_path)
+            codeblock_type = COMMON_LANG_EXT.get(ext.lower(), ext)
+        is_file = True
     except j.exceptions.Base:
         included_doc = docsite.doc_get(custom_link.path)
         content = included_doc.markdown_source
@@ -201,8 +211,9 @@ def include(
             ignore=ignore,
         )
 
-    if not custom_link.path.lower().strip().endswith("_sidebar.md"):
+    if not is_file and not custom_link.path.lower().strip().endswith("_sidebar.md"):
         all_links = Link.LINK_MARKDOWN_RE.findall(content)
-        copy_links(doc, docsite.path, full_path, all_links)
+        if all_links:
+            copy_links(doc, docsite.path, full_path, all_links)
 
     return with_code_block(content, _type=codeblock_type)
