@@ -16,5 +16,6 @@ class MailServer(SMTPServer):
 
     def store_mail(self, data, is_send=False):
         if is_send:
-            store_message(self.mail_model, data, folder="Sent")
-        store_message(self.mail_model, data)
+            return store_message(self.mail_model, data, folder="Sent")
+
+        return store_message(self.mail_model, data)
