@@ -14,5 +14,7 @@ class MailServer(SMTPServer):
         self.store_mail(data)
         print("------------ Data saved In bcdb ------------")
 
-    def store_mail(self, data):
+    def store_mail(self, data, is_send=False):
+        if is_send:
+            store_message(self.mail_model, data, folder="Sent")
         store_message(self.mail_model, data)
