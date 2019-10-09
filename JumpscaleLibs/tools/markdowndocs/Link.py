@@ -161,46 +161,15 @@ class MarkdownLinkParser:
 
 class Linker:
     """
-
+    A genric linker
     """
 
-    HOST = None
-    ISSUE = None
-    PULL_REQUEST = None
-    TREE = None
-
-    def remove_slash(self, arg):
-        return arg.lstrip("/")
-
-    def join(self, *args):
-        if self.HOST:
-            args = (self.HOST, *args)
-
-        args = [self.remove_slash(arg) for arg in args]
-        return j.sal.fs.joinPaths(*args)
-
-    def issue(self, _id):
-        raise j.exceptions.NotImplemented
-
-    def pull_request(self, _id):
-        raise j.exceptions.NotImplemented
-
-    def tree(self, path, branch="master"):
-        pass
-
-    def to_custom_link(self):
-        raise j.exceptions.NotImplemented
-
-
-class GithubLinker(Linker):
-    HOST = "http://github.com"
     ISSUE = "issues/{id}"
     PULL_REQUEST = "pull/{id}"
     TREE = "tree/{branch}"
 
-    GITHUB_LINK_RE = re.compile(
-        r"""
-        (?:http|https)\:\/\/github\.com                 # https://github.com/
+    REPO_LINK_RE = r"""
+        (?:http|https)\:\/\/{host}                         # e.g. github
         (?:\/([^\/]+))                                  # account
         (?:\/([^\/]+))                                  # repo
         (?:                                             # a link to tree/blob
@@ -213,16 +182,32 @@ class GithubLinker(Linker):
                 (.*?)$
             )?
         )?
-    """,
-        re.X | re.IGNORECASE,
-    )
+    """
 
-    def __init__(self, account, repo):
+    def __init__(self, host, account, repo):
+        self.host = host.lower()
+        if not self.host.startswith("http"):
+            self.host = "https://" + self.host
+
         self.account = account
         self.repo = repo
 
+    @classmethod
+    def remove_slash(self, arg):
+        return arg.lstrip("/")
+
+    @classmethod
+    def join_parts(cls, *args):
+        args = [cls.remove_slash(arg) for arg in args]
+        return j.sal.fs.joinPaths(*args)
+
+    def join_with_host(self, *args):
+        if self.host:
+            args = (self.host, *args)
+        return self.join_parts(*args)
+
     def join(self, *args):
-        return super(GithubLinker, self).join(self.account, self.repo, *args)
+        return self.join_with_host(self.account, self.repo, *args)
 
     def issue(self, _id):
         return self.join(self.ISSUE.format(id=_id))
@@ -236,10 +221,17 @@ class GithubLinker(Linker):
         return self.join(self.TREE.format(branch=branch), path)
 
     @classmethod
-    def to_custom_link(cls, url):
-        match = cls.GITHUB_LINK_RE.match(url)
+    def get_repo_re(cls, host):
+        return re.compile(cls.REPO_LINK_RE.format(host=host), re.X | re.IGNORECASE)
+
+    @classmethod
+    def to_custom_link(cls, url, host=None):
+        if not host:
+            host = "github.com"
+
+        match = cls.get_repo_re(host).match(url)
         if not match:
-            raise j.exceptions.Value(f"not a valid github url: '{url}'")
+            raise j.exceptions.Value(f"not a valid {host} url: '{url}'")
 
         account, repo, branch, path = match.groups()
         link = "%s:%s" % (account, repo)
@@ -251,9 +243,9 @@ class GithubLinker(Linker):
         return MarkdownLinkParser(link)
 
     @classmethod
-    def replace_branch(cls, url, to_branch):
-        tmp = cls.to_custom_link(url)
-        return cls(tmp.account, tmp.repo).tree(tmp.path, to_branch)
+    def replace_branch(cls, url, to_branch, host):
+        tmp = cls.to_custom_link(url, host)
+        return cls(host, tmp.account, tmp.repo).tree(tmp.path, to_branch)
 
 
 class Link(j.baseclasses.object):
@@ -325,7 +317,7 @@ class Link(j.baseclasses.object):
             parent_dir = external_link
         else:
             parent_path = j.sal.fs.getDirName(path)
-            parent_dir = Linker().join("https://", url.hostname, parent_path)
+            parent_dir = Linker.join_parts("https://", url.hostname, parent_path)
 
         new_docsite = j.tools.markdowndocs.load(parent_dir, name=name)
         new_docsite.write()

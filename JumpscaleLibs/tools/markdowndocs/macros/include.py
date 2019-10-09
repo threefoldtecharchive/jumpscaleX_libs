@@ -3,7 +3,7 @@ import re
 from functools import partial
 
 from Jumpscale import j
-from JumpscaleLibs.tools.markdowndocs.Link import MarkdownLinkParser, GithubLinker, Link
+from JumpscaleLibs.tools.markdowndocs.Link import MarkdownLinkParser, Linker, Link, SKIPPED_LINKS
 
 
 COMMON_LANG_EXT = {"py": "python", "rb": "ruby", "sh": "bash", "cpp": "c++", "cc": "c++", "pl": "perl"}
@@ -97,6 +97,9 @@ def copy_links(main_doc, included_docs_root, included_doc_path, links):
     for _, source in links:
         if source.lower().strip().startswith("http"):
             continue
+        if any(item in source for item in SKIPPED_LINKS):
+            continue
+
         if "?" in source:
             source, _, _ = source.partition("?")
         # source is either absolute (from docs_root) or relative to doc_path
@@ -130,6 +133,67 @@ def process_content(content, marker, doc_only, header_levels_modify, ignore):
     return new_content
 
 
+def guess_codeblock_type(link):
+    ext = j.sal.fs.getFileExtension(link).lower()
+    if ext == "md":
+        return ""
+
+    codeblock_type = COMMON_LANG_EXT.get(ext.lower(), ext)
+    return codeblock_type
+
+
+def get_content(custom_link, doc, docsite_name=None, host=None, raw=False):
+    """Get the content of link
+
+    :param link: link, url or custom link
+    :type link: str
+    :param doc: main document
+    :type doc: doc
+    :param docsite_name: optional docsite name to include from
+    :type docsite_name: str
+    :param raw: if the link provided is a raw link, defaults to False
+    :type raw: bool, optional
+    :return: tuple of (docsite, content, is_file is set when it's not a document, codeblock_type guessed)
+    :rtype: (Docsite, str, bool, str)
+    """
+    current_docsite = doc.docsite
+    j = current_docsite._j
+    codeblock_type = guess_codeblock_type(custom_link.path)
+
+    if custom_link.is_url and raw:
+        return j.clients.http.get(custom_link.path), codeblock_type
+
+    if docsite_name:
+        docsite = j.tools.markdowndocs.docsite_get(docsite_name)
+    else:
+        repo = current_docsite.get_real_source(custom_link, host)
+        if not MarkdownLinkParser(repo).is_url:
+            # not an external url, use current docsite
+            docsite = current_docsite
+        else:
+            # the real source is a url outside this docsite
+            # get a new link and docsite
+            new_link = Linker.to_custom_link(repo, host)
+            # to match any path, start with root `/`
+            url = Linker(host, new_link.account, new_link.repo).tree("/")
+            docsite = j.tools.markdowndocs.load(url, name=new_link.repo)
+            custom_link.path = new_link.path
+
+    try:
+        full_path = docsite.file_get(custom_link.path)
+        content = j.sal.fs.readFile(full_path)
+        return content, codeblock_type
+    except j.exceptions.Base:
+        included_doc = docsite.doc_get(custom_link.path)
+        content = included_doc.markdown_source
+        full_path = included_doc.path
+        if not custom_link.path.lower().strip().endswith("_sidebar.md"):
+            all_links = Link.LINK_MARKDOWN_RE.findall(content)
+            if all_links:
+                copy_links(doc, docsite.path, full_path, all_links)
+        return content, ""
+
+
 def include(
     doc,
     link,
@@ -139,6 +203,8 @@ def include(
     header_levels_modify=0,
     ignore=None,
     codeblock_type=None,
+    raw=False,
+    host=None,
     **kwargs,
 ):
     """include other documents or files
@@ -159,43 +225,22 @@ def include(
     :type ignore: list of str, optional
     :param codeblock_type: the type of code block, if not provided, the content won't be inside a codeblock , defaults to None
     :type codeblock_type: str , optional
+    :param raw: set if this is a raw link, it will be downloaded directly
+    :type raw: bool , optional
+    :param host: the host of the link, defaults to github.com
+    :type host: str , optional
     :raises RuntimeError: in case a document cannot be found or more than 1 document found
     :return: the content to be included
     :rtype: str
     """
-    current_docsite = doc.docsite
-    j = current_docsite._j
     custom_link = MarkdownLinkParser(link)
+    if not host:
+        host = "github.com"
 
-    if docsite_name:
-        docsite = j.tools.markdowndocs.docsite_get(docsite_name)
-    else:
-        repo = current_docsite.get_real_source(custom_link)
-        if not MarkdownLinkParser(repo).is_url:
-            # not an external url, use current docsite
-            docsite = current_docsite
-        else:
-            # the real source is a url outside this docsite
-            # get a new link and docsite
-            new_link = GithubLinker.to_custom_link(repo)
-            # to match any path, start with root `/`
-            url = GithubLinker(new_link.account, new_link.repo).tree("/")
-            docsite = j.tools.markdowndocs.load(url, name=new_link.repo)
-            custom_link.path = new_link.path
+    content, codeblock_guess = get_content(custom_link, doc, docsite_name, host, raw)
 
-    is_file = False
-
-    try:
-        full_path = docsite.file_get(custom_link.path)
-        content = j.sal.fs.readFile(full_path)
-        if not codeblock_type:
-            ext = j.sal.fs.getFileExtension(full_path)
-            codeblock_type = COMMON_LANG_EXT.get(ext.lower(), ext)
-        is_file = True
-    except j.exceptions.Base:
-        included_doc = docsite.doc_get(custom_link.path)
-        content = included_doc.markdown_source
-        full_path = included_doc.path
+    if not codeblock_type:
+        codeblock_type = codeblock_guess
 
     if not ignore:
         ignore = []
@@ -210,10 +255,5 @@ def include(
             header_levels_modify=header_levels_modify,
             ignore=ignore,
         )
-
-    if not is_file and not custom_link.path.lower().strip().endswith("_sidebar.md"):
-        all_links = Link.LINK_MARKDOWN_RE.findall(content)
-        if all_links:
-            copy_links(doc, docsite.path, full_path, all_links)
 
     return with_code_block(content, _type=codeblock_type)
