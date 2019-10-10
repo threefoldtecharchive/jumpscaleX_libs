@@ -173,6 +173,7 @@ def get_content(custom_link, doc, docsite_name=None, host=None, raw=False):
         else:
             # the real source is a url outside this docsite
             # get a new link and docsite
+            host = j.clients.git.getGitRepoArgs(repo)[0]
             new_link = Linker.to_custom_link(repo, host)
             # to match any path, start with root `/`
             url = Linker(host, new_link.account, new_link.repo).tree("/")
@@ -234,9 +235,6 @@ def include(
     :rtype: str
     """
     custom_link = MarkdownLinkParser(link)
-    if not host:
-        host = "github.com"
-
     content, codeblock_guess = get_content(custom_link, doc, docsite_name, host, raw)
 
     if not codeblock_type:

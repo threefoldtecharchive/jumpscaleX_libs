@@ -227,7 +227,10 @@ class Linker:
     @classmethod
     def to_custom_link(cls, url, host=None):
         if not host:
-            host = "github.com"
+            try:
+                host = j.clients.git.getGitRepoArgs(url)[0]
+            except j.exceptions.Base:
+                host = "github.com"
 
         match = cls.get_repo_re(host).match(url)
         if not match:
