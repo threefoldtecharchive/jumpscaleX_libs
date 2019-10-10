@@ -6,7 +6,9 @@ try:
 except:
     j.builders.runtimes.python3.pip_package_install("python-digitalocean")
     import digitalocean
+
 from .DigitalOceanVM import DigitalOceanVM
+from .Project import Project
 
 
 class DigitalOcean(j.baseclasses.object_config):
@@ -29,6 +31,7 @@ class DigitalOcean(j.baseclasses.object_config):
 
     def reset(self):
         self._droplets = []
+        self._projects = []
         self._digitalocean_images = None
         self._digitalocean_sizes = None
         self._digitalocean_regions = None
@@ -141,7 +144,14 @@ class DigitalOcean(j.baseclasses.object_config):
         return res
 
     def droplet_create(
-        self, name="test", sshkey=None, region="Amsterdam 3", image="ubuntu 18.04", size_slug="s-1vcpu-2gb", delete=True
+        self,
+        name="test",
+        sshkey=None,
+        region="Amsterdam 3",
+        image="ubuntu 18.04",
+        size_slug="s-1vcpu-2gb",
+        delete=True,
+        project_name=None,
     ):
         """
 
@@ -152,8 +162,14 @@ class DigitalOcean(j.baseclasses.object_config):
         :param size_slug: s-1vcpu-2gb,s-6vcpu-16gb,gd-8vcpu-32gb
         :param delete:
         :param mosh: when mosh will be used to improve ssh experience
+        :param project_name: project to add this droplet it. If not specified the default project will be used.
         :return: droplet,sshclient
         """
+        if project_name:
+            project = self._project_get(project_name)
+            if not project:
+                raise j.exceptions.Input("could not find project with name:%s" % project_name)
+
         delete = j.data.types.bool.clean(delete)
         sshkey = j.data.types.string.clean(sshkey)
         if not sshkey:
@@ -201,6 +217,9 @@ class DigitalOcean(j.baseclasses.object_config):
         # dr.do_id = droplet.id
         self._droplets.append(droplet)
         self.reset()
+
+        if project:
+            project.assign_resources(["do:droplet:%s" % droplet.id])
 
         vm = self._vm_get(name)
         vm.do_id = droplet.id
@@ -286,6 +305,110 @@ class DigitalOcean(j.baseclasses.object_config):
     def droplets_all_shutdown(self):
         for droplet in self.droplets:
             droplet.shutdown()
+
+    def droplets_list(self, project=None):
+        """list droplets
+
+        :param project: name of the project to filter on, defaults to None
+        :type project: str, optional
+        :raises j.exceptions.Input: raise an error if project doesn't exist.
+        :return: list of droplets
+        :rtype: [Droplet]
+        """
+        if not project:
+            return self.droplets
+
+        project = self._project_get(project)
+        if not project:
+            raise j.exceptions.Input("could not find project with name:%s" % project)
+
+        return project.list_droplets()
+
+    def _projects_list(self):
+        return Project.list(self.client)
+
+    @property
+    def projects(self):
+        """property to return all the cached projects
+
+        :return: list of project
+        :rtype: [Project]
+        """
+        if not self._projects:
+            for project in self._projects_list():
+                self._projects.append(project)
+        return self._projects
+
+    def _project_get(self, name):
+        for project in self.projects:
+            if project.name.lower() == name.lower():
+                return project
+        return None
+
+    def project_create(self, name, purpose, description="", environment="", is_default=False):
+        """Create a digital ocean project
+
+        :param name: name of the project
+        :type name: str
+        :param purpose: purpose of the project
+        :type purpose: str
+        :param description: description of the project, defaults to ""
+        :type description: str, optional
+        :param environment: environment of project's resources, defaults to ""
+        :type environment: str, optional
+        :param is_default: make this the default project for your user
+        :type is_default: bool
+        :return: project instance
+        :rtype: Project
+        """
+        if self._project_get(name):
+            raise j.exceptions.Value("A project with the same name already exists")
+
+        project = Project(
+            token=self.token_,
+            name=name,
+            purpose=purpose,
+            description=description,
+            environment=environment,
+            is_default=is_default,
+        )
+        project.create()
+
+        if is_default:
+            project.update(is_default=True)
+
+        self._projects.append(project)
+
+        return project
+
+    def project_get(self, name):
+        """Get an existing prooject
+
+        :param name: project name
+        :type name: str
+        :raises j.exceptions.Input: raises an error if there is no project with this name
+        :return: Project object
+        :rtype: Project
+        """
+        project = self._project_get(name)
+        if not project:
+            raise j.exceptions.Input("could not find project with name:%s" % name)
+        return project
+
+    def project_delete(self, name):
+        """Delete an exisiting project.
+        A project can't be deleted unless it has no resources.
+
+        :param name: project name
+        :type name: str
+        :raises j.exceptions.Input: raises an error if there is no project with this name
+        """
+        project = self._project_get(name)
+        if not project:
+            raise j.exceptions.Input("could not find project with name:%s" % name)
+        project.delete()
+
+        self._projects.remove(project)
 
     def __str__(self):
         return "digital ocean client:%s" % self.name
