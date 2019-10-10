@@ -1,6 +1,6 @@
 from Jumpscale import j
 from .Doc import Doc
-from .Link import GithubLinker
+from .Link import Linker
 
 JSBASE = j.baseclasses.object
 
@@ -106,14 +106,14 @@ class DocSite(j.baseclasses.object):
             and custom_link.branch != self.branch
         )
 
-    def get_real_source(self, custom_link, linker=None):
+    def get_real_source(self, custom_link, host=None):
         """
         get the source of the data (only works for github and local paths for now)
 
         :param custom_link: custom link
         :type custom_link: CustomLink
-        :param linker: a linker instance, defaults to GithubLinker
-        :type linker: Linker, optional
+        :param host: host, defaults to githib.com
+        :type host: str
         :return: a path or a full link
         :rtype: str
         """
@@ -123,8 +123,10 @@ class DocSite(j.baseclasses.object):
 
         account = custom_link.account or self.account
         repo = custom_link.repo or self.repo
-        if not linker:
-            linker = GithubLinker(account, repo)
+        if not host:
+            host = "github.com"
+
+        linker = Linker(host, account, repo)
 
         if custom_link.reference:
             return linker.issue(custom_link.reference)
