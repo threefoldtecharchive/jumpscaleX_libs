@@ -20,7 +20,13 @@ from io import StringIO
 import re
 from email.generator import Generator
 from email.header import Header
-from kitchen.text.converters import to_bytes
+try:
+    from kitchen.text.converters import to_bytes
+except:
+    from Jumpscale import j
+    j.builders.runtimes.python3.pip_package_install("kitchen")
+    from kitchen.text.converters import to_bytes
+
 
 # asimap imports
 #
