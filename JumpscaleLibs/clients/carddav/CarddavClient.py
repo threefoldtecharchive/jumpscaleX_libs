@@ -45,6 +45,7 @@ from urllib.parse import urlparse, urljoin
 import logging
 import lxml.etree as ET
 import string
+import re
 
 JSConfigClient = j.baseclasses.object_config
 
@@ -52,7 +53,7 @@ JSConfigClient = j.baseclasses.object_config
 def raise_for_status(resp):
     if 400 <= resp.status_code < 500 or 500 <= resp.status_code < 600:
         msg = "Error code: " + str(resp.status_code) + "\n"
-        msg += resp.content
+        msg += resp.content.decode()
         raise requests.exceptions.HTTPError(msg)
 
 
@@ -102,7 +103,7 @@ class CarddavClient(JSConfigClient):
     passwd = "" (S)
     """
 
-    def _init(self, debug="", verify=True, write_support=False, auth="basic", **kwargs):
+    def _init(self, debug="", verify=True, auth="basic", **kwargs):
         # shutup url3
         urllog = logging.getLogger("requests.packages.urllib3.connectionpool")
         urllog.setLevel(logging.CRITICAL)
@@ -112,7 +113,6 @@ class CarddavClient(JSConfigClient):
         self.url = url_tuple(self.resource, split_url.scheme + "://" + split_url.netloc, split_url.path)
         self.debug = debug
         self.session = requests.session()
-        self.write_support = write_support
         self._settings = {"verify": verify}
         if auth == "basic":
             self._settings["auth"] = (self.user, self.passwd)
@@ -133,12 +133,6 @@ class CarddavClient(JSConfigClient):
     @property
     def headers(self):
         return dict(self._default_headers)
-
-    def _check_write_support(self):
-        """checks if user really wants his data destroyed"""
-        if not self.write_support:
-            sys.stderr.write("Sorry, no write support for you. Please check " "the documentation.\n")
-            sys.exit(1)
 
     def delete_abook(self, href, etag=None):
         remotepath = str(self.url.base + href)
@@ -207,10 +201,13 @@ class CarddavClient(JSConfigClient):
         abook = self._process_xml_props(xml)
         return abook
 
-    def find_vcard(self, text, abook_href=None):
+    def find_vcards(self, text, abook_href=None):
         matched = []
         for vcard_href in self.get_abook(href=abook_href):
-            if self.get_vcard(vcard_href).find(text):
+            if len(vcard_href.strip("/").split("/")) < 3:
+                # this is not a vcard href, it is an address book href
+                continue
+            if re.search(text, self.get_vcard(vcard_href).decode('utf-8'), re.IGNORECASE):
                 matched.append(vcard_href)
         return matched
 
@@ -233,7 +230,6 @@ class CarddavClient(JSConfigClient):
               remote etag matches. If etag = None the update is forced anyway
          """
         # TODO what happens if etag does not match?
-        self._check_write_support()
         remotepath = str(self.url.base + href)
         headers = self.headers
         headers["content-type"] = "text/vcard"
@@ -253,7 +249,6 @@ class CarddavClient(JSConfigClient):
         :returns: nothing
         """
         # TODO: what happens if etag does not match, url does not exist etc ?
-        self._check_write_support()
         remotepath = str(self.url.base + href)
         headers = self.headers
         headers["content-type"] = "text/vcard"
@@ -272,7 +267,6 @@ class CarddavClient(JSConfigClient):
                 new card (string or None)
         """
         url = urljoin(self.url.base, abook_href) if abook_href else self.url.resource
-        self._check_write_support()
         card = card.encode("utf-8")
         for _ in range(0, 5):
             rand_string = get_random_href()
