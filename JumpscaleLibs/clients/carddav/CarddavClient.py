@@ -78,6 +78,7 @@ class UploadFailed(Exception):
 
     pass
 
+
 class CarddavClient(JSConfigClient):
     """class for interacting with a CardDAV server
 
@@ -128,7 +129,6 @@ class CarddavClient(JSConfigClient):
     def verify(self):
         """gets verify from settings dict"""
         return self._settings["verify"]
-
 
     @property
     def headers(self):
@@ -207,7 +207,7 @@ class CarddavClient(JSConfigClient):
             if len(vcard_href.strip("/").split("/")) < 3:
                 # this is not a vcard href, it is an address book href
                 continue
-            if re.search(text, self.get_vcard(vcard_href).decode('utf-8'), re.IGNORECASE):
+            if re.search(text, self.get_vcard(vcard_href).decode("utf-8"), re.IGNORECASE):
                 matched.append(vcard_href)
         return matched
 
