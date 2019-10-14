@@ -192,13 +192,13 @@ class CarddavClient(JSConfigClient):
         logging.info(server + " detected")
         return server
 
-    def get_abook(self, href=None):
+    def get_abook(self, href=None, get_meta=False):
         """does the propfind and processes what it returns
 
         :rtype: list of hrefs to vcards
         """
         xml = self._get_xml_props(href=href)
-        abook = self._process_xml_props(xml)
+        abook = self._process_xml_props(xml, target=href, get_meta=get_meta)
         return abook
 
     def find_vcards(self, text, abook_href=None):
@@ -322,7 +322,7 @@ class CarddavClient(JSConfigClient):
         return response.content
 
     @classmethod
-    def _process_xml_props(cls, xml):
+    def _process_xml_props(cls, xml, target=None, get_meta=False):
         """processes the xml from PROPFIND, listing all vcard hrefs
 
         :param xml: the xml file
@@ -339,11 +339,15 @@ class CarddavClient(JSConfigClient):
                 href = ""
                 etag = ""
                 insert = False
+                name = ""
+                description = ""
                 for refprop in response.iterchildren():
                     if refprop.tag == namespace + "href":
                         href = refprop.text
-                        # if not href.endswith(".vcf"):
-                        #     break
+                    if get_meta and target and target.strip("/") != href.strip("/"):
+                        continue
+                    elif target and target not in href:
+                        continue
                     for prop in refprop.iterchildren():
                         for props in prop.iterchildren():
                             if props.tag == namespace + "getcontenttype" and (
@@ -355,6 +359,15 @@ class CarddavClient(JSConfigClient):
                                 insert = True
                             if props.tag == namespace + "getetag":
                                 etag = props.text
+                            if "displayname" in props.tag:
+                                name = props.text
+                            if "addressbook_description" in props.tag:
+                                description = props.text
+
                         if insert:
-                            abook[href] = etag
+                            if get_meta:
+                                abook[href] = {"etag": etag, "name": name, "description": description}
+                            else:
+                                abook[href] = etag
+
         return abook
