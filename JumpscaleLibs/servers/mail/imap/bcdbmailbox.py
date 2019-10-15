@@ -125,9 +125,8 @@ class BCDBMailbox(mailbox.Mailbox):
     def rename_folder(self, old_name, new_name):
         if old_name == "inbox":
             raise Exception("You can't rename the Inbox folder")
-        try:
-            folder = self._models.folder.find(name=old_name)
-        except:
+        folder = self._models.folder.find(name=old_name)
+        if not folder:
             raise Exception("The folder name you are trying to rename is not found")
         messages = self._models.message.find(folder=old_name)
         folder[0].name = new_name
@@ -142,6 +141,12 @@ class BCDBMailbox(mailbox.Mailbox):
         folder[0].delete()
         for message in messages:
             message.delete()
+
+    def create_folder(self, name):
+        if not self._models.folder.find(name=name):
+            folder = self._models.folder.new()
+            folder.name = name
+            folder.save()
 
 
 class BCDBMailboxdir(BCDBMailbox):
