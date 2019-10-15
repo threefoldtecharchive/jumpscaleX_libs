@@ -41,7 +41,7 @@ from Jumpscale import j
 from collections import namedtuple
 import requests
 import sys
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse, urljoin, urlsplit
 import logging
 import lxml.etree as ET
 import string
@@ -148,7 +148,7 @@ class CarddavClient(JSConfigClient):
         if not href:
             href = get_random_href()
         url = urljoin(url, href)
-        self.session.request(
+        response = self.session.request(
             "MKCOL",
             url,
             data=f"""\
@@ -175,7 +175,8 @@ class CarddavClient(JSConfigClient):
                 "utf-8"
             ),
         )
-
+        raise_for_status(response)
+        return urlsplit(response.url).path
     def _detect_server(self):
         """detects CardDAV server type
 
@@ -284,7 +285,6 @@ class CarddavClient(JSConfigClient):
                     etag = response.headers["etag"]
 
                 return (parsed_url.path, etag)
-        raise_for_status(response)
 
     def list_abooks(self):
         """PROPFIND method
