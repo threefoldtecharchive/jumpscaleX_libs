@@ -5,16 +5,12 @@ from JumpscaleLibs.tools.googleslides.slides2html.google_links_utils import get_
 CRED_FILE_PATH = "/sandbox/var/cred.json"
 
 
-def markdown(doc, **kwargs):
-    content = kwargs.get("content", "")
-    if content.strip() == "":
-        raise j.exceptions.Value("no content given for markdown macro for:%s" % doc)
-
+def markdown(doc, url,**kwargs):
     client = j.clients.gdrive.get(name="markdown_macro", credfile=CRED_FILE_PATH)
     discovery = client.service_get().files()
 
     output = ""
-    file_id = get_document_id(content)
+    file_id = get_document_id(url)
     if not file_id:
         raise j.exceptions.Value("invalid document url.")
     request = discovery.export(fileId=file_id, mimeType="text/plain")
