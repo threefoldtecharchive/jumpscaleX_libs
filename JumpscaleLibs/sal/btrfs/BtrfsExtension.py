@@ -15,14 +15,15 @@ class BtfsExtensionFactory(j.baseclasses.object):
 
     def getBtrfs(self, executor=None):
         ex = executor if executor is not None else j.tools.executor.local_get()
-        return BtrfsExtension(ex)
+        return BtrfsExtension(executor=ex)
 
 
 class BtrfsExtension(j.baseclasses.object):
-    def _init(self, **kwargs):
+    def _init(self, executor, **kwargs):
         self.__conspattern = re.compile("^(?P<key>[^:]+): total=(?P<total>[^,]+), used=(?P<used>.+)$", re.MULTILINE)
         self.__listpattern = re.compile("^ID (?P<id>\d+).+?path (?P<name>.+)$", re.MULTILINE)
         self._disks = None
+        self._executor = executor
 
     def __btrfs(self, command, action, *args):
         cmd = "%s %s %s %s" % (BASECMD, command, action, " ".join(['"%s"' % a for a in args]))
@@ -78,14 +79,14 @@ class BtrfsExtension(j.baseclasses.object):
             self.__btrfs("subvolume", "delete", path)
 
     def subvolumeExists(self, path):
-        if not self._executor.dir_exists(path):
+        if not self._executor.exists(path):
             return False
 
         rc, res, err = self._executor.execute("btrfs subvolume list %s" % path, checkok=False, die=False, showout=False)
 
         if rc > 0:
             if res.find("can't access") != -1:
-                if self._executor.dir_exists(path):
+                if self._executor.exists(path):
                     raise j.exceptions.RuntimeError(
                         "Path %s exists put is not btrfs subvolume, cannot continue." % path
                     )
