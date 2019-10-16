@@ -14,7 +14,7 @@ def gslide(doc, **kwargs):
 
     output = "```gslide\n"
     for pres in presentations:
-        if ("width" and "height") in kwargs:
+        if "width" in kwargs and "height" in kwargs:
             j.tools.googleslides.export(
                 pres,
                 credfile=CRED_FILE_PATH,
@@ -47,7 +47,7 @@ def gslide(doc, **kwargs):
             <section>
                <div class="slide-image">
                    {image}
-                   
+
                </div>
             </section>""".format(
                 image=image_tag

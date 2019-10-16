@@ -424,7 +424,12 @@ class Link(j.baseclasses.object):
                     # j.shell()
                     return self.error("found unsupported extension")
 
-            self.filepath = self.doc.docsite.file_get(self.filename, die=False)
+            if self.extension == "md":
+                doc = self.doc.docsite.doc_get(self.filename, die=False)
+                if doc:
+                    self.filepath = doc.path
+            else:
+                self.filepath = self.doc.docsite.file_get(self.filename, die=False)
 
     @property
     def markdown(self):
