@@ -177,6 +177,7 @@ class CarddavClient(JSConfigClient):
         )
         raise_for_status(response)
         return urlsplit(response.url).path
+
     def _detect_server(self):
         """detects CardDAV server type
 
