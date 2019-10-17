@@ -457,7 +457,7 @@ class Link(j.baseclasses.object):
             j.sal.bcdbfs.file_write(dest, response, append=False)
 
     def should_skip(self):
-        return any(link in self.link_source for link in SKIPPED_LINKS)
+        return any(link in self.link_source for link in SKIPPED_LINKS) or j.data.types.email.check(self.link_source)
 
     def link_verify(self):
         def do():
