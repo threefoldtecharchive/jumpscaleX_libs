@@ -8,7 +8,7 @@ import sys
 
 from .types.ConditionTypes import UnlockHash, UnlockHashType, ConditionMultiSignature
 from .types.PrimitiveTypes import Hash, Currency
-from .types.IO import CoinOutput, BlockstakeOutput
+from .types.IO import CoinOutput, BlockstakeOutput, MinerPayout
 from .types.transactions.Base import TransactionBaseClass
 from .types.transactions.Minting import TransactionV128
 from .GoldChainWalletFactory import GoldChainWalletFactory
@@ -25,7 +25,7 @@ _EXPLORER_NODES = {
     "DEV": ["http://localhost:22110", "http://192.168.8.200:22110"],
 }
 
-_CHAIN_NETWORK_TYPES = sorted(["STD", "TEST", "DEV"])
+_CHAIN_NETWORK_TYPES = sorted(["TEST", "DEV"])
 
 
 class GoldChainClient(j.baseclasses.factory_data_testtools):
@@ -36,7 +36,7 @@ class GoldChainClient(j.baseclasses.factory_data_testtools):
     _SCHEMATEXT = """
         @url = jumpscale.goldchain.client
         name** = "" (S)
-        network_type = "STD,TEST,DEV" (E)
+        network_type = "TEST,DEV" (E)
         explorer_nodes = (LS)
         """
 
@@ -361,10 +361,15 @@ class GoldChainClient(j.baseclasses.factory_data_testtools):
                 endpoint,
                 resp,
             )
-        for (idx, co) in enumerate(coininputoutputs):
-            co = CoinOutput.from_json(obj=co)
+        for (idx, rco) in enumerate(coininputoutputs):
+            co = CoinOutput.from_json(obj=rco)
             co.id = transaction.coin_inputs[idx].parentid
             transaction.coin_inputs[idx].parent_output = co
+            # add the coin input (custodyfee) info if available
+            if 'custody' in rco and 'iscustodyfee' in rco['custody'] and not rco['custody']['iscustodyfee']:
+                transaction.coin_inputs[idx].parent_output.custody_fee = Currency.from_json(rco['custody']['custodyfee'])
+                transaction.coin_inputs[idx].parent_output.spendable_value = Currency.from_json(rco['custody']['spendablevalue'])
+                transaction.coin_inputs[idx].parent_output.spent = rco['custody']['spent']
         # add the coin output ids
         coinoutputids = etxn.get("coinoutputids", None) or []
         if len(transaction.coin_outputs) != len(coinoutputids):
@@ -377,6 +382,18 @@ class GoldChainClient(j.baseclasses.factory_data_testtools):
             )
         for (idx, id) in enumerate(coinoutputids):
             transaction.coin_outputs[idx].id = Hash.from_json(obj=id)
+        # add the coin output (custodyfee) info if available
+        coinoutputcustodyfees = etxn.get('coinoutputcustodyfees', None) or []
+        if len(coinoutputcustodyfees) > 0:
+            if len(transaction.coin_outputs) != len(coinoutputcustodyfees):
+                raise j.clients.goldchain.errors.ExplorerInvalidResponse(
+                    "amount of coin outputs and output info are not matching: {} != {}".format(
+                        len(transaction.coin_outputs), len(coinoutputcustodyfees)), endpoint, resp)
+            for (idx, coinoutputcustodyfee) in enumerate(coinoutputcustodyfees):
+                if 'iscustodyfee' in coinoutputcustodyfee and not coinoutputcustodyfee['iscustodyfee']:
+                    transaction.coin_outputs[idx].custody_fee = Currency.from_json(coinoutputcustodyfee['custodyfee'])
+                    transaction.coin_outputs[idx].spendable_value = Currency.from_json(coinoutputcustodyfee['spendablevalue'])
+                    transaction.coin_outputs[idx].spent = coinoutputcustodyfee['spent']
         # add the parent (blockstake) outputs
         blockstakeinputoutputs = etxn.get("blockstakeinputoutputs", None) or []
         if len(transaction.blockstake_inputs) != len(blockstakeinputoutputs):
@@ -407,7 +424,27 @@ class GoldChainClient(j.baseclasses.factory_data_testtools):
         transaction.unconfirmed = etxn.get("unconfirmed", False)
         # set the height of the transaction only if confirmed
         if not transaction.unconfirmed:
-            transaction.height = int(etxn.get("height"))
+            transaction.height = int(etxn.get("height", -1))
+            transaction.transaction_time = int(etxn.get("timestamp", -1))
+            transaction.transaction_order = int(etxn.get("order", -1))
+            transaction.blockid = etxn.get('parent')
+            # add the miner payouts
+            miner_payouts = []
+            rewardIndex = 0 if self.network_type == 'DEV' else -1
+            payoutDelay = 10 if self.network_type == 'DEV' else 720
+            for (idx, mp) in enumerate(etxn.get('minerpayouts', [])):
+                dmp = MinerPayout.from_json(mp)
+                dmp.is_reward = (idx == rewardIndex)
+                dmp.unlockheight = transaction.height + payoutDelay
+                miner_payouts.append(dmp)
+            transaction.miner_payouts = miner_payouts
+            if rewardIndex == -1: # take first one available
+                if len(transaction.miner_payouts) >= 1:
+                    transaction.fee_payout_id = transaction.miner_payouts[0].id
+                    transaction.fee_payout_address = transaction.miner_payouts[0].unlockhash
+            elif len(transaction.miner_payouts) >= 2:
+                transaction.fee_payout_id = transaction.miner_payouts[1].id
+                transaction.fee_payout_address = transaction.miner_payouts[1].unlockhash
         # return the transaction
         return transaction
 

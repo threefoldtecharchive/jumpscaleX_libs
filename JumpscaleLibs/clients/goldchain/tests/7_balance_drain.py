@@ -54,11 +54,15 @@ def main(self):
     assert txn.data.value == b"drain the swamp"
     # all inputs should be orinating from the balance's available outputs
     assert [ci.parentid for ci in txn.coin_inputs] == [co.id for co in balance.outputs_available]
-    assert len(txn.coin_outputs) == 1
-    # the only output should be the drain output
+    assert len(txn.coin_outputs) == 2
+    # the only personal output should be the drain output
     co = txn.coin_outputs[0]
     assert co.condition.unlockhash == "01ffd7c884aa869056bfb832d957bb71a0005fee13c19046cebec84b3a5047ee8829eab070374b"
     assert co.value == (balance.available - c.minimum_miner_fee)
+    # the other output is the custody fee
+    co = txn.coin_outputs[1]
+    assert co.condition.unlockhash == "800000000000000000000000000000000000000000000000000000000000000000af7bedde1fea"
+    assert co.value == balance.custody_fee_debt_unlocked
     # no block stake inputs or outputs are obviously defined
     assert len(txn.blockstake_inputs) == 0
     assert len(txn.blockstake_outputs) == 0

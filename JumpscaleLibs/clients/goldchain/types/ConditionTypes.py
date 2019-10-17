@@ -11,6 +11,8 @@ _CONDITION_TYPE_ATOMIC_SWAP = 2
 _CONDITION_TYPE_LOCKTIME = 3
 _CONDITION_TYPE_MULTI_SIG = 4
 
+_CONDITION_TYPE_CUSTODY_FEE = 128
+
 
 class ConditionFactory(j.baseclasses.object):
     """
@@ -29,6 +31,8 @@ class ConditionFactory(j.baseclasses.object):
             return ConditionLockTime.from_json(obj)
         if ct == _CONDITION_TYPE_MULTI_SIG:
             return ConditionMultiSignature.from_json(obj)
+        if ct == _CONDITION_TYPE_CUSTODY_FEE:
+            return ConditionCustodyFee.from_json(obj)
         raise j.exceptions.Value("unsupport condition type {}".format(ct))
 
     def from_recipient(self, recipient, lock=None):
@@ -108,6 +112,12 @@ class ConditionFactory(j.baseclasses.object):
         Create a new MultiSignature Condition, which can be fulfilled by a matching MultiSignature Fulfillment.
         """
         return ConditionMultiSignature(unlockhashes=unlockhashes, min_nr_sig=min_nr_sig)
+
+    def custody_fee_new(computation_time=0):
+        """
+        Create a new CustodyFee Condition, which cannot be fulfilled and is used only on Goldchain.
+        """
+        return ConditionCustodyFee(computation_time=computation_time)
 
     def output_lock_new(self, value):
         """
@@ -246,12 +256,12 @@ class ConditionFactory(j.baseclasses.object):
         # if current_timestamp is not defined, the current time is used: int(datetime.now().timestamp)
         assert OutputLock(value="+7d", current_timestamp=1).value == 604801
         assert OutputLock(value="+7d12h5s", current_timestamp=1).value == 648006
-        assert OutputLock(value="30/11/2020").value == 1606690800
+        assert OutputLock(value="30/11/2020").value == 1606694400
         assert (
             OutputLock(value="11/30").value == OutputLock(value="30/11/{}".format(datetime.now().year)).value
         )  # year is optional
-        assert OutputLock(value="30/11/2020 23:59:59").value == 1606777199
-        assert OutputLock(value="30/11/2020 23:59").value == 1606777140  # seconds is optional
+        assert OutputLock(value="30/11/2020 23:59:59").value == 1606780799
+        assert OutputLock(value="30/11/2020 23:59").value == 1606780740  # seconds is optional
 
 
 class OutputLock:
@@ -411,6 +421,8 @@ class UnlockHashType(IntEnum):
     ATOMIC_SWAP = 2
     MULTI_SIG = 3
 
+    CUSTODY_FEE = 128
+
     @classmethod
     def from_json(cls, obj):
         if type(obj) is str:
@@ -455,7 +467,7 @@ class UnlockHash(BaseDataTypeClass):
                 )
             )
 
-        t = UnlockHashType(int(obj[: UnlockHash._TYPE_SIZE_HEX]))
+        t = UnlockHashType(int(obj[: UnlockHash._TYPE_SIZE_HEX], 16))
         h = j.clients.goldchain.types.hash_new(
             value=obj[UnlockHash._TYPE_SIZE_HEX : UnlockHash._TYPE_SIZE_HEX + UnlockHash._HASH_SIZE_HEX]
         )
@@ -933,3 +945,45 @@ class ConditionMultiSignature(ConditionBaseClass):
     def rivine_binary_encode_data(self, encoder):
         encoder.add_int64(self._min_nr_sig)
         encoder.add_slice(self._unlockhashes)
+
+class ConditionCustodyFee(ConditionBaseClass):
+    """
+    ConditionCustodyFee class
+    """
+    def __init__(self, computation_time=None):
+        self._computation_time = None
+        self.computation_time = computation_time
+
+    @property
+    def type(self):
+        return _CONDITION_TYPE_CUSTODY_FEE
+
+    @property
+    def unlockhash(self):
+        return UnlockHash(type=UnlockHashType.CUSTODY_FEE, hash=None)
+
+    @property
+    def computation_time(self):
+        return self._computation_time
+    @computation_time.setter
+    def computation_time(self, value):
+        if value == None:
+            self._computation_time = 0
+            return
+        if not isinstance(value, int):
+            raise j.exceptions.Value("ConditionCustodyFee's computation time value is expected to be of type int, not {}".format(type(value)))
+        self._computation_time = value
+
+    def from_json_data_object(self, data):
+        self.computation_time = data['computationtime']
+
+    def json_data_object(self):
+        return {
+            'computationtime': self.computation_time,
+        }
+
+    def sia_binary_encode_data(self, encoder):
+        encoder.add_int(self.computation_time)
+
+    def rivine_binary_encode_data(self, encoder):
+        encoder.add_int64(self.computation_time)

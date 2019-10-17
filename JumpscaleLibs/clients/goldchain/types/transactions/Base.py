@@ -3,6 +3,9 @@ from Jumpscale import j
 from functools import reduce
 from enum import IntEnum
 from abc import ABC, abstractmethod, abstractclassmethod
+from ..PrimitiveTypes import Hash
+from ..ConditionTypes import UnlockHash
+from ..IO import CoinOutput, MinerPayout
 
 
 class TransactionVersion(IntEnum):
@@ -21,13 +24,18 @@ class TransactionVersion(IntEnum):
     AUTH_CONDITION_UPDATE = 177
 
 
-from ..PrimitiveTypes import Hash
 
 
 class TransactionBaseClass(ABC):
     def __init__(self):
         self._id = None
         self._height = -1
+        self._block_timestamp = -1
+        self._blockid = None
+        self._txorder = -1
+        self._miner_payouts = None
+        self._fee_payout_address = None
+        self._fee_payout_id = None
         self._unconfirmed = False
 
     @classmethod
@@ -77,6 +85,29 @@ class TransactionBaseClass(ABC):
             self._id = Hash(value=id.value)
         self._id = Hash(value=id)
 
+    @property
+    def fee_payout_address(self):
+        return self._fee_payout_address
+
+    @fee_payout_address.setter
+    def fee_payout_address(self, value):
+        if isinstance(value, str):
+            self._fee_payout_address = UnlockHash.from_json(value)
+        elif isinstance(value, UnlockHash):
+            self._fee_payout_address = UnlockHash(type=value.type, hash=value.hash)
+        else:
+            raise j.exceptions.Value("invalid type of fee_payout_address value: {} ({})".format(value, type(value)))
+
+    @property
+    def fee_payout_id(self):
+        if self._fee_payout_id is None:
+            return None
+        return self._fee_payout_id.__str__()
+
+    @fee_payout_id.setter
+    def fee_payout_id(self, value):
+        self._fee_payout_id = Hash(value=value)
+
     def __hash__(self):
         if self._id is None:
             return hash(j.data.serializers.json.dumps(self.json()))
@@ -99,11 +130,87 @@ class TransactionBaseClass(ABC):
 
     @height.setter
     def height(self, value):
+        if value is None:
+            self._height = -1
+            return
         if not (isinstance(value, int) and not isinstance(value, bool)):
             raise j.exceptions.Value("value should be of type int or bool, not {}".format(type(value)))
-        if value < 0:
+        if value < -1:
             raise j.exceptions.Value("a block height cannot be negative")
         self._height = value
+
+    @property
+    def transaction_order(self):
+        """
+        Order of the transaction within the block it is part of,
+        if not yet part of a block it will be negative (-1 is the default value).
+        """
+        return self._txorder
+
+    @transaction_order.setter
+    def transaction_order(self, value):
+        if value is None:
+            self._txorder = -1
+            return
+        if not (isinstance(value, int) and not isinstance(value, bool)):
+            raise j.exceptions.Value(
+                "value should be of type int, not {}".format(type(value)))
+        if value < -1:
+            raise j.exceptions.Value("a transaction order cannot be negative")
+        self._txorder = value
+
+    @property
+    def timestamp(self):
+        """
+        Timestamp of the block this transaction is part of,
+        if not yet part of a block it will be negative (-1 is the default value).
+        """
+        return self._block_timestamp
+
+    @timestamp.setter
+    def timestamp(self, value):
+        if value is None:
+            self._block_timestamp = -1
+            return
+        if not (isinstance(value, int) and not isinstance(value, bool)):
+            raise j.exceptions.Value("value should be of type int or bool, not {}".format(type(value)))
+        if value < -1:
+            raise j.exceptions.Value("a block timestamp cannot be negative")
+        self._height = value
+
+    @property
+    def miner_payouts(self):
+        """
+        Miner payouts paid out as part of this transaction's block creation,
+        not known if not confirmed yet.
+        """
+        return self._miner_payouts
+
+    @miner_payouts.setter
+    def miner_payouts(self, value):
+        if value is None:
+            self._miner_payouts = []
+            return
+        if not isinstance(value, list):
+            raise j.exceptions.Value(
+                "value should be of type list, not {}".format(type(value)))
+        self._miner_payouts = []
+        for mp in value:
+            if not isinstance(mp, MinerPayout):
+                raise j.exceptions.Value("value should be of type MinerPayout, not {}".format(type(mp)))
+            self._miner_payouts.append(mp)
+
+    @property
+    def blockid(self):
+        """
+        Identifier of the block this transaction is part of,
+        if not yet part of a block it will be None (its default value)
+        """
+        return self._blockid
+
+    @blockid.setter
+    def blockid(self, value):
+        self._blockid = Hash(value=value)
 
     @property
     def coin_inputs(self):
@@ -119,7 +226,15 @@ class TransactionBaseClass(ABC):
         Coin outputs of this Transaction,
         funded by the Transaction's coin inputs.
         """
-        return []
+        outputs = []
+        mps = self.miner_payouts
+        if mps != None and len(mps) > 0:
+            outputs = [mp.as_coin_output() for mp in mps]
+        elif self.fee_payout_address != None and len(self.miner_fees) > 0:
+            amount = sum(self.miner_fees)
+            condition = j.clients.goldchain.types.conditions.from_recipient(self.fee_payout_address)
+            outputs.append(CoinOutput(value=amount, condition=condition, id=self._fee_payout_id, is_fee=True))
+        return outputs
 
     @property
     def blockstake_inputs(self):

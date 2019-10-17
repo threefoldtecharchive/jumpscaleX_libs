@@ -6,10 +6,10 @@ import sys
 import hashlib
 from ed25519 import SigningKey
 
-from .types.PrimitiveTypes import Currency, Hash, BinaryData
+from .types.PrimitiveTypes import Currency, Hash
 from .types.CryptoTypes import PublicKey, UnlockHash, UnlockHashType
-from .types.IO import CoinOutput, CoinInput
-from .types.ConditionTypes import ConditionNil, ConditionUnlockHash, ConditionLockTime
+from .types.IO import CoinInput
+from .types.ConditionTypes import ConditionUnlockHash, ConditionCustodyFee
 from .types.AtomicSwap import AtomicSwapContract
 from .types.transactions.Base import TransactionBaseClass
 from .types.transactions.Minting import TransactionV128, TransactionV129
@@ -17,12 +17,9 @@ from .types.transactions.Minting import TransactionV128, TransactionV129
 
 _DEFAULT_KEY_SCAN_COUNT = 3
 
-_MAX_RIVINE_TRANSACTION_INPUTS = 99
+_MAX_RIVINE_TRANSACTION_INPUTS = 85
 
 # TODO:
-#
-# * add optional height property to base transaction class,
-#   and populate it when possible;
 #
 # * add support for transaction listing (need to work this out)
 #
@@ -349,6 +346,16 @@ class GoldChainWallet(j.baseclasses.object_config):
 
         # add the coin inputs
         txn.coin_inputs = inputs
+
+        # add custody fees
+        total_custody_fee = Currency()
+        for ci in txn.coin_inputs:
+            if not ci.parent_output:
+                raise Exception(
+                    "BUG: cannot define the required custody fee if no parent output is linked to coin input {}".format(
+                        ci.parentid.__str__()))
+            total_custody_fee += ci.parent_output.custody_fee
+        txn.coin_output_add(value=total_custody_fee, condition=ConditionCustodyFee(balance.chain_time))
 
         # if there is data to be added, add it as well
         if data:
@@ -788,6 +795,14 @@ class GoldChainMinter:
         # add refund coin output if needed
         if remainder > 0:
             txn.coin_output_add(value=remainder, condition=refund)
+
+        # add custody fees
+        total_custody_fee = Currency()
+        for ci in txn.coin_inputs:
+            if not ci.parent_output:
+                raise Exception("BUG: cannot define the required custody fee if no parent output is linked to coin input {}".format(ci.parentid.__str__()))
+            total_custody_fee += ci.parent_output.custody_fee
+        txn.coin_output_add(value=total_custody_fee, condition=ConditionCustodyFee(balance.chain_time))
 
         # optionally set the data
         if data is not None:
@@ -1769,6 +1784,36 @@ class WalletBalance(object):
         return sum([co.value for co in self.outputs_available]) or Currency()
 
     @property
+    def custody_fee_debt(self):
+        """
+        Total Custody Fee Debt.
+        """
+        return sum([
+            self.custody_fee_debt_unlocked,
+            self.custody_fee_debt_locked,
+        ])
+
+    @property
+    def custody_fee_debt_unlocked(self):
+        """
+        Total Custody Fee Debt for unlocked tokens.
+        """
+        return sum([co.custody_fee for co in self.outputs_available])
+
+    @property
+    def custody_fee_debt_locked(self):
+        """
+        Total Custody Fee Debt for locked tokens.
+        """
+        if self.chain_time > 0 and self.chain_height > 0:
+            return sum([co.custody_fee for co in self._outputs.values()
+                        if co.condition.lock.locked_check(time=self.chain_time, height=self.chain_height)])\
+                    or Currency(value=0)
+        else:
+            return Currency(value=0) # impossible to know for sure without a complete context
+
+
+    @property
     def locked(self):
         """
         Total available coins that are locked.
@@ -1883,14 +1928,14 @@ class WalletBalance(object):
         # another balance is defined, create a new balance that will contain our merge
         # merge the chain info
         if self.chain_height >= other.chain_height:
-            if self.chain_time < other.chain_time:
+            if self.chain_time != 0 and self.chain_time < other.chain_time:
                 raise j.exceptions.Value("chain time and chain height of balances do not match")
         else:
-            if self.chain_time >= other.chain_time:
+            if other.chain_time != 0 and self.chain_time >= other.chain_time:
                 raise j.exceptions.Value("chain time and chain height of balances do not match")
-            self.chain_time = other.chain_time
-            self.chain_height = other.chain_height
-            self.chain_blockid = other.chain_blockid
+        self.chain_time = other.chain_time
+        self.chain_height = other.chain_height
+        self.chain_blockid = other.chain_blockid
         # merge the outputs
         for attr in ["_outputs", "_outputs_spent", "_outputs_unconfirmed", "_outputs_unconfirmed_spent"]:
             d = getattr(self, attr, {})
@@ -1942,10 +1987,18 @@ class WalletBalance(object):
             used_outputs = outputs[:n]
             outputs = outputs[n:]  # and update our output list, so we do not double spend
             # compute amount, minus minimum fee and add our only output
-            amount = sum([co.value for co in used_outputs]) - miner_fee
+            amount = sum([co.spendable_value for co in used_outputs]) - miner_fee
             txn.coin_output_add(condition=recipient, value=amount)
             # add the coin inputs
             txn.coin_inputs = [CoinInput.from_coin_output(co) for co in used_outputs]
+            # add custody fees
+            total_custody_fee = Currency()
+            for ci in txn.coin_inputs:
+                if not ci.parent_output:
+                    raise Exception("BUG: cannot define the required custody fee if no parent output is linked to coin input {}".format(
+                            ci.parentid.__str__()))
+                total_custody_fee += ci.parent_output.custody_fee
+            txn.coin_output_add(value=total_custody_fee, condition=ConditionCustodyFee(self.chain_time))
             # append the transaction
             transactions.append(txn)
 
@@ -1953,10 +2006,14 @@ class WalletBalance(object):
         return transactions
 
     def _human_readable_balance(self):
+        cfdebt = self.custody_fee_debt
+        cavailable = self.available - self.custody_fee_debt_unlocked
+        clocked = self.locked - self.custody_fee_debt_locked
         # report confirmed coins
         result = "{} available and {} locked".format(
-            self.available.str(with_unit=True), self.locked.str(with_unit=True)
+            cavailable.str(with_unit=True), clocked.str(with_unit=True)
         )
+        result += "\nCustody Fee to be paid: {}".format(cfdebt.str(with_unit=True))
         # optionally report unconfirmed coins
         unconfirmed = self.unconfirmed
         unconfirmed_locked = self.unconfirmed_locked
@@ -2231,18 +2288,18 @@ class WalletsBalance(WalletBalance):
 
     def _fund_individual(self, amount, addresses):
         outputs_available = [co for co in self.outputs_available if co.condition.unlockhash in addresses]
-        outputs_available.sort(key=lambda co: co.value)
+        outputs_available.sort(key=lambda co: co.spendable_value)
         collected = Currency(value=0)
         outputs = []
         # try to fund only with confirmed outputs, if possible
         for co in outputs_available:
-            if co.value >= amount:
-                return [co], co.value
-            collected += co.value
+            if co.spendable_value >= amount:
+                return [co], co.spendable_value
+            collected += co.spendable_value
             outputs.append(co)
             if len(outputs) > _MAX_RIVINE_TRANSACTION_INPUTS:
                 # to not reach the input limit
-                collected -= outputs.pop(0).value
+                collected -= outputs.pop(0).spendable_value
             if collected >= amount:
                 return outputs, collected
 
@@ -2252,15 +2309,15 @@ class WalletsBalance(WalletBalance):
 
         # use unconfirmed balance, not ideal, but acceptable
         outputs_available = [co for co in self.outputs_unconfirmed_available if co.condition.unlockhash in addresses]
-        outputs_available.sort(key=lambda co: co.value, reverse=True)
+        outputs_available.sort(key=lambda co: co.spendable_value, reverse=True)
         for co in outputs_available:
-            if co.value >= amount:
-                return [co], co.value
-            collected += co.value
+            if co.spendable_value >= amount:
+                return [co], co.spendable_value
+            collected += co.spendable_value
             outputs.append(co)
             if len(outputs) > _MAX_RIVINE_TRANSACTION_INPUTS:
                 # to not reach the input limit
-                collected -= outputs.pop(0).value
+                collected -= outputs.pop(0).spendable_value
             if collected >= amount:
                 return outputs, collected
 
@@ -2277,17 +2334,17 @@ class WalletsBalance(WalletBalance):
                 continue  # nothing to do here
 
             outputs_available = wallet.outputs_available
-            outputs_available.sort(key=lambda co: co.value)
+            outputs_available.sort(key=lambda co: co.spendable_value)
             # try to fund only with confirmed outputs, if possible
             for co in outputs_available:
-                if co.value >= amount:
-                    return [co], co.value
+                if co.spendable_value >= amount:
+                    return [co], co.spendable_value
 
-                collected += co.value
+                collected += co.spendable_value
                 outputs.append(co)
                 if len(outputs) > _MAX_RIVINE_TRANSACTION_INPUTS:
                     # to not reach the input limit
-                    collected -= outputs.pop(0).value
+                    collected -= outputs.pop(0).spendable_value
                 if collected >= amount:
                     return outputs, collected
 
@@ -2297,15 +2354,15 @@ class WalletsBalance(WalletBalance):
 
             # use unconfirmed balance, not ideal, but acceptable
             outputs_available = wallet.outputs_unconfirmed_available
-            outputs_available.sort(key=lambda co: co.value, reverse=True)
+            outputs_available.sort(key=lambda co: co.spendable_value, reverse=True)
             for co in outputs_available:
-                if co.value >= amount:
-                    return [co], co.value
-                collected += co.value
+                if co.spendable_value >= amount:
+                    return [co], co.spendable_value
+                collected += co.spendable_value
                 outputs.append(co)
                 if len(outputs) > _MAX_RIVINE_TRANSACTION_INPUTS:
                     # to not reach the input limit
-                    collected -= outputs.pop(0).value
+                    collected -= outputs.pop(0).spendable_value
                 if collected >= amount:
                     return outputs, collected
         # we return whatever we have collected, no matter if it is sufficient
@@ -2355,7 +2412,7 @@ class CoinTransactionBuilder:
         self._txn = None
 
         # fund amount
-        amount = sum([co.value for co in txn.coin_outputs])
+        amount = sum([co.spendable_value for co in txn.coin_outputs])
         balance = self._wallet.balance
         miner_fee = self._wallet.client.minimum_miner_fee
         inputs, remainder, suggested_refund = balance.fund(amount + miner_fee, source=source)
@@ -2378,6 +2435,16 @@ class CoinTransactionBuilder:
 
         # add the coin inputs
         txn.coin_inputs = inputs
+
+        # add the custody fee
+        total_custody_fee = Currency()
+        for ci in txn.coin_inputs:
+            if not ci.parent_output:
+                raise Exception(
+                    "BUG: cannot define the required custody fee if no parent output is linked to coin input {}".format(
+                        ci.parentid.__str__()))
+            total_custody_fee += ci.parent_output.custody_fee
+        txn.coin_output_add(value=total_custody_fee, condition=ConditionCustodyFee(balance.chain_time))
 
         # if there is data to be added, add it as well
         if data:

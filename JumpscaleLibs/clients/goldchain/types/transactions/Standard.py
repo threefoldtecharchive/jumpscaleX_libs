@@ -123,7 +123,8 @@ class TransactionV1(TransactionBaseClass):
         Coin outputs of this Transaction,
         funded by the Transaction's coin inputs.
         """
-        return self._coin_outputs
+        outputs = super().coin_outputs
+        return outputs + self._coin_outputs
 
     @coin_outputs.setter
     def coin_outputs(self, value):
@@ -239,7 +240,7 @@ class TransactionV1(TransactionBaseClass):
             e.add(ci.parentid)
 
         # encode coin outputs
-        e.add_slice(self.coin_outputs)
+        e.add_slice(self._coin_outputs)
 
         # encode the number of blockstake inputs
         e.add(len(self.blockstake_inputs))
@@ -271,8 +272,8 @@ class TransactionV1(TransactionBaseClass):
             e.add_all(ci.parentid, ci.fulfillment.public_key.unlockhash)
 
         # encode coin outputs
-        e.add(len(self.coin_outputs))
-        for co in self.coin_outputs:
+        e.add(len(self._coin_outputs))
+        for co in self._coin_outputs:
             e.add_all(co.value, co.condition.unlockhash)
 
         # encode blockstake inputs
@@ -356,8 +357,8 @@ class TransactionV1(TransactionBaseClass):
             encoder.add_slice(sub_encoder.data)
             encoder.add(ci.fulfillment.signature)
         # > encode coin outputs
-        encoder.add_int(len(self.coin_outputs))
-        for co in self.coin_outputs:
+        encoder.add_int(len(self._coin_outputs))
+        for co in self._coin_outputs:
             encoder.add_all(co.value, co.condition.unlockhash)
         # > encode block stake inputs
         encoder.add_int(len(self._blockstake_inputs))

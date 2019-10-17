@@ -64,7 +64,7 @@ class BinaryData(BaseDataTypeClass):
         if isinstance(value, BinaryData):
             value = value.value
         elif value is None:
-            value = bytearray()
+            value = bytearray() if self._fixed_size is None else bytearray(self._fixed_size)
         elif isinstance(value, str):
             value = self._from_str(value)
         elif isinstance(value, bytes):

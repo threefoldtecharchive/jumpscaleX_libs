@@ -111,7 +111,7 @@ class GoldChainTypesFactory(j.baseclasses.object):
         assert str(self.currency_new(value="9.123456789")) == "9.123456789"
         assert str(self.currency_new(value="1234.34")) == "1234.34"
         assert str(self.currency_new(value="1.00000")) == "1"
-        assert str(self.currency_new(value="1.0 tft")) == "1"
+        assert str(self.currency_new(value="1.0 gft")) == "1"
         assert str(self.currency_new(value=1)) == "1"
         assert str(self.currency_new(value=12344)) == "12344"
 

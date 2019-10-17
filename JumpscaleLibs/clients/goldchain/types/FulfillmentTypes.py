@@ -721,10 +721,16 @@ class FulfillmentAtomicSwap(FulfillmentBaseClass):
         return obj
 
     def sia_binary_encode_data(self, encoder):
-        encoder.add_all(self.public_key, self.signature, self.secret)
+        if self._secret:
+            encoder.add_all(self.public_key, self.signature, self._secret)
+        else:
+            encoder.add_all(self.public_key, self.signature)
 
     def rivine_binary_encode_data(self, encoder):
-        encoder.add_all(self.public_key, self.signature, self.secret)
+        if self._secret:
+            encoder.add_all(self.public_key, self.signature, self._secret)
+        else:
+            encoder.add_all(self.public_key, self.signature)
 
     def signature_requests_new(self, input_hash_func, parent_condition):
         if not callable(input_hash_func):

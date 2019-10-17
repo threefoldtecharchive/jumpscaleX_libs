@@ -257,7 +257,8 @@ class TransactionV129(TransactionBaseClass):
         Coin outputs of this Transaction,
         funded by the Transaction's coin inputs.
         """
-        return self._coin_outputs
+        outputs = super().coin_outputs
+        return outputs + self._coin_outputs
 
     @coin_outputs.setter
     def coin_outputs(self, value):
@@ -339,7 +340,7 @@ class TransactionV129(TransactionBaseClass):
             e.add_all(*extra_objects)
 
         # encode coin outputs
-        e.add_slice(self.coin_outputs)
+        e.add_slice(self._coin_outputs)
 
         # encode miner fees
         e.add_slice(self.miner_fees)
@@ -356,7 +357,7 @@ class TransactionV129(TransactionBaseClass):
     def _binary_encode_data(self):
         encoder = j.data.rivine.encoder_sia_get()
         encoder.add_array(self._nonce.value)
-        encoder.add_all(self.mint_fulfillment, self.coin_outputs, self.miner_fees, self.data)
+        encoder.add_all(self.mint_fulfillment, self._coin_outputs, self.miner_fees, self.data)
         return encoder.data
 
     def _from_json_data_object(self, data):
@@ -370,7 +371,7 @@ class TransactionV129(TransactionBaseClass):
         return {
             "nonce": self._nonce.json(),
             "mintfulfillment": self.mint_fulfillment.json(),
-            "coinoutputs": [co.json() for co in self.coin_outputs],
+            "coinoutputs": [co.json() for co in self._coin_outputs],
             "minerfees": [fee.json() for fee in self.miner_fees],
             "arbitrarydata": self.data.json(),
         }
@@ -394,8 +395,8 @@ class TransactionV130(TransactionBaseClass):
 
     def __init__(self):
         self._coin_inputs = []
+        self._coin_outputs = []
         self._miner_fees = []
-        self._refund_coin_output = None
         self._data = None
 
         super().__init__()
@@ -457,19 +458,26 @@ class TransactionV130(TransactionBaseClass):
         ci.parent_output = parent_output
         self._coin_inputs.append(ci)
 
+    def coin_output_add(self, value, condition, id=None):
+        co = CoinOutput(value=value, condition=condition)
+        co.id = id
+        self._coin_outputs.append(co)
+
     def miner_fee_add(self, value):
         self._miner_fees.append(Currency(value=value))
 
     @property
-    def refund_coin_output(self):
-        if self._refund_coin_output is None:
-            return CoinOutput()
-        return self._refund_coin_output
+    def coin_outputs(self):
+        outputs = super().coin_outputs
+        return outputs + self._coin_outputs
 
-    def refund_coin_output_set(self, value, condition, id=None):
-        co = CoinOutput(value=value, condition=condition)
-        co.id = id
-        self._refund_coin_output = co
+    @coin_outputs.setter
+    def coin_outputs(self, value):
+        self._coin_outputs = []
+        if not value:
+            return
+        for co in value:
+            self.coin_output_add(co.value, co.condition, id=co.id)
 
     def _signature_hash_input_get(self, *extra_objects):
         e = j.data.rivine.encoder_sia_get()
@@ -489,12 +497,8 @@ class TransactionV130(TransactionBaseClass):
         for ci in self.coin_inputs:
             e.add(ci.parentid)
 
-        # encode refund coin output
-        if self._refund_coin_output is None:
-            e.add_int8(0)
-        else:
-            e.add_int8(1)
-            e.add(self._refund_coin_output)
+        # encode coin outputs
+        e.add_slice(self._coin_outputs)
 
         # encode miner fees
         e.add_slice(self.miner_fees)
@@ -510,30 +514,20 @@ class TransactionV130(TransactionBaseClass):
 
     def _binary_encode_data(self):
         encoder = j.data.rivine.encoder_rivine_get()
-        encoder.add_all(self.coin_inputs)
-        if self._refund_coin_output is None:
-            encoder.add_int8(0)
-        else:
-            encoder.add_int8(1)
-            encoder.add(self._refund_coin_output)
+        encoder.add_all(self.coin_inputs, self._coin_outputs)
         encoder.add_all(self.miner_fees, self.data)
         return encoder.data
 
     def _from_json_data_object(self, data):
-        # set coin inputs
         self._coin_inputs = [CoinInput.from_json(ci) for ci in data.get("coininputs", []) or []]
-        # refund coin output
-        if "refundcoinoutput" in data:
-            self._refund_coin_output = CoinOutput.from_json(data["refundcoinoutput"])
+        self._coin_outputs = [CoinOutput.from_json(co) for co in data.get('coinoutputs', []) or []]
         self._miner_fees = [Currency.from_json(fee) for fee in data.get("minerfees", []) or []]
         self._data = BinaryData.from_json(data.get("arbitrarydata", None) or "", strencoding="base64")
 
     def _json_data_object(self):
-        output = {
+        return {
             "coininputs": [ci.json() for ci in self.coin_inputs],
+            'coinoutputs': [co.json() for co in self._coin_outputs],
             "minerfees": [fee.json() for fee in self.miner_fees],
             "arbitrarydata": self.data.json(),
         }
-        if self._refund_coin_output is not None:
-            output["refundcoinoutput"] = self._refund_coin_output.json()
-        return output
