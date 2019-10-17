@@ -4,7 +4,7 @@ from functools import partial
 
 from Jumpscale import j
 from JumpscaleLibs.tools.markdowndocs.Link import MarkdownLinkParser, Linker, Link, SKIPPED_LINKS
-
+from Jumpscale.clients.http.HttpClient import HTTPError
 
 COMMON_LANG_EXT = {"py": "python", "rb": "ruby", "sh": "bash", "cpp": "c++", "cc": "c++", "pl": "perl"}
 
@@ -142,6 +142,17 @@ def guess_codeblock_type(link):
     return codeblock_type
 
 
+def is_plain(url):
+    try:
+        response = j.clients.http.get_response(url)
+        content_type = response.headers.get("content-type")
+        if response.status == 200 and content_type:
+            return "text/plain" in content_type
+        return False
+    except HTTPError:
+        return False
+
+
 def get_content(custom_link, doc, docsite_name=None, host=None, raw=False):
     """Get the content of link
 
@@ -160,8 +171,9 @@ def get_content(custom_link, doc, docsite_name=None, host=None, raw=False):
     j = current_docsite._j
     codeblock_type = guess_codeblock_type(custom_link.path)
 
-    if custom_link.is_url and raw:
-        return j.clients.http.get(custom_link.path), codeblock_type
+    if custom_link.is_url:
+        if raw or is_plain(custom_link.path):
+            return j.clients.http.get(custom_link.path), codeblock_type
 
     if docsite_name:
         docsite = j.tools.markdowndocs.docsite_get(docsite_name)
