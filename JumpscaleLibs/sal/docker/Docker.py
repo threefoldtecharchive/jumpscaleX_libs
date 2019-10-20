@@ -46,7 +46,7 @@ class Docker(j.baseclasses.object):
         """
 
         self._containers = []
-        for obj in self.client.containers():
+        for obj in self.client.containers(all=True):
             self._containers.append(Container(obj, self.client))
         return self._containers
 
