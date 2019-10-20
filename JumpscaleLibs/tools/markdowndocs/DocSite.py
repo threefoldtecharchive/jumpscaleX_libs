@@ -151,13 +151,8 @@ class DocSite(j.baseclasses.object):
         """
         repo = self.get_real_source(custom_link, host)
         if not MarkdownLinkParser(repo).is_url:
-            # not an external url, use current docsite
-            docsite = self
-            if not custom_link.host:
-                custom_link.host = self.host
-                custom_link.account = self.account
-                custom_link.repo = self.repo
-                custom_link.branch = self.branch
+            # not an external url, it's a relative link inside this docsite, keep as is
+            return custom_link.path
         else:
             # the real source is a url outside this docsite
             # get a new link and docsite
