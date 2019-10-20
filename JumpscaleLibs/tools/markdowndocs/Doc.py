@@ -419,7 +419,7 @@ class Doc(j.baseclasses.object):
                 # link.link_source = j.sal.fs.pathRemoveDirPart(dest_file,self.docsite.outpath)
                 # Set link source to the file name only as it gets its files from current page path
                 link.link_source = link.filename
-                md = link.replace_in_txt(md)
+            md = link.replace_in_txt(md)
 
         dest = j.sal.fs.joinPaths(self.docsite.outpath, self.path_dir_rel, self.name) + ".md"
         j.sal.bcdbfs.file_write(dest, md, append=False)

@@ -67,6 +67,7 @@ class MarkdownLinkParser:
 
     def __init__(self, link, **kwargs):
         self.link = link.strip()
+        self.host = None
         self.account = None
         self.repo = None
         self.branch = None
@@ -75,20 +76,27 @@ class MarkdownLinkParser:
         if self.is_url:
             self.path = link
         else:
-            self.account, other_part = self.get_account()
+            self.host, self.account, other_part = self.get_host_and_account()
             self.repo, branch, self.path, self.marker = self.parse_repo_and_path(other_part)
             self.branch = branch or self.branch
 
-    def get_account(self):
-        """get the account and other part
+    def get_host_and_account(self):
+        """get host, account and other part
 
-        :return: a tuple of (account, other_part), account can be None
+        :return: a tuple of (host, account, other_part), host and account can be None
         :rtype: tuple
         """
-        if self.link.count(":") == 2:
-            account, _, other_part = self.link.partition(":")
-            return account, other_part
-        return None, self.link
+        link = self.link
+        host = None
+
+        if link.count(":") == 3:
+            host, _, link = self.link.partition(":")
+
+        if link.count(":") == 2:
+            account, _, other_part = link.partition(":")
+            return host, account, other_part
+
+        return None, None, self.link
 
     def parse_repo_and_path(self, repo_and_path):
         """parse the repo and path part, repo(branch):path
@@ -146,6 +154,12 @@ class MarkdownLinkParser:
         l = MarkdownLinkParser("docs/test.md")
         assert not l.account
         assert not l.repo
+        assert l.path == "docs/test.md"
+
+        l = MarkdownLinkParser("github.com:threefoldtech:jumpscaleX(dev):docs/test.md")
+        assert l.host == "github.com"
+        assert l.repo == "jumpscaleX"
+        assert l.branch == "dev"
         assert l.path == "docs/test.md"
 
     def __str__(self):
@@ -340,7 +354,7 @@ class Link(j.baseclasses.object):
             self.link_descr = self.link_descr.split("@")[0].strip()
 
         custom_link = MarkdownLinkParser(self.link_source)
-        self.link_source = self.docsite.get_real_source(custom_link)
+        self.link_source = self.docsite.get_real_source(custom_link, custom_link.host)
 
         if "?" in self.link_source:
             lsource = self.link_source.split("?", 1)[0]
@@ -371,15 +385,6 @@ class Link(j.baseclasses.object):
                 self.cat = "link"
                 if self.docsite.links_verify:
                     self.link_verify()
-
-                # until custom links are clear
-                # if not custom_link.is_url:
-                #     # a custom link that wasn't a full url originally, get its docsite
-                #     self.get_docsite(self.link_source, name=custom_link.repo)
-                #     self.filename = self._clean(Linker().join(custom_link.repo, custom_link.path))
-                # else:
-                #     self.filename = None  # because is e.g. other site
-
         else:
             if self.link_source.strip() == "/":
                 self.link_source = ""
