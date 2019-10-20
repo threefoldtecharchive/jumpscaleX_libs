@@ -163,7 +163,6 @@ class MarkdownLinkParser:
         assert l.path == "docs/test.md"
 
     def __str__(self):
-
         if not self.repo:
             out = "custom link: %s" % self.path
         else:
@@ -199,6 +198,8 @@ class Linker:
     """
 
     def __init__(self, host, account, repo):
+        if not host:
+            host = "github.com"
         self.host = host.lower()
         if not self.host.startswith("http"):
             self.host = "https://" + self.host
@@ -251,12 +252,12 @@ class Linker:
             raise j.exceptions.Value(f"not a valid {host} url: '{url}'")
 
         account, repo, branch, path = match.groups()
-        link = "%s:%s" % (account, repo)
+        link = f"{host}:{account}:{repo}"
         if branch:
-            link += "(%s)" % branch
+            link += f"({branch})"
         if not path:
             path = ""
-        link += ":%s" % path
+        link += f":{path}"
         return MarkdownLinkParser(link)
 
     @classmethod
@@ -342,7 +343,6 @@ class Link(j.baseclasses.object):
 
     def _process(self):
         self.link_descr, self.link_source = self.parse_markdown(self.source)
-
         if self.should_skip():
             return
 
@@ -354,7 +354,7 @@ class Link(j.baseclasses.object):
             self.link_descr = self.link_descr.split("@")[0].strip()
 
         custom_link = MarkdownLinkParser(self.link_source)
-        self.link_source = self.docsite.get_real_source(custom_link, custom_link.host)
+        self.link_source = self.docsite.get_real_link(custom_link, custom_link.host)
 
         if "?" in self.link_source:
             lsource = self.link_source.split("?", 1)[0]

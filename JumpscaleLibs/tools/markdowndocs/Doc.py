@@ -406,7 +406,6 @@ class Doc(j.baseclasses.object):
         j.sal.fs.createDir(j.sal.fs.joinPaths(self.docsite.outpath, self.path_dir_rel))
 
         for link in self._links:
-            replace = False
             if link.filename:
                 dest_file = j.sal.fs.joinPaths(self.docsite.outpath, self.path_dir_rel, link.filename)
 
