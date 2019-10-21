@@ -119,26 +119,15 @@ def _content_parse(content):
 
 
 def slideshow_v2(doc, **kwargs):
-    import ipdb
-
-    ipdb.set_trace()
     gdrive_cl = j.clients.gdrive.get("slideshow_macro_client", credfile="/sandbox/var/cred.json")
     slides_path = j.sal.fs.joinPaths("sandbox", "var", "gdrive", "static", "slide")
     j.sal.fs.createDir(slides_path)
     slides = _content_parse(kwargs)
 
-    import ipdb
-
-    ipdb.set_trace()
     output = "```slideshow\n"
     for slide in slides.slides_get():
         # TODO remove this out side the for loop
-        gdrive_cl.export_slides_With_Ranges(slide.presentation_guid, slides_path)
-
-        import ipdb
-
-        ipdb.set_trace()
-
+        gdrive_cl.export_slides_with_ranges(slide.presentation_guid, slides_path)
         filepath = f"{slides_path}/{slide.presentation_guid}/{str(slide.order)}.png"
         dest = j.sal.fs.joinPaths(doc.docsite.outpath, doc.path_dir_rel, str(slide.order) + ".png")
         j.sal.bcdbfs.file_copy(filepath, dest)
