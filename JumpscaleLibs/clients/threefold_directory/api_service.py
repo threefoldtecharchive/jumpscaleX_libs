@@ -130,22 +130,30 @@ class ApiService:
         List all the nodes capacity
         It is method for GET /api/nodes
         """
+        output = []
+        for node in self.ListCapacityGenerator(headers, query_params, content_type):
+            output.append(Capacity(node))
+        return output
+
+
+    def ListCapacityGenerator(self, headers=None, query_params=None, content_type="application/json", size=10):
+        """
+        Yields nodes
+        """
         if query_params is None:
             query_params = {}
 
-        output = []
 
         def get_page(page):
-            query_params.update({"page": page})
+            query_params.update({"page": page, "per_page": size})
             uri = self.client.base_url + "/api/nodes"
             resp = self.client.get(uri, None, headers, query_params, content_type)
             try:
                 if resp.status_code == 200:
-                    resps = []
+                    yield resp
                     for elem in resp.json():
-                        resps.append(Capacity(elem))
-                    return resps, resp, resp.headers.get("page", 1)
-
+                        yield elem 
+                else:
                     message = "unknown status code={}".format(resp.status_code)
                     raise UnhandledAPIError(response=resp, code=resp.status_code, message=message)
             except ValueError as msg:
@@ -155,12 +163,16 @@ class ApiService:
             except Exception as e:
                 raise UnmarshallError(resp, e.message)
 
-        nodes, resp, pages = get_page(page=1)
-        output.extend(nodes)
+        nodes = get_page(page=1)
+        resp = next(nodes)
+        pages = resp.headers.get("page", 1)
+        for node in nodes:
+            yield node
         for i in range(2, int(pages) + 1):
-            nodes, resp, _ = get_page(page=i)
-            output.extend(nodes)
-        return output, resp
+            nodes = get_page(page=i)
+            next(nodes)
+            for node in nodes:
+                yield node
 
     def RegisterCapacity(self, data, headers=None, query_params=None, content_type="application/json"):
         """
