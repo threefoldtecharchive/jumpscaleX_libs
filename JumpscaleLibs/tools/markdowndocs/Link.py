@@ -353,8 +353,9 @@ class Link(j.baseclasses.object):
             self.link_source_original = self.link_descr.split("@")[1].strip()  # was link to original source
             self.link_descr = self.link_descr.split("@")[0].strip()
 
-        custom_link = MarkdownLinkParser(self.link_source)
-        self.link_source = self.docsite.get_real_link(custom_link, custom_link.host)
+        if not self.link_source.lower().strip().startswith("http"):
+            custom_link = MarkdownLinkParser(self.link_source)
+            self.link_source = self.docsite.get_real_link(custom_link, custom_link.host)
 
         if "?" in self.link_source:
             lsource = self.link_source.split("?", 1)[0]
