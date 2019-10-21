@@ -186,7 +186,7 @@ class Docker(j.baseclasses.object):
         """
 
         for container in self.containers:
-            if container.id == id:
+            if container.id.startswith(id):
                 return container
         if die:
             raise j.exceptions.RuntimeError("Container with id %s doesn't exists" % id)
