@@ -81,6 +81,33 @@ class GDriveClient(JSConfigClient):
 
         return self._cache.get("exportSlides_{}".format(presentation), method=do, expire=300)
 
+    def export_slides_With_Ranges(self, presentation, destpath="/tmp", staticdir=None, size="MEDIUM"):
+        def do():
+            from JumpscaleLibs.tools.googleslides.slides2html.downloader import Downloader
+
+            # presentation should be the guid
+            # should extract the presentation if full path
+            import ipdb
+
+            ipdb.set_trace()
+            os.makedirs(destpath, exist_ok=True)
+            service = self.service_get("slides", "v1")
+            downloader = Downloader(presentation, service, size)
+            downloader.download(destpath)
+            presentation_dir = j.sal.fs.joinPaths(destpath, presentation)
+            os.makedirs(presentation_dir, exist_ok=True)
+            slides = [x for x in os.listdir(destpath) if x.endswith(".png") and "_" in x and "background_" not in x]
+            for slide_no, image in enumerate(slides):
+                imagepath = j.sal.fs.joinPaths(destpath, image)
+                slideimage = image.split("_", maxsplit=1)[1]  # 00_asdsadasda.png remove the leading zeros and _
+                newimagepath = j.sal.fs.joinPaths(presentation_dir, str(slide_no + 1) + ".png")
+                j.sal.fs.moveFile(imagepath, newimagepath)
+            if staticdir:
+                j.sal.fs.moveDir(presentation_dir, staticdir)
+            return True
+
+        return self._cache.get("exportSlides_{}".format(presentation), method=do, expire=300)
+
     def get_presentation_meta(self, meta_file, presentation_id):
         def do():
             if not j.sal.fs.exists(meta_file):
