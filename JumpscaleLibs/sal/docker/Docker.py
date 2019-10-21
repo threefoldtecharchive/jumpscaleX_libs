@@ -556,9 +556,7 @@ class Docker(j.baseclasses.object):
         return: string containing the stdout
         """
         out = []
-        if force:
-            nocache = True
-        for l in self.client.build(path=path, tag=tag, nocache=nocache):
+        for l in self.client.build(path=path, tag=tag, nocache=force):
             line = j.data.serializers.json.loads(l)
             if "stream" in line:
                 line = line["stream"].strip()
