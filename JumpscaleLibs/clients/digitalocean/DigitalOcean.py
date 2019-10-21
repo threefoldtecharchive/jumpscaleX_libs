@@ -165,6 +165,7 @@ class DigitalOcean(j.baseclasses.object_config):
         :param project_name: project to add this droplet it. If not specified the default project will be used.
         :return: droplet,sshclient
         """
+        project = None
         if project_name:
             project = self._project_get(project_name)
             if not project:
