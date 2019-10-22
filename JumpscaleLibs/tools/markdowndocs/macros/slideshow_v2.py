@@ -129,7 +129,9 @@ def slideshow_v2(doc, **kwargs):
         # TODO remove this out side the for loop
         gdrive_cl.export_slides_with_ranges(slide.presentation_guid, slides_path)
         filepath = f"{slides_path}/{slide.presentation_guid}/{str(slide.order)}.png"
-        dest = j.sal.fs.joinPaths(doc.docsite.outpath, doc.path_dir_rel, str(slide.order) + ".png")
+        dest = j.sal.fs.joinPaths(
+            doc.docsite.outpath, doc.path_dir_rel, slide.presentation_guid, str(slide.order) + ".png"
+        )
         j.sal.bcdbfs.file_copy(filepath, dest)
         image_tag = """
         <img src="$path{dest}" alt='{slide_name}'"/>
