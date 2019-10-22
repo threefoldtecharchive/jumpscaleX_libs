@@ -73,7 +73,7 @@ def store_message(model, message, folder="inbox", unseen=True, recent=True):
         data = parse_email_body(message)
     elif isinstance(message, dict):
         message = dict_to_message(message)
-        data = parse_email_body(message.as_string())
+        data = parse_email(message)
     else:
         data = parse_email(message)
     mail = model.new()
