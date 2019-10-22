@@ -95,6 +95,7 @@ class GDriveClient(JSConfigClient):
             os.makedirs(presentation_dir, exist_ok=True)
             slides = [x for x in os.listdir(destpath) if x.endswith(".png") and "_" in x and "background_" not in x]
             slides.sort(key=lambda k: int(k.split("_")[0]))
+            slides_count = len(slides)
             for slide_no, image in enumerate(slides):
                 imagepath = j.sal.fs.joinPaths(destpath, image)
                 slideimage = image.split("_", maxsplit=1)[1]  # 00_asdsadasda.png remove the leading zeros and _
@@ -102,7 +103,7 @@ class GDriveClient(JSConfigClient):
                 j.sal.fs.moveFile(imagepath, newimagepath)
             if staticdir:
                 j.sal.fs.moveDir(presentation_dir, staticdir)
-            return True
+            return slides_count
 
         return self._cache.get("exportSlides_{}".format(presentation), method=do, expire=300)
 
