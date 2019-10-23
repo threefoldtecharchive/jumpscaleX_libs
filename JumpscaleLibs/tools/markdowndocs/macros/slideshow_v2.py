@@ -54,9 +54,11 @@ def get_slide_numbers(slide_numbers):
     return slide_numbers.split(",")
 
 
-def get_slide_range(range):
+def get_slide_range(range,slides_count):
     ranges = range.split(":")
-    return ranges[0], ranges[1]
+    start_range = ranges[0] if ranges[0] != '' else '1'
+    end_range = ranges[1] if ranges[1]!='' else str(slides_count)
+    return start_range, end_range
 
 
 def get_slides_path():
@@ -106,7 +108,7 @@ def _content_parse(content):
             raise Exception("error in parsing the slideshow, There is an error in the slide name")
         for number in slides_numbers_list:
             if number.find(":") != -1:
-                range_start, range_end = get_slide_range(number)
+                range_start, range_end = get_slide_range(number,presentation.slides_count)
                 slideshow.add_range(
                     name="",
                     presentation_guid=presentation.presentation_guid,
