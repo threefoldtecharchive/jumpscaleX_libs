@@ -1,4 +1,3 @@
-import toml
 from Jumpscale import j
 
 
@@ -14,7 +13,6 @@ class SlideShow:
             self.slides.append(Slide(name, presentation_guid, order=i))
 
     def slides_get(self):
-        # return sorted(self.slides, key=lambda slide: slide.order)
         return self.slides
 
 
@@ -23,7 +21,6 @@ class Slide:
         self.name = name
         self.presentation_guid = presentation_guid
         self.footer = footer
-        # TODO save the order as str and just cast it to string in start and end indexes of the range
         self.order = order
 
 
@@ -54,10 +51,10 @@ def get_slide_numbers(slide_numbers):
     return slide_numbers.split(",")
 
 
-def get_slide_range(range,slides_count):
+def get_slide_range(range, slides_count):
     ranges = range.split(":")
-    start_range = ranges[0] if ranges[0] != '' else '1'
-    end_range = ranges[1] if ranges[1]!='' else str(slides_count)
+    start_range = ranges[0] if ranges[0] != "" else "1"
+    end_range = ranges[1] if ranges[1] != "" else str(slides_count)
     return start_range, end_range
 
 
@@ -76,19 +73,13 @@ def presentations_download(presentations):
 
 def _content_parse(content):
     slideshow = SlideShow()
-    # parsed_toml = toml.loads(content)
     parsed_toml = content
-    print(parsed_toml)
-
     presentations = list()
     for key, val in parsed_toml["presentation"][0].items():
         presentation = Presentation(key, val)
         presentations.append(presentation)
-
-    print(presentations)
     # Download presentation and get presentation slide count
     presentations_download(presentations)
-
     for slide in parsed_toml["slideshow"]:
         presentation = None
         presentation_name = slide.get("presentation")
@@ -103,12 +94,11 @@ def _content_parse(content):
                 slides_numbers_list = get_slide_numbers(slide_numbers)
             else:
                 slides_numbers_list.append(slide_numbers)
-
         else:
             raise Exception("error in parsing the slideshow, There is an error in the slide name")
         for number in slides_numbers_list:
             if number.find(":") != -1:
-                range_start, range_end = get_slide_range(number,presentation.slides_count)
+                range_start, range_end = get_slide_range(number, presentation.slides_count)
                 slideshow.add_range(
                     name="",
                     presentation_guid=presentation.presentation_guid,
