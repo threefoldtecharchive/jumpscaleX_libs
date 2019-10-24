@@ -140,3 +140,7 @@ def slideshow_v2(doc, **kwargs):
         )
     output += "\n```"
     return output
+
+
+# for future work we propose to use islice function to help in slicing
+
