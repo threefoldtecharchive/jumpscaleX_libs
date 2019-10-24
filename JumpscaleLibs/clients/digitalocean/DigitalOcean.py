@@ -101,7 +101,6 @@ class DigitalOcean(j.baseclasses.object_config):
         for item in self.sshkeys:
             if item.public_key.find(pubkeyonly) != -1:
                 return item
-        j.shell()
         return None
 
     def sshkey_get(self, name):
