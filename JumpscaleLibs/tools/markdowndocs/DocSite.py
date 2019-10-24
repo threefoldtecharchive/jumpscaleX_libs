@@ -26,12 +26,7 @@ class DocSite(j.baseclasses.object):
             raise j.exceptions.Base("Cannot find path:%s" % path)
 
         self.sonic_client = sonic_client
-        self.name = name.lower()
-
-        self.name = j.core.text.strip_to_ascii_dense(self.name)
-        if self.name == "":
-            raise j.exceptions.Base("name cannot be empty")
-
+        self.name = prepare_name(name)
         self.defs = {}
         self.htmlpages = {}
         self.content_default = {}  # key is relative path in docsite where default content found
@@ -65,6 +60,17 @@ class DocSite(j.baseclasses.object):
         #     else:
         #         name="/".join(name) #not sure this is correct
         return j.core.text.convert_to_snake_case(name)
+
+    @classmethod
+    def get_from_name(cls, name):
+        name = prepare_name(name)
+        meta_path = f"/docsites/{name}/.data"
+        repo_meta = j.sal.bcdbfs.file_read(meta_path).decode()
+        repo_data = j.data.serializers.json.loads(repo_meta)
+        repo_args = j.clients.git.getGitRepoArgs(repo_data["repo"])
+        path = repo_args[-3]
+
+        return cls(name=name, path=path)
 
     @property
     def git(self):
@@ -636,7 +642,7 @@ class DocSite(j.baseclasses.object):
 
     __str__ = __repr__
 
-    def write_metadata(self, dest):
+    def write_metadata(self):
         # Create file with extra content to be loaded in docsites
         data = {"name": self.name, "repo": ""}
 
@@ -644,13 +650,18 @@ class DocSite(j.baseclasses.object):
             data["repo"] = "https://github.com/%s/%s" % (self.account, self.repo)
 
         data_json = j.data.serializers.json.dumps(data)
-        j.sal.bcdbfs.file_write(dest + "/.data", data_json, append=False)
-        j.sal.fs.createDir(dest)
-        j.sal.fs.writeFile(dest + "/.data", data_json, append=False)
+        j.sal.bcdbfs.file_write(self.metadata_path, data_json, append=False)
+        j.sal.fs.createDir(self.outpath)
+        j.sal.fs.writeFile(self.metadata_path, data_json, append=False)
 
     @property
     def metadata(self):
-        return j.data.serializers.json.loads(j.sal.fs.readFile(self.outpath + "/.data"))
+        return j.data.serializers.json.loads(j.sal.fs.readFile(self.metadata_path))
+
+    @property
+    def metadata_path(self):
+        return self.outpath + "/.data"
+
 
     def write(self, reset=False):
         self.load()
@@ -659,19 +670,17 @@ class DocSite(j.baseclasses.object):
         if reset:
             j.sal.bcdbfs.rmdir(self.outpath)
 
-        # dest = j.sal.fs.joinPaths(self.outpath, "content")
-        dest = self.outpath
-        j.sal.bcdbfs.dir_create(dest)
+        j.sal.bcdbfs.dir_create(self.outpath)
 
         # copy errors file into the generated docs to be able to serve it using /wiki/<WIKI_NAME>#/errors
         if j.sal.bcdbfs.exists(self.error_file_path):
-            j.sal.bcdbfs.file_copy_form_bcdbfs(self.error_file_path, dest)
+            j.sal.bcdbfs.file_copy_form_bcdbfs(self.error_file_path, self.outpath)
 
         # NO NEED (also the ignore does not work well)
         # j.sal.fs.copyDirTree(self.path, self.outpath, overwriteFiles=True, ignoredir=['.*'], ignorefiles=[
         #               "*.md", "*.toml", "_*", "*.yaml", ".*"], rsync=True, recursive=True, rsyncdelete=True)
 
-        self.write_metadata(dest)
+        self.write_metadata()
 
         keys = [item for item in self.docs.keys()]
         keys.sort()
@@ -722,3 +731,12 @@ class DocSite(j.baseclasses.object):
     #     for key, doc in self.docs.items():
     #         doc.process()
     #     self._processed = True
+
+
+def prepare_name(name):
+    name = j.core.text.strip_to_ascii_dense(name.lower())
+    if name == "":
+        raise j.exceptions.Base("name cannot be empty")
+
+    return name
+

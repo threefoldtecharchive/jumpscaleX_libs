@@ -1,5 +1,5 @@
 from Jumpscale import j
-from .DocSite import DocSite
+from .DocSite import DocSite, Doc
 import gevent
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -185,6 +185,62 @@ class MarkDownDocs(j.baseclasses.object):
         ds = DocSite(path=path, name=name, sonic_client=sonic_client or self._sonic_client)
         self.docsites[ds.name] = ds
         return self.docsites[ds.name]
+
+    def reload(self, name):
+        """Reload a wiki that was previously loaded
+
+        :param name: wiki name
+        :type name: str
+        """
+        docsite = DocSite.get_from_name(name)
+
+        changed_files = []
+        deleted_files = []
+
+        # check for changed files in the repo dir
+        repo = j.clients.git.get(docsite.path).repo
+        for item in repo.index.diff(None):
+            if item.change_type == "D":
+                deleted_files.append(item.a_path)
+            else:
+                changed_files.append(item.a_path)
+
+        # if no local changes, check the remote changes on github
+        if not changed_files and not deleted_files:
+            branch = repo.active_branch.name
+            changed_files = repo.git.diff(f"origin/{branch}..HEAD", name_only=True, diff_filter=["AM"]).split("\n")
+            deleted_files = repo.git.diff(f"origin/{branch}..HEAD", name_only=True, diff_filter=["D"]).split("\n")
+            j.clients.git.pullGitRepo(dest=docsite.path, url=f"{docsite.metadata['repo']}")
+
+        # remove unused files
+        for ch_file in changed_files:
+            if not ch_file.endswith(".md"):
+                changed_files.remove(ch_file)
+
+        def render_changes():
+            """
+            - get the wiki's docsite
+            - for each changed file this will create a doc for it to write its changes
+            """
+            for ch_file in changed_files:
+                file_name = j.sal.fs.getBaseName(ch_file).rstrip(".md")
+                doc = Doc(name=file_name, path=f"{docsite.path}/{ch_file}", docsite=docsite)
+                doc.path_dir_rel = ""
+                doc.write()
+                print(f"wiki: {docsite.name}, file: {ch_file}. Reloaded Successfuly")
+
+            # clean up deleted files
+            for del_file in deleted_files:
+                if del_file != "":
+                    file_name = j.sal.fs.getBaseName(del_file).rstrip(".md")
+                    file_path = f"{docsite.path}/{file_name}"
+                    if j.sal.bcdbfs.file_exists(file_path):
+                        j.sal.bcdbfs.file_delete(file_path)
+                        print(f"wiki: docsite.name, file: {del_file}. Deletion Success")
+
+            print("Reload Success")
+
+        render_changes()
 
     def git_update(self):
         if self.docsites == {}:
