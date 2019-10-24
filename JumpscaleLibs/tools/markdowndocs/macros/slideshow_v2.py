@@ -117,7 +117,6 @@ def slideshow_v2(doc, **kwargs):
     slides_path = get_slides_path()
     output = "```slideshow\n"
     for slide in slides.slides_get():
-        # TODO remove this out side the for loop
         filepath = f"{slides_path}/{slide.presentation_guid}/{str(slide.order)}.png"
         dest = j.sal.fs.joinPaths(
             doc.docsite.outpath, doc.path_dir_rel, slide.presentation_guid, str(slide.order) + ".png"
