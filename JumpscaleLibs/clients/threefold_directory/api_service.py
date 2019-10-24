@@ -135,14 +135,12 @@ class ApiService:
             output.append(Capacity(node))
         return output
 
-
     def ListCapacityGenerator(self, headers=None, query_params=None, content_type="application/json", size=10):
         """
         Yields nodes
         """
         if query_params is None:
             query_params = {}
-
 
         def get_page(page):
             query_params.update({"page": page, "per_page": size})
@@ -152,7 +150,7 @@ class ApiService:
                 if resp.status_code == 200:
                     yield resp
                     for elem in resp.json():
-                        yield elem 
+                        yield elem
                 else:
                     message = "unknown status code={}".format(resp.status_code)
                     raise UnhandledAPIError(response=resp, code=resp.status_code, message=message)
