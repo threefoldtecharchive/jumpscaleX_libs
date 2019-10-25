@@ -1,4 +1,4 @@
-from zeroos.zerohub import Client as ZHubClient
+from .client import Client as APIClient
 from Jumpscale import j
 
 JSConfigClient = j.baseclasses.object_config
@@ -19,8 +19,8 @@ class ZeroHubClient(JSConfigClient):
 
     def _init(self, **kwargs):
         self.username = self.username
-        self.client = ZHubClient(self.url)
-        self.api = self.client.api
+        self.client = APIClient(self.url)
+        self.api = self.client
 
     def authenticate(self):
         """

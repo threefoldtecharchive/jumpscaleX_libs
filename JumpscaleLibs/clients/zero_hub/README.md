@@ -1,11 +1,5 @@
 # Zero-OS Hub Client
 
-## Staging
-Install upstream client:
-```
-pip3 install -e 'git+https://github.com/threefoldtech/0-hub#egg=zerohub&subdirectory=client'
-```
-
 ## Using the client
 
 ### Creating the client in JSX
