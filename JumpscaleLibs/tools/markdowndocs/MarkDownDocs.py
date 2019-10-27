@@ -232,8 +232,8 @@ class MarkDownDocs(j.baseclasses.object):
             # clean up deleted files
             for del_file in deleted_files:
                 if del_file != "":
-                    file_name = j.sal.fs.getBaseName(del_file).rstrip(".md")
-                    file_path = f"{docsite.path}/{file_name}"
+                    file_name = j.sal.fs.getBaseName(del_file)
+                    file_path = f"{docsite.outpath}/{file_name}"
                     if j.sal.bcdbfs.file_exists(file_path):
                         j.sal.bcdbfs.file_delete(file_path)
                         print(f"wiki: docsite.name, file: {del_file}. Deletion Success")
