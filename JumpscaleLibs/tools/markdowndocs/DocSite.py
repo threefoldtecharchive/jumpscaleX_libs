@@ -662,7 +662,6 @@ class DocSite(j.baseclasses.object):
     def metadata_path(self):
         return self.outpath + "/.data"
 
-
     def write(self, reset=False):
         self.load()
         self.verify()
@@ -739,4 +738,3 @@ def prepare_name(name):
         raise j.exceptions.Base("name cannot be empty")
 
     return name
-

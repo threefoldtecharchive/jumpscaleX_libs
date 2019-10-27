@@ -143,4 +143,3 @@ def slideshow_v2(doc, **kwargs):
 
 
 # for future work we propose to use islice function to help in slicing
-
