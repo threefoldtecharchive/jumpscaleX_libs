@@ -143,11 +143,15 @@ class CarddavClient(JSConfigClient):
         result = self.session.delete(remotepath, headers=headers, **self._settings)
         raise_for_status(result)
 
-    def create_abook(self, name, description, href):
+    def create_abook(self, name, description, uid=None, color=None):
+        if not color:
+            color = '# ba4a53ff'
         url = urljoin(self.url.base, self.user + "/")
-        if not href:
-            href = get_random_href()
-        url = urljoin(url, href)
+        if not uid:
+            uid = get_random_href()
+
+        url = urljoin(url, uid)
+
         response = self.session.request(
             "MKCOL",
             url,
@@ -166,7 +170,7 @@ class CarddavClient(JSConfigClient):
                                 <CR:addressbook />
                         </resourcetype>
                         <displayname>{name}</displayname>
-                        <INF:addressbook-color>#ba4a53ff</INF:addressbook-color>
+                        <INF:addressbook-color>{color}</INF:addressbook-color>
                         <CR:addressbook-description>{description}</CR:addressbook-description>
                 </prop>
         </set>
