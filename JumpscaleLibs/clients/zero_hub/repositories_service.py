@@ -2,8 +2,6 @@ class RepositoriesService:
     def __init__(self, client):
         self.client = client
 
-
-
     def repositories_get(self, headers=None, query_params=None, content_type="application/json"):
         """
         List all repositories (users) found
