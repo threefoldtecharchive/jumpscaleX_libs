@@ -27,14 +27,16 @@ users.list(query='username-email-or-tag') # search users by username, email or t
 users.get(user_id=1)
 users.delete(user_id=1)
 client.countries # List all supported countries (used when creating/updating user)
-users.create(username='Required-field', email='Required-field', firstname='Required-field', lastname='Required-field', title=None, ..)
-users.update(user_id=1, email='new-email', city='new-city', ..)
+users.create(username='Required-field', email='Required-field', firstname='Required-field', lastname='Required-field', title=None, ..) # create User
+users.update(user_id=1, email='new-email', city='new-city', ..) # update user data
+users.subscribe(user_id=1, spaces_id=[1,2,3]) # subscribe user to list of spaces
 ```
 
 ### Post manipulation
 ```python
 posts.list()
 posts.list(space_id=1) # filter posts in certain namespace
+# Post CRUD operations
 posts.get(post_id=1)
 posts.delete(post_id=1)
 posts.create(space_id=2, message='Required-field')
