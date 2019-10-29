@@ -14,13 +14,16 @@ class FreeFlowClient(JSConfigClient):
         api_key = "" (S)
     """
 
+    def _init(self, **kwargs):
+        self._request = None
+        
     def test(self):
         return "PONG"
 
     @property
     def request(self):
-        if not hasattr(self, "_request"):
-            self._request = Request(self.base_url, self.api_key)
+        if not self._request:
+            self._request = Request("{}/api/v1".format(self.base_url), self.api_key)
         return self._request
 
     @property
@@ -30,10 +33,6 @@ class FreeFlowClient(JSConfigClient):
     @property
     def comments(self):
         return CommentApi(self.request)
-
-    @property
-    def users(self):
-        return UserAPI(self.request)
 
     @property
     def spaces(self):
