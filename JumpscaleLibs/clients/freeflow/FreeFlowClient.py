@@ -16,7 +16,7 @@ class FreeFlowClient(JSConfigClient):
 
     def _init(self, **kwargs):
         self._request = None
-        
+
     def test(self):
         return "PONG"
 

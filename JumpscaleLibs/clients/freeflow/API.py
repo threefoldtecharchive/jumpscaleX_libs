@@ -48,7 +48,7 @@ class UserAPI(Api):
         return self.request.get("/user/{}".format(user_id))
 
     def subscribe(self, user_id, spacesIds):
-        return self.request.post(f'/user/subscribe/{user_id}', {"spacesIds": spacesIds})
+        return self.request.post(f"/user/subscribe/{user_id}", {"spacesIds": spacesIds})
 
     def update(
         self,
