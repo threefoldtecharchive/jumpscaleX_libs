@@ -276,7 +276,7 @@ class DigitalOcean(j.baseclasses.object_config):
                 self._droplets.append(d)
         return self._droplets
 
-    def droplets_all_delete(self, ignore=None, interactive=True):
+    def droplets_all_delete(self, ignore=None, interactive=True, project=None):
 
         ignore = j.data.types.bool.clean(ignore)
         interactive = j.data.types.bool.clean(interactive)
@@ -293,9 +293,8 @@ class DigitalOcean(j.baseclasses.object_config):
             return True
 
         todo = []
-        for droplet in self.droplets:
+        for droplet in self.droplets_list(project):
             if test(ignore, droplet.name):
-                name = droplet.name
                 todo.append(droplet)
         if todo != []:
             todotxt = ",".join([i.name for i in todo])
@@ -303,8 +302,8 @@ class DigitalOcean(j.baseclasses.object_config):
                 for droplet in todo:
                     droplet.destroy()
 
-    def droplets_all_shutdown(self):
-        for droplet in self.droplets:
+    def droplets_all_shutdown(self, project=None):
+        for droplet in self.droplets_list(project):
             droplet.shutdown()
 
     def droplets_list(self, project=None):
