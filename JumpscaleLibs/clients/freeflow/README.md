@@ -30,6 +30,8 @@ client.countries # List all supported countries (used when creating/updating use
 users.create(username='Required-field', email='Required-field', firstname='Required-field', lastname='Required-field', title=None, ..) # create User
 users.update(user_id=1, email='new-email', city='new-city', ..) # update user data
 users.subscribe(user_id=1, spaces_id=[1,2,3]) # subscribe user to list of spaces
+users.spaces(3) # get all spaces for the given user id
+users.get_by_username("user1") # get user info for the given username
 ```
 
 ### Post manipulation
