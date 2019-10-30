@@ -4,9 +4,15 @@ import re
 
 from urllib.parse import urlparse, parse_qs, parse_qsl
 from .Link import Link
+
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from Jumpscale import j
 
 JSBASE = j.baseclasses.object
+
+# for macro templates
+templates_path = j.sal.fs.joinPaths(j.sal.fs.getDirName(__file__), "macros", "templates")
+env = Environment(loader=FileSystemLoader(templates_path), autoescape=select_autoescape(["html", "xml"]))
 
 
 class Doc(j.baseclasses.object):
@@ -61,6 +67,9 @@ class Doc(j.baseclasses.object):
         self.render_obj = None
         if self.sonic_client:
             self.register_sonic()
+
+    def render_macro_template(self, name, **kwargs):
+        return env.get_template(name).render(**kwargs)
 
     def chunks(self, txt, length):
         for i in range(0, len(txt), length):
