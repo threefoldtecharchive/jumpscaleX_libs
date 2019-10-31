@@ -15,9 +15,9 @@ session_opts = {"session.type": "file", "session.data_dir": "./data", "session.a
 
 
 class OauthProxy(j.baseclasses.object):
-    def __init__(self, app, oauth2_proxy_url=None, login_endpoint=None, redirect_endpoint=None):
+    def __init__(self, app, client, login_endpoint=None, redirect_endpoint=None):
         self.app = SessionMiddleware(app, session_opts)
-        self.oauth2_proxy_url = oauth2_proxy_url
+        self.client = client
         self.redirect_endpoint = redirect_endpoint
         self.login_endpoint = login_endpoint
         self.__current_provider = None
@@ -45,14 +45,15 @@ class OauthProxy(j.baseclasses.object):
     @property
     def current_provider(self):
         if self.__current_provider is None:
-            provider_name = self.session.get("provider")
-            if provider_name:
-                return j.clients.oauth2_provider.get(name=provider_name)
+            provider = self.session.get("provider")
+            if provider and provider in self.client.providers_list():
+                return j.clients.oauth_provider.get(name=provider)
+            else:
+                return abort(400, f"Provider {provider} is not supported")
         else:
             return self.__current_provider
 
     def _validate_uid(self, uid):
-        print(uid, self.session.get("uid"))
         if uid != self.session.get("uid"):
             return abort(400, "Invalid user uid")
 
@@ -65,7 +66,7 @@ class OauthProxy(j.baseclasses.object):
         self.session["uid"] = uid
         self.session["provider"] = provider
         params = {"uid": uid, "redirect_url": self.redirect_url}
-        rurl = f"{self.oauth2_proxy_url}/{provider}?{urlencode(params)}"
+        rurl = f"{self.client.url}/{provider}?{urlencode(params)}"
         return redirect(rurl)
 
     def authorize(self, provider, uid, redirect_url):
@@ -81,7 +82,7 @@ class OauthProxy(j.baseclasses.object):
     def unauthorize_user(self):
         self.session["authotized"] = False
 
-    def oauth2_callback(self):
+    def oauth_callback(self):
         code = request.query.get("code")
         state = request.query.get("state")
         redirect_url = self.session.get("redirect_url")
@@ -109,7 +110,7 @@ class OauthProxy(j.baseclasses.object):
 
 
 class OauthProxyFactory(j.baseclasses.factory):
-    __jslocation__ = "j.servers.oauth_proxy"
+    __jslocation__ = "j.tools.oauth_proxy"
 
-    def get(self, app, oauth2_proxy_url=None, login_endpoint=None, redirect_endpoint=None):
-        return OauthProxy(app, oauth2_proxy_url, login_endpoint, redirect_endpoint)
+    def get(self, app, client, login_endpoint=None, redirect_endpoint=None):
+        return OauthProxy(app, client, login_endpoint, redirect_endpoint)
