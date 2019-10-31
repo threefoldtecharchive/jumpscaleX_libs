@@ -1,24 +1,7 @@
-<script>
-    var containerId = "{{ container_id }}";
-
-    function callAndRender(actor, method, args) {
-        $.ajax(`/web/gedis/http/${actor}/${method}`, {
-            type: 'post',
-            data: JSON.stringify({
-                args: args
-            }),
-            contentType: 'application/json'
-        }).then(data => {
-            $(`#${containerId}`).html(data.content);
-            $('#loading_spinner').hide();
-        })
-    }
-
-    callAndRender('{{ actor }}', '{{ method }}', {{ args | safe }});
-</script>
-
-<div id="loading_spinner" class="text-center">
+<div id="spinner_{{ container_id }}" class="text-center">
     <img src="/wikistatic/wiki/img/loader.gif" class="img-fluid" alt="Responsive image" />
 </div>
 
-<div id="{{ container_id }}" />
+<div id="container_{{ container_id }}"></div>
+
+<script src="{{ script_path }}"></script>
