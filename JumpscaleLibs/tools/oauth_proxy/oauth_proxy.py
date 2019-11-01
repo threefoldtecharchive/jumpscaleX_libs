@@ -42,6 +42,7 @@ class OauthProxy(j.baseclasses.object):
     def login(self, provider, redirect_url):
         state = j.data.idgenerator.generateGUID()
         self.session["state"] = state
+        self.session["provider"] = provider
 
         # redirect user to oauth proxy
         params = dict(provider=provider, state=state, redirect_url=redirect_url)
@@ -89,9 +90,12 @@ class OauthProxy(j.baseclasses.object):
         signature_hex = data.pop("signature")
         signature = binascii.unhexlify(signature_hex.encode())
         payload = dict(state=state, **data)
+        required_fields = self.current_provider.user_info_fields
 
-        if not self.nacl.verify(urlencode(payload).encode(), signature, verify_key=self.verify_key):
-            return abort(401, "Invalid signature")
+        if not self.nacl.verify(urlencode(payload).encode(), signature, verify_key=self.verify_key) or not set(
+            data.keys()
+        ).issuperset(required_fields):
+            return abort(401, "Unauthorized")
 
         self.session["authotized"] = True
         return data
