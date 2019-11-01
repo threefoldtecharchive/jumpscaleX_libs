@@ -1,6 +1,7 @@
 from bottle import redirect, request, abort
 from urllib.parse import urlencode
 from Jumpscale import j
+import binascii
 
 from functools import wraps
 
@@ -15,28 +16,16 @@ session_opts = {"session.type": "file", "session.data_dir": "./data", "session.a
 
 
 class OauthProxy(j.baseclasses.object):
-    def __init__(self, app, client, login_endpoint=None, redirect_endpoint=None):
+    def __init__(self, app, client, login_url=None):
         self.app = SessionMiddleware(app, session_opts)
         self.client = client
-        self.redirect_endpoint = redirect_endpoint
-        self.login_endpoint = login_endpoint
-        self.__current_provider = None
+        self.login_url = login_url
+        self.nacl = j.data.nacl.default
+        self.verify_key = binascii.unhexlify(client.verify_key)
 
     @property
     def session(self):
         return request.environ.get("beaker.session")
-
-    @property
-    def login_url(self):
-        return "{X-Forwarded-Proto}://{Host}{login_endpoint}".format(
-            login_endpoint=self.login_endpoint, **request.headers
-        )
-
-    @property
-    def redirect_url(self):
-        return "{X-Forwarded-Proto}://{Host}{redirect_endpoint}".format(
-            redirect_endpoint=self.redirect_endpoint, **request.headers
-        )
 
     @property
     def next_url(self):
@@ -44,58 +33,67 @@ class OauthProxy(j.baseclasses.object):
 
     @property
     def current_provider(self):
-        if self.__current_provider is None:
-            provider = self.session.get("provider")
-            if provider and provider in self.client.providers_list():
-                return j.clients.oauth_provider.get(name=provider)
-            else:
-                return abort(400, f"Provider {provider} is not supported")
+        provider = self.session.get("provider")
+        if provider and provider in self.client.providers_list():
+            return j.clients.oauth_provider.get(provider)
         else:
-            return self.__current_provider
+            return abort(400, f"Provider {provider} is not supported")
 
-    def _validate_uid(self, uid):
-        if uid != self.session.get("uid"):
-            return abort(400, "Invalid user uid")
+    def login(self, provider, redirect_url):
+        state = j.data.idgenerator.generateGUID()
+        self.session["state"] = state
 
-    def get_access_token(self, code, state):
-        self._validate_uid(state)
-        return self.current_provider.get_access_token(code, state)
-
-    def login(self, provider):
-        uid = j.data.idgenerator.generateGUID()
-        self.session["uid"] = uid
-        self.session["provider"] = provider
-        params = {"uid": uid, "redirect_url": self.redirect_url}
-        rurl = f"{self.client.url}/{provider}?{urlencode(params)}"
+        # redirect user to oauth proxy
+        params = dict(provider=provider, state=state, redirect_url=redirect_url)
+        rurl = f"{self.client.url}/authorize?{urlencode(params)}"
         return redirect(rurl)
 
-    def authorize(self, provider, uid, redirect_url):
-        self.session["uid"] = uid
+    def authorize(self):
+        state = request.query.get("state")
+        provider = request.query.get("provider")
+        redirect_url = request.query.get("redirect_url")
+
+        # save state, provider and redirect url in session
+        self.session["state"] = state
         self.session["provider"] = provider
         self.session["redirect_url"] = redirect_url
-        rurl = self.current_provider.get_authorization_url(uid)
+
+        # redirect user to provider url
+        rurl = self.current_provider.get_authorization_url(state=state)
         return redirect(rurl)
-
-    def authorize_user(self):
-        self.session["authotized"] = True
-
-    def unauthorize_user(self):
-        self.session["authotized"] = False
 
     def oauth_callback(self):
         code = request.query.get("code")
         state = request.query.get("state")
-        redirect_url = self.session.get("redirect_url")
-        access_token = self.get_access_token(code, state)
+
+        # validate the state
+        if state != self.session.get("state"):
+            return abort(400, "Invalid state")
+
+        # get user info
+        access_token = self.current_provider.get_access_token(code, state)
         userinfo = self.current_provider.get_user_info(access_token)
-        userinfo["uid"] = state
-        rurl = f"{redirect_url}?{urlencode(userinfo)}"
+
+        # generate signature
+        payload = urlencode(dict(state=state, **userinfo)).encode()
+        signature = self.nacl.sign_hex(payload).decode()
+
+        # redirect user to the redirect url
+        redirect_url = self.session.get("redirect_url")
+        rurl = f"{redirect_url}?{urlencode(userinfo)}&signature={signature}"
         return redirect(rurl)
 
     def callback(self):
         data = dict(request.query)
-        uid = data.pop("uid", None)
-        self._validate_uid(uid)
+        state = self.session.get("state")
+        signature_hex = data.pop("signature")
+        signature = binascii.unhexlify(signature_hex.encode())
+        payload = dict(state=state, **data)
+
+        if not self.nacl.verify(urlencode(payload).encode(), signature, verify_key=self.verify_key):
+            return abort(401, "Invalid signature")
+
+        self.session["authotized"] = True
         return data
 
     def login_required(self, func):
@@ -112,5 +110,5 @@ class OauthProxy(j.baseclasses.object):
 class OauthProxyFactory(j.baseclasses.factory):
     __jslocation__ = "j.tools.oauth_proxy"
 
-    def get(self, app, client, login_endpoint=None, redirect_endpoint=None):
-        return OauthProxy(app, client, login_endpoint, redirect_endpoint)
+    def get(self, app, client, login_url=None):
+        return OauthProxy(app, client, login_url)
