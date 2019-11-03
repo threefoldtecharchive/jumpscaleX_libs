@@ -50,6 +50,9 @@ class UserAPI(Api):
     def get_by_username(self, username):
         return self.request.get("/user/username/{}".format(username))
 
+    def get_by_email(self, email):
+        return self.request.get("/user/email/{}".format(email))
+
     def spaces(self, user_id):
         return self.request.get("/user/{}/spaces".format(user_id))
 
