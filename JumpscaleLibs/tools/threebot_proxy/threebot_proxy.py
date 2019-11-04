@@ -1,5 +1,7 @@
 import nacl.encoding
+import nacl.exceptions
 import requests
+import json
 
 from bottle import redirect, request, abort
 from functools import wraps
@@ -14,12 +16,12 @@ except (ModuleNotFoundError, ImportError):
     from beaker.middleware import SessionMiddleware
 
 
-session_opts = {"session.type": "file", "session.data_dir": "./data", "session.auto": True}
+_session_opts = {"session.type": "file", "session.data_dir": "./data", "session.auto": True}
 
 
 class ThreebotProxy(j.baseclasses.object):
     def __init__(self, app):
-        self.app = SessionMiddleware(app, session_opts)
+        self.app = SessionMiddleware(app, _session_opts)
         self.nacl = j.data.nacl.default
 
     @property
@@ -69,12 +71,16 @@ class ThreebotProxy(j.baseclasses.object):
 
         try:
             decrypted = self.nacl.decryptAsymmetric(user_pub.to_curve25519_public_key(), ciphertext, nonce)
-        except:
+        except nacl.exceptions.CryptoError:
             return abort(400, "Error decrypting data")
 
-        result = j.data.serializers.json.loads(decrypted)
+        try:
+            result = j.data.serializers.json.loads(decrypted)
+        except json.JSONDecodeError:
+            return abort(400, "3bot login returned faulty data")
+
         if "email" not in result:
-            return abort(400, "Email not present is data")
+            return abort(400, "Email is not present in data")
 
         if not result["email"]["verified"]:
             return abort(400, "Email not verified")
