@@ -41,7 +41,7 @@ class ThreebotProxy(j.baseclasses.object):
             "appid": request.urlparts.netloc,
             "scope": "{'user': true, 'email': true}",
             "redirecturl": callback_url,
-            "publickey": self.nacl.signing_key.verify_key.to_curve25519_public_key().encode(
+            "publickey": self.nacl.public_key.encode(
                 encoder=nacl.encoding.Base64Encoder
             ),
         }
@@ -73,7 +73,7 @@ class ThreebotProxy(j.baseclasses.object):
         if state != self.session["state"]:
             return abort(400, "Invalid state. not matching one in user session")
 
-        box = Box(self.nacl.signing_key.to_curve25519_private_key(), user_pub.to_curve25519_public_key())
+        box = Box(self.nacl.private_key, user_pub.to_curve25519_public_key())
 
         try:
             decrypted = box.decrypt(ciphertext, nonce)
