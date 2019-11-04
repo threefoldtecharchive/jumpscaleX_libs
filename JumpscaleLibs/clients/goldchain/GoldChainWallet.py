@@ -353,7 +353,9 @@ class GoldChainWallet(j.baseclasses.object_config):
             if not ci.parent_output:
                 raise Exception(
                     "BUG: cannot define the required custody fee if no parent output is linked to coin input {}".format(
-                        ci.parentid.__str__()))
+                        ci.parentid.__str__()
+                    )
+                )
             total_custody_fee += ci.parent_output.custody_fee
         txn.coin_output_add(value=total_custody_fee, condition=ConditionCustodyFee(balance.chain_time))
 
@@ -800,7 +802,11 @@ class GoldChainMinter:
         total_custody_fee = Currency()
         for ci in txn.coin_inputs:
             if not ci.parent_output:
-                raise Exception("BUG: cannot define the required custody fee if no parent output is linked to coin input {}".format(ci.parentid.__str__()))
+                raise Exception(
+                    "BUG: cannot define the required custody fee if no parent output is linked to coin input {}".format(
+                        ci.parentid.__str__()
+                    )
+                )
             total_custody_fee += ci.parent_output.custody_fee
         txn.coin_output_add(value=total_custody_fee, condition=ConditionCustodyFee(balance.chain_time))
 
@@ -1788,10 +1794,7 @@ class WalletBalance(object):
         """
         Total Custody Fee Debt.
         """
-        return sum([
-            self.custody_fee_debt_unlocked,
-            self.custody_fee_debt_locked,
-        ])
+        return sum([self.custody_fee_debt_unlocked, self.custody_fee_debt_locked])
 
     @property
     def custody_fee_debt_unlocked(self):
@@ -1806,12 +1809,15 @@ class WalletBalance(object):
         Total Custody Fee Debt for locked tokens.
         """
         if self.chain_time > 0 and self.chain_height > 0:
-            return sum([co.custody_fee for co in self._outputs.values()
-                        if co.condition.lock.locked_check(time=self.chain_time, height=self.chain_height)])\
-                    or Currency(value=0)
+            return sum(
+                [
+                    co.custody_fee
+                    for co in self._outputs.values()
+                    if co.condition.lock.locked_check(time=self.chain_time, height=self.chain_height)
+                ]
+            ) or Currency(value=0)
         else:
-            return Currency(value=0) # impossible to know for sure without a complete context
-
+            return Currency(value=0)  # impossible to know for sure without a complete context
 
     @property
     def locked(self):
@@ -1995,8 +2001,11 @@ class WalletBalance(object):
             total_custody_fee = Currency()
             for ci in txn.coin_inputs:
                 if not ci.parent_output:
-                    raise Exception("BUG: cannot define the required custody fee if no parent output is linked to coin input {}".format(
-                            ci.parentid.__str__()))
+                    raise Exception(
+                        "BUG: cannot define the required custody fee if no parent output is linked to coin input {}".format(
+                            ci.parentid.__str__()
+                        )
+                    )
                 total_custody_fee += ci.parent_output.custody_fee
             txn.coin_output_add(value=total_custody_fee, condition=ConditionCustodyFee(self.chain_time))
             # append the transaction
@@ -2010,9 +2019,7 @@ class WalletBalance(object):
         cavailable = self.available - self.custody_fee_debt_unlocked
         clocked = self.locked - self.custody_fee_debt_locked
         # report confirmed coins
-        result = "{} available and {} locked".format(
-            cavailable.str(with_unit=True), clocked.str(with_unit=True)
-        )
+        result = "{} available and {} locked".format(cavailable.str(with_unit=True), clocked.str(with_unit=True))
         result += "\nCustody Fee to be paid: {}".format(cfdebt.str(with_unit=True))
         # optionally report unconfirmed coins
         unconfirmed = self.unconfirmed
@@ -2442,7 +2449,9 @@ class CoinTransactionBuilder:
             if not ci.parent_output:
                 raise Exception(
                     "BUG: cannot define the required custody fee if no parent output is linked to coin input {}".format(
-                        ci.parentid.__str__()))
+                        ci.parentid.__str__()
+                    )
+                )
             total_custody_fee += ci.parent_output.custody_fee
         txn.coin_output_add(value=total_custody_fee, condition=ConditionCustodyFee(balance.chain_time))
 

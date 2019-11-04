@@ -145,7 +145,7 @@ class CarddavClient(JSConfigClient):
 
     def create_abook(self, name, description, uid=None, color=None):
         if not color:
-            color = '# ba4a53ff'
+            color = "# ba4a53ff"
         url = urljoin(self.url.base, self.user + "/")
         if not uid:
             uid = get_random_href()

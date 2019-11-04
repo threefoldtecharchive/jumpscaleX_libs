@@ -39,4 +39,3 @@ def dynamic_content(doc, actor, method, **kwargs):
     script_path = write_script(doc, unique_id, actor, method, args_json)
     html = doc.render_macro_template("dynamic_content.html", container_id=unique_id, script_path=script_path)
     return f"```inline_html\n{html}\n```"
-

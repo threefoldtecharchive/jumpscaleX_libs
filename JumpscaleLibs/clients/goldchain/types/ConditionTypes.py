@@ -946,10 +946,12 @@ class ConditionMultiSignature(ConditionBaseClass):
         encoder.add_int64(self._min_nr_sig)
         encoder.add_slice(self._unlockhashes)
 
+
 class ConditionCustodyFee(ConditionBaseClass):
     """
     ConditionCustodyFee class
     """
+
     def __init__(self, computation_time=None):
         self._computation_time = None
         self.computation_time = computation_time
@@ -965,22 +967,23 @@ class ConditionCustodyFee(ConditionBaseClass):
     @property
     def computation_time(self):
         return self._computation_time
+
     @computation_time.setter
     def computation_time(self, value):
         if value == None:
             self._computation_time = 0
             return
         if not isinstance(value, int):
-            raise j.exceptions.Value("ConditionCustodyFee's computation time value is expected to be of type int, not {}".format(type(value)))
+            raise j.exceptions.Value(
+                "ConditionCustodyFee's computation time value is expected to be of type int, not {}".format(type(value))
+            )
         self._computation_time = value
 
     def from_json_data_object(self, data):
-        self.computation_time = data['computationtime']
+        self.computation_time = data["computationtime"]
 
     def json_data_object(self):
-        return {
-            'computationtime': self.computation_time,
-        }
+        return {"computationtime": self.computation_time}
 
     def sia_binary_encode_data(self, encoder):
         encoder.add_int(self.computation_time)

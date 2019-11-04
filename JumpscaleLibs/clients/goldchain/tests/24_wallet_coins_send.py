@@ -71,43 +71,41 @@ def main(self):
     expected_transaction = {
         "version": 1,
         "data": {
-            "coininputs": [{
-                "parentid": "19d4e81d057b4c93a7763f3dfe878f6a37d6111a3808b93afff4b369de0f5376",
-                "fulfillment": {
-                    "type": 1,
-                    "data": {
-                        "publickey": "ed25519:64ae81a176302ea9ea47ec673f105da7a25e52bdf0cbb5b63d49fc2c69ed2eaa",
-                        "signature": "4afec02ed2702198e836d826a68dcec278ed55f4eaa778fabbbcf31b510b49450f155e2404c7405480ae590ba424fb53c6997f995742db915862938a559cd20f"
-                    }
+            "coininputs": [
+                {
+                    "parentid": "19d4e81d057b4c93a7763f3dfe878f6a37d6111a3808b93afff4b369de0f5376",
+                    "fulfillment": {
+                        "type": 1,
+                        "data": {
+                            "publickey": "ed25519:64ae81a176302ea9ea47ec673f105da7a25e52bdf0cbb5b63d49fc2c69ed2eaa",
+                            "signature": "4afec02ed2702198e836d826a68dcec278ed55f4eaa778fabbbcf31b510b49450f155e2404c7405480ae590ba424fb53c6997f995742db915862938a559cd20f",
+                        },
+                    },
                 }
-            }],
-            "coinoutputs": [{
-                "value": "108240000000",
-                "condition": {
-                    "type": 1,
-                    "data": {
-                        "unlockhash": "015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"
-                    }
-                }
-            }, {
-                "value": "88760000000",
-                "condition": {
-                    "type": 1,
-                    "data": {
-                        "unlockhash": "014ad318772a09de75fb62f084a33188a7f6fb5e7b68c0ed85a5f90fe11246386b7e6fe97a5a6a"
-                    }
-                }
-            }, {
-                "value": "0",
-                "condition": {
-                    "type": 128,
-                    "data": {
-                        "computationtime": 1549012665
-                    }
-                }
-            }],
-            "minerfees": ["1000000000"]
-        }
+            ],
+            "coinoutputs": [
+                {
+                    "value": "108240000000",
+                    "condition": {
+                        "type": 1,
+                        "data": {
+                            "unlockhash": "015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"
+                        },
+                    },
+                },
+                {
+                    "value": "88760000000",
+                    "condition": {
+                        "type": 1,
+                        "data": {
+                            "unlockhash": "014ad318772a09de75fb62f084a33188a7f6fb5e7b68c0ed85a5f90fe11246386b7e6fe97a5a6a"
+                        },
+                    },
+                },
+                {"value": "0", "condition": {"type": 128, "data": {"computationtime": 1549012665}}},
+            ],
+            "minerfees": ["1000000000"],
+        },
     }
     assert result.transaction.json() == expected_transaction
     # ensure the transaction is posted and as expected there as well
@@ -127,50 +125,48 @@ def main(self):
     expected_transaction = {
         "version": 1,
         "data": {
-            "coininputs": [{
-                "parentid": "b90422bad2dffde79f0a46bd0a41055cf7974b080e115d76f69891ca31d31f11",
-                "fulfillment": {
-                    "type": 1,
-                    "data": {
-                        "publickey": "ed25519:64ae81a176302ea9ea47ec673f105da7a25e52bdf0cbb5b63d49fc2c69ed2eaa",
-                        "signature": "9fa5322a5b053285768cbf099acd733dd5836463059705291028f5951ba01f3f9544ecf5bfcca8c866e177680fb294b2093701372cacc569c098b8b6f1692802"
-                    }
+            "coininputs": [
+                {
+                    "parentid": "b90422bad2dffde79f0a46bd0a41055cf7974b080e115d76f69891ca31d31f11",
+                    "fulfillment": {
+                        "type": 1,
+                        "data": {
+                            "publickey": "ed25519:64ae81a176302ea9ea47ec673f105da7a25e52bdf0cbb5b63d49fc2c69ed2eaa",
+                            "signature": "9fa5322a5b053285768cbf099acd733dd5836463059705291028f5951ba01f3f9544ecf5bfcca8c866e177680fb294b2093701372cacc569c098b8b6f1692802",
+                        },
+                    },
                 }
-            }],
-            "coinoutputs": [{
-                "value": "200000000000",
-                "condition": {
-                    "type": 3,
-                    "data": {
-                        "locktime": 1607351700,
-                        "condition": {
-                            "type": 1,
-                            "data": {
-                                "unlockhash": "015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"
-                            }
-                        }
-                    }
-                }
-            }, {
-                "value": "299000000000",
-                "condition": {
-                    "type": 1,
-                    "data": {
-                        "unlockhash": "014ad318772a09de75fb62f084a33188a7f6fb5e7b68c0ed85a5f90fe11246386b7e6fe97a5a6a"
-                    }
-                }
-            }, {
-                "value": "0",
-                "condition": {
-                    "type": 128,
-                    "data": {
-                        "computationtime": 1549012665
-                    }
-                }
-            }],
+            ],
+            "coinoutputs": [
+                {
+                    "value": "200000000000",
+                    "condition": {
+                        "type": 3,
+                        "data": {
+                            "locktime": 1607351700,
+                            "condition": {
+                                "type": 1,
+                                "data": {
+                                    "unlockhash": "015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"
+                                },
+                            },
+                        },
+                    },
+                },
+                {
+                    "value": "299000000000",
+                    "condition": {
+                        "type": 1,
+                        "data": {
+                            "unlockhash": "014ad318772a09de75fb62f084a33188a7f6fb5e7b68c0ed85a5f90fe11246386b7e6fe97a5a6a"
+                        },
+                    },
+                },
+                {"value": "0", "condition": {"type": 128, "data": {"computationtime": 1549012665}}},
+            ],
             "minerfees": ["1000000000"],
-            "arbitrarydata": "bWF4aW11bSA4MyBieXRlcyBjYW4gYmUgdXNlZCBhcyBvcHRpb25hbCBkYXRh"
-        }
+            "arbitrarydata": "bWF4aW11bSA4MyBieXRlcyBjYW4gYmUgdXNlZCBhcyBvcHRpb25hbCBkYXRh",
+        },
     }
     assert result.transaction.json() == expected_transaction
     # ensure the transaction is posted and as expected there as well
@@ -193,51 +189,52 @@ def main(self):
     expected_transaction = {
         "version": 1,
         "data": {
-            "coininputs": [{
-                "parentid": "19d4e81d057b4c93a7763f3dfe878f6a37d6111a3808b93afff4b369de0f5376",
-                "fulfillment": {
-                    "type": 1,
-                    "data": {
-                        "publickey": "ed25519:64ae81a176302ea9ea47ec673f105da7a25e52bdf0cbb5b63d49fc2c69ed2eaa",
-                        "signature": "e6d72ec579a6419b8c7c807e3b496ff8accaeb9221ebeb62957dfc4ef6ccb578d9a1b0e741bda2593130c892bcc4ba88e61c214f195f74d29203e8c5d8532b03"
-                    }
+            "coininputs": [
+                {
+                    "parentid": "19d4e81d057b4c93a7763f3dfe878f6a37d6111a3808b93afff4b369de0f5376",
+                    "fulfillment": {
+                        "type": 1,
+                        "data": {
+                            "publickey": "ed25519:64ae81a176302ea9ea47ec673f105da7a25e52bdf0cbb5b63d49fc2c69ed2eaa",
+                            "signature": "e6d72ec579a6419b8c7c807e3b496ff8accaeb9221ebeb62957dfc4ef6ccb578d9a1b0e741bda2593130c892bcc4ba88e61c214f195f74d29203e8c5d8532b03",
+                        },
+                    },
                 }
-            }],
-            "coinoutputs": [{
-                "value": "50000000000",
-                "condition": {
-                    "type": 3,
-                    "data": {
-                        "locktime": 1550665225,
-                        "condition": {
-                            "type": 4,
-                            "data": {
-                                "minimumsignaturecount": 2,
-                                "unlockhashes": ["015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f", "010d22cf70053432d70ea08c6940c9e84c4c89e67ad24c3ff9f0444dd2d03bf77c91b3e02c30a1"]
-                            }
-                        }
-                    }
-                }
-            }, {
-                "value": "147000000000",
-                "condition": {
-                    "type": 1,
-                    "data": {
-                        "unlockhash": "014ad318772a09de75fb62f084a33188a7f6fb5e7b68c0ed85a5f90fe11246386b7e6fe97a5a6a"
-                    }
-                }
-            }, {
-                "value": "0",
-                "condition": {
-                    "type": 128,
-                    "data": {
-                        "computationtime": 1549012665
-                    }
-                }
-            }],
+            ],
+            "coinoutputs": [
+                {
+                    "value": "50000000000",
+                    "condition": {
+                        "type": 3,
+                        "data": {
+                            "locktime": 1550665225,
+                            "condition": {
+                                "type": 4,
+                                "data": {
+                                    "minimumsignaturecount": 2,
+                                    "unlockhashes": [
+                                        "015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f",
+                                        "010d22cf70053432d70ea08c6940c9e84c4c89e67ad24c3ff9f0444dd2d03bf77c91b3e02c30a1",
+                                    ],
+                                },
+                            },
+                        },
+                    },
+                },
+                {
+                    "value": "147000000000",
+                    "condition": {
+                        "type": 1,
+                        "data": {
+                            "unlockhash": "014ad318772a09de75fb62f084a33188a7f6fb5e7b68c0ed85a5f90fe11246386b7e6fe97a5a6a"
+                        },
+                    },
+                },
+                {"value": "0", "condition": {"type": 128, "data": {"computationtime": 1549012665}}},
+            ],
             "minerfees": ["1000000000"],
-            "arbitrarydata": "YmluYXJ5IGRhdGEgY2FuIGJlIGFkZGVkIGFzIHdlbGw="
-        }
+            "arbitrarydata": "YmluYXJ5IGRhdGEgY2FuIGJlIGFkZGVkIGFzIHdlbGw=",
+        },
     }
     assert result.transaction.json() == expected_transaction
     # ensure the transaction is posted and as expected there as well
@@ -263,51 +260,52 @@ def main(self):
     expected_transaction = {
         "version": 1,
         "data": {
-            "coininputs": [{
-                "parentid": "b90422bad2dffde79f0a46bd0a41055cf7974b080e115d76f69891ca31d31f11",
-                "fulfillment": {
-                    "type": 1,
-                    "data": {
-                        "publickey": "ed25519:64ae81a176302ea9ea47ec673f105da7a25e52bdf0cbb5b63d49fc2c69ed2eaa",
-                        "signature": "79ade0f773ad16d18da81c5aa5e19c4cce794a7d37d55429a96d7a5158cc857a2804b542d1d20c15e9ca651a081ff42ef757a677c53ddcbb498f97ee6241bc04"
-                    }
+            "coininputs": [
+                {
+                    "parentid": "b90422bad2dffde79f0a46bd0a41055cf7974b080e115d76f69891ca31d31f11",
+                    "fulfillment": {
+                        "type": 1,
+                        "data": {
+                            "publickey": "ed25519:64ae81a176302ea9ea47ec673f105da7a25e52bdf0cbb5b63d49fc2c69ed2eaa",
+                            "signature": "79ade0f773ad16d18da81c5aa5e19c4cce794a7d37d55429a96d7a5158cc857a2804b542d1d20c15e9ca651a081ff42ef757a677c53ddcbb498f97ee6241bc04",
+                        },
+                    },
                 }
-            }],
-            "coinoutputs": [{
-                "value": "300000000000",
-                "condition": {
-                    "type": 3,
-                    "data": {
-                        "locktime": 35000,
-                        "condition": {
-                            "type": 4,
-                            "data": {
-                                "minimumsignaturecount": 1,
-                                "unlockhashes": ["015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f", "010d22cf70053432d70ea08c6940c9e84c4c89e67ad24c3ff9f0444dd2d03bf77c91b3e02c30a1"]
-                            }
-                        }
-                    }
-                }
-            }, {
-                "value": "199000000000",
-                "condition": {
-                    "type": 1,
-                    "data": {
-                        "unlockhash": "014ad318772a09de75fb62f084a33188a7f6fb5e7b68c0ed85a5f90fe11246386b7e6fe97a5a6a"
-                    }
-                }
-            }, {
-                "value": "0",
-                "condition": {
-                    "type": 128,
-                    "data": {
-                        "computationtime": 1549012665
-                    }
-                }
-            }],
+            ],
+            "coinoutputs": [
+                {
+                    "value": "300000000000",
+                    "condition": {
+                        "type": 3,
+                        "data": {
+                            "locktime": 35000,
+                            "condition": {
+                                "type": 4,
+                                "data": {
+                                    "minimumsignaturecount": 1,
+                                    "unlockhashes": [
+                                        "015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f",
+                                        "010d22cf70053432d70ea08c6940c9e84c4c89e67ad24c3ff9f0444dd2d03bf77c91b3e02c30a1",
+                                    ],
+                                },
+                            },
+                        },
+                    },
+                },
+                {
+                    "value": "199000000000",
+                    "condition": {
+                        "type": 1,
+                        "data": {
+                            "unlockhash": "014ad318772a09de75fb62f084a33188a7f6fb5e7b68c0ed85a5f90fe11246386b7e6fe97a5a6a"
+                        },
+                    },
+                },
+                {"value": "0", "condition": {"type": 128, "data": {"computationtime": 1549012665}}},
+            ],
             "minerfees": ["1000000000"],
-            "arbitrarydata": "YmluYXJ5IGRhdGEgY2FuIGJlIGFkZGVkIGFzIHdlbGw="
-        }
+            "arbitrarydata": "YmluYXJ5IGRhdGEgY2FuIGJlIGFkZGVkIGFzIHdlbGw=",
+        },
     }
     assert result.transaction.json() == expected_transaction
     # ensure the transaction is posted and as expected there as well

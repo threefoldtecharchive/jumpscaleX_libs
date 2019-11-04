@@ -4,7 +4,14 @@ from .BaseDataType import BaseDataTypeClass
 
 from .PrimitiveTypes import BinaryData, Hash, Currency, Blockstake
 from .FulfillmentTypes import FulfillmentBaseClass, FulfillmentSingleSignature
-from .ConditionTypes import ConditionBaseClass, ConditionNil, ConditionLockTime, ConditionUnlockHash, UnlockHash, UnlockHashType
+from .ConditionTypes import (
+    ConditionBaseClass,
+    ConditionNil,
+    ConditionLockTime,
+    ConditionUnlockHash,
+    UnlockHash,
+    UnlockHashType,
+)
 
 
 class CoinInput(BaseDataTypeClass):
@@ -169,7 +176,9 @@ class CoinOutput(BaseDataTypeClass):
     @spent.setter
     def spent(self, value):
         if not isinstance(value, bool):
-            raise j.exceptions.Value("spent property of a CoinOutput has to be of type bool, not be of type {}".format(value))
+            raise j.exceptions.Value(
+                "spent property of a CoinOutput has to be of type bool, not be of type {}".format(value)
+            )
         self._spent = value
 
     @property
@@ -207,7 +216,6 @@ class CoinOutput(BaseDataTypeClass):
             self._custody_fee = value
             return
         self._custody_fee = Currency(value=value)
-
 
     @property
     def condition(self):
@@ -460,6 +468,7 @@ class BlockstakeOutput(BaseDataTypeClass):
         """
         encoder.add_all(self._value, self._condition)
 
+
 class MinerPayout:
     """
     MinerPayout class
@@ -480,14 +489,13 @@ class MinerPayout:
 
     @classmethod
     def from_json(cls, obj):
-        if 'rawminerpayout' in obj:
+        if "rawminerpayout" in obj:
             return cls(
-                value=Currency.from_json(obj['rawminerpayout']['value']),
-                unlockhash=UnlockHash.from_json(obj['rawminerpayout']['unlockhash']),
-                id=Hash.from_json(obj['minerpayoutid']))
-        return cls(
-            value=Currency.from_json(obj['value']),
-            unlockhash=UnlockHash.from_json(obj['unlockhash']))
+                value=Currency.from_json(obj["rawminerpayout"]["value"]),
+                unlockhash=UnlockHash.from_json(obj["rawminerpayout"]["unlockhash"]),
+                id=Hash.from_json(obj["minerpayoutid"]),
+            )
+        return cls(value=Currency.from_json(obj["value"]), unlockhash=UnlockHash.from_json(obj["unlockhash"]))
 
     @property
     def value(self):
@@ -513,7 +521,10 @@ class MinerPayout:
             self._unlockhash = UnlockHash.from_json(value)
         if not isinstance(value, UnlockHash):
             raise j.exceptions.Value(
-                "cannot assign value of type {} as a MinerPayout's unlockhash (expected: UnlockHash or str)".format(type(value)))
+                "cannot assign value of type {} as a MinerPayout's unlockhash (expected: UnlockHash or str)".format(
+                    type(value)
+                )
+            )
         self._unlockhash = value
 
     @property
@@ -527,10 +538,12 @@ class MinerPayout:
             return
         if not isinstance(value, int):
             raise j.exceptions.Value(
-                "cannot assign value of type {} as a MinerPayout's unlockheight (expected: int)".format(type(value)))
+                "cannot assign value of type {} as a MinerPayout's unlockheight (expected: int)".format(type(value))
+            )
         if value <= 0:
             raise j.exceptions.Value(
-                "cannot assign value {} as a MinerPayout's unlockheight (has to be strictly positive)".format(value))
+                "cannot assign value {} as a MinerPayout's unlockheight (has to be strictly positive)".format(value)
+            )
         self._unlockheight = value
 
     @property
@@ -540,14 +553,18 @@ class MinerPayout:
     @is_reward.setter
     def is_reward(self, value):
         if not isinstance(value, bool):
-            raise j.exceptions.Value("is is_reward is supposed to be a bool, cannot be {} ({})".format(value, type(value)))
+            raise j.exceptions.Value(
+                "is is_reward is supposed to be a bool, cannot be {} ({})".format(value, type(value))
+            )
         self._is_reward = value
 
     def as_coin_output(self):
         cond = ConditionUnlockHash(unlockhash=self.unlockhash)
         if self._unlockheight is not None:
             cond = ConditionLockTime(condition=cond, lock=self._unlockheight)
-        return CoinOutput(value=self.value, condition=cond, id=self.id, is_fee=(not self._is_reward), is_reward=self._is_reward)
+        return CoinOutput(
+            value=self.value, condition=cond, id=self.id, is_fee=(not self._is_reward), is_reward=self._is_reward
+        )
 
     @property
     def id(self):
