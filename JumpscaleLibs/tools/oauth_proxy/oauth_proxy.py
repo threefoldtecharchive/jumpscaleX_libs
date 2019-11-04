@@ -97,13 +97,13 @@ class OauthProxy(j.baseclasses.object):
         ).issuperset(required_fields):
             return abort(401, "Unauthorized")
 
-        self.session["authotized"] = True
+        self.session["authorized"] = True
         return data
 
     def login_required(self, func):
         @wraps(func)
         def decorator(*args, **kwargs):
-            if not self.session.get("authotized", False):
+            if not self.session.get("authorized", False):
                 self.session["next_url"] = request.path
                 return redirect(self.login_url)
             return func(*args, **kwargs)
