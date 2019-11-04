@@ -1,12 +1,11 @@
-from bottle import redirect, request, abort
-from urllib.parse import urlencode
-from Jumpscale import j
-import binascii
 import nacl.encoding
 import requests
-from nacl.public import Box
 
+from bottle import redirect, request, abort
 from functools import wraps
+from urllib.parse import urlencode
+
+from Jumpscale import j
 
 try:
     from beaker.middleware import SessionMiddleware
@@ -31,27 +30,22 @@ class ThreebotProxy(j.baseclasses.object):
     def next_url(self):
         return self.session.get("next_url", "/")
 
-    def login(self, callback_url):
+    def login(self, app_id, callback_url):
         state = j.data.idgenerator.generateXCharID(20)
         self.session["state"] = state
         redirect_url = "https://login.threefold.me"
 
         params = {
             "state": state,
-            "appid": request.urlparts.netloc,
-            "scope": "{'user': true, 'email': true}",
+            "appid": app_id,
+            "scope": j.data.serializers.json.dumps({"user": True, "email": True}),
             "redirecturl": callback_url,
-            "publickey": self.nacl.public_key.encode(
-                encoder=nacl.encoding.Base64Encoder
-            ),
+            "publickey": self.nacl.public_key.encode(encoder=nacl.encoding.Base64Encoder),
         }
         params = urlencode(params)
         return redirect(f"{redirect_url}?{params}", code=302)
 
     def callback(self):
-        import ipdb
-
-        ipdb.set_trace()
         signed_hash = request.params.get("signedhash")
         username = request.params.get("username")
         data = request.params.get("data")
@@ -73,22 +67,31 @@ class ThreebotProxy(j.baseclasses.object):
         if state != self.session["state"]:
             return abort(400, "Invalid state. not matching one in user session")
 
-        box = Box(self.nacl.private_key, user_pub.to_curve25519_public_key())
-
         try:
-            decrypted = box.decrypt(ciphertext, nonce)
-            result = json.loads(decrypted)
-            email = result["email"]["email"]
-            emailVerified = result["email"]["verified"]
-            if not emailVerified:
-                return abort(400, "Email not verified")
-
-            bot_app.session["email"] = email
-            self.session["authorized"] = True
-            return redirect(bot_app.next_url)
-
+            decrypted = self.nacl.decryptAsymmetric(user_pub.to_curve25519_public_key(), ciphertext, nonce)
         except:
             return abort(400, "Error decrypting data")
+
+        result = j.data.serializers.json.loads(decrypted)
+        if "email" not in result:
+            return abort(400, "Email not present is data")
+
+        if not result["email"]["verified"]:
+            return abort(400, "Email not verified")
+
+        self.session["email"] = result["email"]["email"]
+        self.session["authorized"] = True
+        return redirect(self.next_url)
+
+    def login_required(self, func):
+        @wraps(func)
+        def decorator(*args, **kwargs):
+            if not self.session.get("authorized", False):
+                self.session["next_url"] = request.path
+                return redirect(self.login_url)
+            return func(*args, **kwargs)
+
+        return decorator
 
 
 class ThreebotProxyFactory(j.baseclasses.factory):
