@@ -1,6 +1,7 @@
 import requests
 import json
 
+
 class Request(object):
     def __init__(self, base_url, api_key):
         self.base_url = base_url

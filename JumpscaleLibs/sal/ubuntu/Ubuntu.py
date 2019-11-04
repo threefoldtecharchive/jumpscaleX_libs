@@ -3,7 +3,8 @@ from Jumpscale import j
 JSBASE = j.baseclasses.object
 TESTTOOLS = j.baseclasses.testtools
 
-class Ubuntu(JSBASE,TESTTOOLS):
+
+class Ubuntu(JSBASE, TESTTOOLS):
     __jslocation__ = "j.sal.ubuntu"
 
     def _init(self, **kwargs):

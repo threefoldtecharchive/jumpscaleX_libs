@@ -514,28 +514,32 @@ class TransactionFactory(j.baseclasses.object):
         v130_txn_json = {
             "version": 130,
             "data": {
-                "coininputs": [{
-                    "parentid": "1100000000000000000000000000000000000000000000000000000000000011",
-                    "fulfillment": {
-                        "type": 1,
-                        "data": {
-                            "publickey": "ed25519:def123def123def123def123def123def123def123def123def123def123def1",
-                            "signature": "ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"
-                        }
+                "coininputs": [
+                    {
+                        "parentid": "1100000000000000000000000000000000000000000000000000000000000011",
+                        "fulfillment": {
+                            "type": 1,
+                            "data": {
+                                "publickey": "ed25519:def123def123def123def123def123def123def123def123def123def123def1",
+                                "signature": "ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef",
+                            },
+                        },
                     }
-                }],
-                "coinoutputs": [{
-                    "value": "500000000000000",
-                    "condition": {
-                        "type": 1,
-                        "data": {
-                            "unlockhash": "01e3cbc41bd3cdfec9e01a6be46a35099ba0e1e1b793904fce6aa5a444496c6d815f5e3e981ccf"
-                        }
+                ],
+                "coinoutputs": [
+                    {
+                        "value": "500000000000000",
+                        "condition": {
+                            "type": 1,
+                            "data": {
+                                "unlockhash": "01e3cbc41bd3cdfec9e01a6be46a35099ba0e1e1b793904fce6aa5a444496c6d815f5e3e981ccf"
+                            },
+                        },
                     }
-                }],
+                ],
                 "minerfees": ["1000000000"],
-                "arbitrarydata": "dGVzdC4uLiAxLCAyLi4uIDM="
-            }
+                "arbitrarydata": "dGVzdC4uLiAxLCAyLi4uIDM=",
+            },
         }
         v130_txn = self.from_json(v130_txn_json)
         assert v130_txn.json() == v130_txn_json

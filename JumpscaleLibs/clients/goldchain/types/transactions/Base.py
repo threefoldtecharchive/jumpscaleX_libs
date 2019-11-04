@@ -24,8 +24,6 @@ class TransactionVersion(IntEnum):
     AUTH_CONDITION_UPDATE = 177
 
 
-
-
 class TransactionBaseClass(ABC):
     def __init__(self):
         self._id = None
@@ -153,8 +151,7 @@ class TransactionBaseClass(ABC):
             self._txorder = -1
             return
         if not (isinstance(value, int) and not isinstance(value, bool)):
-            raise j.exceptions.Value(
-                "value should be of type int, not {}".format(type(value)))
+            raise j.exceptions.Value("value should be of type int, not {}".format(type(value)))
         if value < -1:
             raise j.exceptions.Value("a transaction order cannot be negative")
         self._txorder = value
@@ -192,8 +189,7 @@ class TransactionBaseClass(ABC):
             self._miner_payouts = []
             return
         if not isinstance(value, list):
-            raise j.exceptions.Value(
-                "value should be of type list, not {}".format(type(value)))
+            raise j.exceptions.Value("value should be of type list, not {}".format(type(value)))
         self._miner_payouts = []
         for mp in value:
             if not isinstance(mp, MinerPayout):

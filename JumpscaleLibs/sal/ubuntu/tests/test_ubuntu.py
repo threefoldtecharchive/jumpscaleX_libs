@@ -63,36 +63,36 @@ class Test_Ubuntu(TestCase):
         """
         mysys = None
         zdb_service_file = False
-        self.info('installing zdb for testing')
+        self.info("installing zdb for testing")
         j.builders.db.zdb.install()
-        self.info('checking system is systemd or not ')
+        self.info("checking system is systemd or not ")
         mysys = self._check_init_process()
-        if mysys == 'my_init':
-            self.info('system is init system')
-            zdb_service_file = os.path.exists('/etc/service/zdb/run')
-        elif mysys == 'systemd':
-            self.info('system is init systemd')
-            zdb_service_file = os.path.exists('/etc/systemd/system/zdb.service')
+        if mysys == "my_init":
+            self.info("system is init system")
+            zdb_service_file = os.path.exists("/etc/service/zdb/run")
+        elif mysys == "systemd":
+            self.info("system is init systemd")
+            zdb_service_file = os.path.exists("/etc/systemd/system/zdb.service")
         else:
-            self.info('something unexpected occurred while checking system type')
+            self.info("something unexpected occurred while checking system type")
             self.assertIn(mysys, ["systemd", "my_init"], "system not supported ")
 
-        self.info('checking zdb file existing ')
+        self.info("checking zdb file existing ")
         if zdb_service_file is True:
-            self.info('zdb file is exist ,service_uninstall to zdb service ')
-            self.ubuntu.service_uninstall('zdb')
-        self.info('service_install to zdb service ')
-        self.ubuntu.service_install('zdb','/sandbox/bin')
-        self.info('Verify config file existing after using service_install')
-        if mysys == 'my_init':
-            self.assertTrue(os.path.exists('/etc/service/zdb/run'))
+            self.info("zdb file is exist ,service_uninstall to zdb service ")
+            self.ubuntu.service_uninstall("zdb")
+        self.info("service_install to zdb service ")
+        self.ubuntu.service_install("zdb", "/sandbox/bin")
+        self.info("Verify config file existing after using service_install")
+        if mysys == "my_init":
+            self.assertTrue(os.path.exists("/etc/service/zdb/run"))
         else:
-            self.assertTrue(os.path.exists('/etc/systemd/system/zdb.service'))
-        self.info('zdb service uninstall to return to origin state')
-        self.ubuntu.service_uninstall('zdb')
+            self.assertTrue(os.path.exists("/etc/systemd/system/zdb.service"))
+        self.info("zdb service uninstall to return to origin state")
+        self.ubuntu.service_uninstall("zdb")
         if zdb_service_file is True:
-            self.info('zdb service install to return to origin state')
-            self.ubuntu.service_install('zdb','/sandbox/zdb')
+            self.info("zdb service install to return to origin state")
+            self.ubuntu.service_install("zdb", "/sandbox/zdb")
 
     def test003_version_get(self):
         """TC398
@@ -102,7 +102,7 @@ class Test_Ubuntu(TestCase):
         #. Check Ubuntu version using tested method ubuntu.version_get
         #. Verify step1 output include keyword Ubuntu
         """
-        self.info('checking ubuntu version ')
+        self.info("checking ubuntu version ")
         self.assertIn("Ubuntu", self.ubuntu.version_get())
 
     def test004_apt_install_check(self):
@@ -112,13 +112,12 @@ class Test_Ubuntu(TestCase):
         **Test Scenario**
         #. Just run method and if it fails, it will raise an error
         """
-        self.info('checking ping is installed or not ')
+        self.info("checking ping is installed or not ")
         self.ubuntu.apt_install_check("iputils-ping", "ping")
         with self.assertRaises(Exception) as myexcept:
             self.ubuntu.apt_install_check("iputils-ping", "elfankosh")
-            self.info('There is exceptions RuntimeError due to elfankosh is not a command')
+            self.info("There is exceptions RuntimeError due to elfankosh is not a command")
             self.assertIn("Could not execute: 'which elfankosh'", myexcept.exception.args[0])
-
 
     def test005_apt_install_version(self):
         """TC400
@@ -131,20 +130,20 @@ class Test_Ubuntu(TestCase):
         :return:
         """
         wget_installed = False
-        wget_installed = self.ubuntu.is_pkg_installed('wget')
-        self.info('print wget install var is {}'.format(wget_installed))
+        wget_installed = self.ubuntu.is_pkg_installed("wget")
+        self.info("print wget install var is {}".format(wget_installed))
         if wget_installed is True:
-            self.info('uninstall wget to test install method  ')
-        self.info('installing wget with version 1.19.4')
+            self.info("uninstall wget to test install method  ")
+        self.info("installing wget with version 1.19.4")
         self.ubuntu.apt_install_version("wget", "1.19.4-1ubuntu2.2")
-        self.info('checking installed wget version ')
+        self.info("checking installed wget version ")
         rc, out, err = j.sal.process.execute("wget -V", useShell=True)
-        self.info('verifying installed wget version is 1.19.4')
+        self.info("verifying installed wget version is 1.19.4")
         self.assertIn("1.19.4", out)
-        self.info('removing wget to get back to origin state')
+        self.info("removing wget to get back to origin state")
         j.sal.process.execute("apt remove -y wget")
         if wget_installed is True:
-            self.info('uninstall wget and install default version from ubuntu repo')
+            self.info("uninstall wget and install default version from ubuntu repo")
             j.sal.process.execute("apt install -y wget")
 
     def test006_deb_install(self):
@@ -157,15 +156,15 @@ class Test_Ubuntu(TestCase):
         #. Get the installed package status by dpkg command
         #. Installed package python-tmuxp should be install ok
         """
-        self.info('Downloading python-tmuxp debian package')
+        self.info("Downloading python-tmuxp debian package")
         j.sal.process.execute(
             "curl  http://security.ubuntu.com/ubuntu/pool/universe/t/tmuxp/python-tmuxp_1.5.0a-1_all.deb > python-tmuxp_1.5.0a-1_all.deb"
         )
-        self.info('Install downloaded debian package by deb_install method')
+        self.info("Install downloaded debian package by deb_install method")
         self.ubuntu.deb_install(path="python-tmuxp_1.5.0a-1_all.deb")
-        self.info('Get the installed package status by dpkg command')
+        self.info("Get the installed package status by dpkg command")
         rc, out, err = j.sal.process.execute("dpkg -s python-tmuxp | grep Status", die=False)
-        self.info('Installed package python-tmuxp should be install ok')
+        self.info("Installed package python-tmuxp should be install ok")
         self.assertIn("install ok", out)
 
     def test007_pkg_list(self):
@@ -177,7 +176,7 @@ class Test_Ubuntu(TestCase):
         # . no package called ping so output len should equal zero\
         the correct package name is iputils-ping
         """
-        self.info('verifying that pkg_list equal zero as no dpkg called ping, it should be iputils-ping')
+        self.info("verifying that pkg_list equal zero as no dpkg called ping, it should be iputils-ping")
         self.assertEqual(len(self.ubuntu.pkg_list("ping")), 0)
         self.assertGreaterEqual(len(self.ubuntu.pkg_list("iputils-ping")), 1)
 
@@ -193,16 +192,16 @@ class Test_Ubuntu(TestCase):
         #. As it was running before test,starting cron service after finishing testing by service_start method
         """
         cront_status = False
-        self.info('check cron status before testing service_start method ')
-        cront_status = self.ubuntu.service_status('cron')
+        self.info("check cron status before testing service_start method ")
+        cront_status = self.ubuntu.service_status("cron")
         if cront_status is True:
-            self.info('stopping cron service so we can test service_start method')
+            self.info("stopping cron service so we can test service_start method")
             self.ubuntu.service_stop("cron")
-        self.info('Start cron service using start_service method ')
+        self.info("Start cron service using start_service method ")
         self.ubuntu.service_start("cron")
-        self.info('check the corn status by service_status method')
-        self.info('status of service is {} '.format(self.ubuntu.service_status('cron')))
-        self.assertTrue(self.ubuntu.service_status('cron'))
+        self.info("check the corn status by service_status method")
+        self.info("status of service is {} ".format(self.ubuntu.service_status("cron")))
+        self.assertTrue(self.ubuntu.service_status("cron"))
 
     def test009_service_stop(self):
         """TC405
@@ -217,19 +216,19 @@ class Test_Ubuntu(TestCase):
         #. Stop cron service to be as origin state
         """
         cront_status = False
-        self.info('check cron status before testing service_stop method ')
-        cront_status = self.ubuntu.service_status('cron')
+        self.info("check cron status before testing service_stop method ")
+        cront_status = self.ubuntu.service_status("cron")
         if cront_status is False:
-            self.info('status was stopped before test method we need to start it now and stop it after finish test')
-            self.ubuntu.service_start('cron')
-        self.info('service should be running, stopping cron service using tested method service_stop')
+            self.info("status was stopped before test method we need to start it now and stop it after finish test")
+            self.ubuntu.service_start("cron")
+        self.info("service should be running, stopping cron service using tested method service_stop")
         self.ubuntu.service_stop("cron")
-        self.info('Get the service status by service_status method should be False ')
-        self.assertFalse(self.ubuntu.service_status('cron'))
-        self.info('Retrun cron service status as origin state to be running ')
+        self.info("Get the service status by service_status method should be False ")
+        self.assertFalse(self.ubuntu.service_status("cron"))
+        self.info("Retrun cron service status as origin state to be running ")
         self.ubuntu.service_start("cron")
         if cront_status is False:
-            self.info('stop cron service to be as origin state')
+            self.info("stop cron service to be as origin state")
             self.ubuntu.service_stop("cron")
 
     def test010_service_restart(self):
@@ -244,15 +243,15 @@ class Test_Ubuntu(TestCase):
         #. As it was running before test,starting cron service after finishing testing by service_start method
         """
         cront_status = False
-        self.info('check cron status before testing service_start method ')
-        cront_status = self.ubuntu.service_status('cron')
+        self.info("check cron status before testing service_start method ")
+        cront_status = self.ubuntu.service_status("cron")
         if cront_status is True:
-            self.info('stopping cron service so we can test service_start method')
+            self.info("stopping cron service so we can test service_start method")
             self.ubuntu.service_stop("cron")
-        self.info('restart cron service using start_service method ')
+        self.info("restart cron service using start_service method ")
         self.ubuntu.service_restart("cron")
-        self.info('check the corn status by service command')
-        self.assertTrue(self.ubuntu.service_status('cron'))
+        self.info("check the corn status by service command")
+        self.assertTrue(self.ubuntu.service_status("cron"))
 
     def test011_service_status(self):
         """TC407
@@ -263,15 +262,14 @@ class Test_Ubuntu(TestCase):
         #. if service is not running, verifying tested method return False
         #. else service is running, should return True
         """
-        self.info('Get service status')
-        state = self.ubuntu.service_status('cron')
+        self.info("Get service status")
+        state = self.ubuntu.service_status("cron")
         if state is False:
-            self.info('service is not running, verifying tested method return False')
-            self.assertFalse(self.ubuntu.service_status('cron'))
+            self.info("service is not running, verifying tested method return False")
+            self.assertFalse(self.ubuntu.service_status("cron"))
         else:
-            self.info('service is running, verifying tested method should return True')
-            self.assertTrue(self.ubuntu.service_status('cron'))
-
+            self.info("service is running, verifying tested method should return True")
+            self.assertTrue(self.ubuntu.service_status("cron"))
 
     def test012_apt_find_all(self):
 
@@ -281,7 +279,7 @@ class Test_Ubuntu(TestCase):
         **Test Scenario**
         #. alot if packages are containing wget like  'python3-wget', 'wget'
         """
-        self.info('verifying all available packages have a keyword wget')
+        self.info("verifying all available packages have a keyword wget")
         self.assertIn("wget", self.ubuntu.apt_find_all("wget"))
 
     def test013_is_pkg_installed(self):
@@ -295,17 +293,17 @@ class Test_Ubuntu(TestCase):
         #. Remove it to return to origin state
         """
         wget_is_installed = False
-        self.info('make sure wget installed')
+        self.info("make sure wget installed")
         rc1, out, err = j.sal.process.execute("dpkg -s wget|grep Status")
-        if 'deinstall ok' in out:
-            self.info('install wget as it does not installed')
+        if "deinstall ok" in out:
+            self.info("install wget as it does not installed")
             j.sal.process.execute("apt install -y wget")
-        self.info('verifying tested pkg_installed should return True as wget is installed')
+        self.info("verifying tested pkg_installed should return True as wget is installed")
         wget_is_installed = j.sal.ubuntu.is_pkg_installed("wget")
-        self.info(' wget_is_installed is  {} '.format(wget_is_installed))
+        self.info(" wget_is_installed is  {} ".format(wget_is_installed))
         self.assertTrue(wget_is_installed)
-        if 'install ok' not in out:
-            self.info('Remove it to return to origin state')
+        if "install ok" not in out:
+            self.info("Remove it to return to origin state")
             j.sal.process.execute("apt remove -y wget")
 
     def test014_sshkey_generate(self):
@@ -316,9 +314,9 @@ class Test_Ubuntu(TestCase):
         #. Generate sshkey in path /tmp/id_rsa
         #. verify that there is a files, their names contain id_rsa
         """
-        self.info('Generate sshkey in path /tmp/id_rsa')
+        self.info("Generate sshkey in path /tmp/id_rsa")
         self.ubuntu.sshkey_generate(path="/tmp/id_rsa")
-        self.info('verify that there is a files, their names contain id_rsa')
+        self.info("verify that there is a files, their names contain id_rsa")
         rc, out, err = j.sal.process.execute("ls /tmp | grep id_rsa")
         self.assertIn("id_rsa", out)
 
@@ -331,12 +329,12 @@ class Test_Ubuntu(TestCase):
         #. Get a one package from cached packages by apt-cache command
         #. Compare the package name of step2 should be included in keys from step 1
         """
-        self.info('Get all cached keys by our tested method apt_get_cache_keys')
+        self.info("Get all cached keys by our tested method apt_get_cache_keys")
         cache_list = self.ubuntu.apt_get_cache_keys()
-        self.info(' Get a one package from cached packages by apt-cache command')
+        self.info(" Get a one package from cached packages by apt-cache command")
         rc1, pkg_name, err1 = j.sal.process.execute("apt-cache search 'Network' | head -1| awk '{print $1}'")
         name = pkg_name.strip()
-        self.info('verify one package if cached packages forn apt-cache command should exist in tested method output')
+        self.info("verify one package if cached packages forn apt-cache command should exist in tested method output")
         self.assertIn(name, cache_list)
 
     def test016_apt_get_installed(self):
@@ -351,12 +349,12 @@ class Test_Ubuntu(TestCase):
         installed packages by tested method  and apt list command should be the same
         """
         sal_count = 0
-        self.info('Get length of installed packages from apt list command ')
+        self.info("Get length of installed packages from apt list command ")
         rc1, os_count, err1 = j.sal.process.execute("apt list --installed |grep -v 'Listing...'| wc -l")
         os_int_count = int(os_count.strip())
-        self.info('Get length of installed packages from tested method')
+        self.info("Get length of installed packages from tested method")
         sal_count = len(self.ubuntu.apt_get_installed())
-        self.info('Verifying installed packages by tested method and apt list command should be the same')
+        self.info("Verifying installed packages by tested method and apt list command should be the same")
         self.assertEqual(sal_count, os_int_count)
 
     def test017_apt_install(self):
@@ -370,18 +368,18 @@ class Test_Ubuntu(TestCase):
         #. verify that is installed successfully
         #. remove it to be as origin status
         """
-        self.info('Check if speedtest-cli is installed or not')
-        speedtest_installed = j.sal.ubuntu.is_pkg_installed('speedtest-cli')
+        self.info("Check if speedtest-cli is installed or not")
+        speedtest_installed = j.sal.ubuntu.is_pkg_installed("speedtest-cli")
         if speedtest_installed:
-            self.info('remove speedtest-cli package')
+            self.info("remove speedtest-cli package")
             j.sal.process.execute("apt remove -y speedtest-cli")
-        self.info('install speedtest-cli package')
-        self.ubuntu.apt_install('speedtest-cli')
-        self.info('verify that speedtest-cli is installed')
+        self.info("install speedtest-cli package")
+        self.ubuntu.apt_install("speedtest-cli")
+        self.info("verify that speedtest-cli is installed")
         rc1, out1, err1 = j.sal.process.execute("dpkg -s speedtest-cli|grep Status")
-        self.assertIn('install ok',out1)
+        self.assertIn("install ok", out1)
         if not speedtest_installed:
-            self.info('remove it speedtest-cli to be as origin status')
+            self.info("remove it speedtest-cli to be as origin status")
             j.sal.process.execute("apt remove -y speedtest-cli")
 
     def test018_apt_sources_list(self):
@@ -393,12 +391,12 @@ class Test_Ubuntu(TestCase):
         #. Get the first line in apt sources list
         #. Verify first item should contains a keyword deb
         """
-        self.info('Get all listed apt sources by tested method apt_sources_list')
+        self.info("Get all listed apt sources by tested method apt_sources_list")
         apt_src_list = self.ubuntu.apt_sources_list()
-        self.info('Get the first line in apt sources list')
+        self.info("Get the first line in apt sources list")
         first_src = apt_src_list[0]
-        self.info('Verify first item should contains a keyword deb')
-        self.assertIn('deb', first_src)
+        self.info("Verify first item should contains a keyword deb")
+        self.assertIn("deb", first_src)
 
     def test019_apt_sources_uri_add(self):
         """TC415
@@ -413,21 +411,23 @@ class Test_Ubuntu(TestCase):
         #. Remove created file by tested method
         #. if file was exist in step 1 , move the backup file from /tmp to origin path
         """
-        self.info('check if the source link file that am gonna add it exist or not')
-        file_exist = os.path.exists('/etc/apt/sources.list.d/archive.getdeb.net.list')
+        self.info("check if the source link file that am gonna add it exist or not")
+        file_exist = os.path.exists("/etc/apt/sources.list.d/archive.getdeb.net.list")
         if file_exist:
-            self.info('file exist move it a /tmp dir')
+            self.info("file exist move it a /tmp dir")
             j.sal.process.execute("mv /etc/apt/sources.list.d/archive.getdeb.net.list /tmp")
-        self.info('adding new url to apt sources ')
-        self.ubuntu.apt_sources_uri_add('http://archive.getdeb.net/ubuntu wily-getdeb games')
-        self.info('check contents of added file under /etc/apt/sources.list.d')
-        rc1, os_apt_sources, err1 = j.sal.process.execute("grep 'ubuntu wily-getdeb games' /etc/apt/sources.list.d/archive.getdeb.net.list")
-        self.info('verify file contents are contains deb keyword')
-        self.assertIn('deb', os_apt_sources)
-        self.info('remove created file by tested method')
+        self.info("adding new url to apt sources ")
+        self.ubuntu.apt_sources_uri_add("http://archive.getdeb.net/ubuntu wily-getdeb games")
+        self.info("check contents of added file under /etc/apt/sources.list.d")
+        rc1, os_apt_sources, err1 = j.sal.process.execute(
+            "grep 'ubuntu wily-getdeb games' /etc/apt/sources.list.d/archive.getdeb.net.list"
+        )
+        self.info("verify file contents are contains deb keyword")
+        self.assertIn("deb", os_apt_sources)
+        self.info("remove created file by tested method")
         j.sal.process.execute("rm /etc/apt/sources.list.d/archive.getdeb.net.list")
         if file_exist:
-            self.info('move the backuped file from /tmp to origin path')
+            self.info("move the backuped file from /tmp to origin path")
             j.sal.process.execute("mv /tmp/archive.getdeb.net.list /etc/apt/sources.list.d/")
 
     def test020_apt_upgrade(self):
@@ -443,17 +443,19 @@ class Test_Ubuntu(TestCase):
         #. if all packages are already upgraded before run our tested method and no need to upgrade any packages\
         they should be equal so i used GreaterEqual
         """
-        self.info('Get number of packages that need to be upgraded')
+        self.info("Get number of packages that need to be upgraded")
         rc1, upgradable_pack_before_upgrade, err1 = j.sal.process.execute(
-            "apt list --upgradable | grep -v 'Listing...'| wc -l")
+            "apt list --upgradable | grep -v 'Listing...'| wc -l"
+        )
         upgradable_pack_count_before_upgrade = int(upgradable_pack_before_upgrade.strip())
-        self.info('Run tested method to upgrade packages')
+        self.info("Run tested method to upgrade packages")
         self.ubuntu.apt_upgrade()
-        self.info('Get number of packages that need to be upgraded again after upgrade')
+        self.info("Get number of packages that need to be upgraded again after upgrade")
         rc2, upgradable_pack_after_upgrade, err2 = j.sal.process.execute(
-            "apt list --upgradable | grep -v 'Listing...'| wc -l")
+            "apt list --upgradable | grep -v 'Listing...'| wc -l"
+        )
         upgradable_pack_count_after_upgrade = int(upgradable_pack_after_upgrade.strip())
-        self.info('comparing the count of packages need to be upgraded before and after upgarde ')
+        self.info("comparing the count of packages need to be upgraded before and after upgarde ")
         self.assertGreaterEqual(upgradable_pack_count_before_upgrade, upgradable_pack_count_after_upgrade)
 
     def test021_check_os(self):
@@ -470,29 +472,29 @@ class Test_Ubuntu(TestCase):
         #. if OS version (number) is less than 14, RuntimeError gonna appear as Only ubuntu version 14+ supported
         """
 
-        self.info('Get os name by lsb_release command')
+        self.info("Get os name by lsb_release command")
         rc1, distro_name, err1 = j.sal.process.execute("lsb_release -i | awk '{print $3}'")
         distro1 = distro_name.strip()
-        self.info('Get release number (version) by lsb_release command')
+        self.info("Get release number (version) by lsb_release command")
         rc2, out2, err2 = j.sal.process.execute("lsb_release -r|awk '{print $2}'")
         distrbo_num = out2.strip()
-        release_num = float (distrbo_num)
-        self.info('Check OS name should be between Ubuntu or LinuxMint')
+        release_num = float(distrbo_num)
+        self.info("Check OS name should be between Ubuntu or LinuxMint")
         if distro1 in ("Ubuntu", "LinuxMint"):
-            self.info('OS is Ubuntu or LinuxMint, checking version should be greater than 14')
+            self.info("OS is Ubuntu or LinuxMint, checking version should be greater than 14")
             if release_num > 14:
-                self.info('verifying tested method should return True')
+                self.info("verifying tested method should return True")
                 self.assertTrue(self.ubuntu.check())
             else:
                 with self.assertRaises(j.exceptions.RuntimeError) as myexcept:
                     self.ubuntu.check()
-                    self.info('There is exceptions RuntimeError as Only ubuntu version 14+ supported')
-                    self.assertIn('Only ubuntu version 14+ supported', myexcept.exception.args[0])
+                    self.info("There is exceptions RuntimeError as Only ubuntu version 14+ supported")
+                    self.assertIn("Only ubuntu version 14+ supported", myexcept.exception.args[0])
         else:
             with self.assertRaises(j.exceptions.RuntimeError) as e:
                 self.ubuntu.check()
-                self.info('There is exceptions RuntimeError as the OS is not between Ubuntu or LinuxMint')
-                self.assertIn('Only Ubuntu/Mint supported',e.exception.args[0])
+                self.info("There is exceptions RuntimeError as the OS is not between Ubuntu or LinuxMint")
+                self.assertIn("Only Ubuntu/Mint supported", e.exception.args[0])
 
     def test022_deb_download_install(self):
         """TC418
@@ -507,21 +509,23 @@ class Test_Ubuntu(TestCase):
         #. Remove tcpdump to return to origin state
         #. Install tcpdump to return to origin state as we remove it before testing
         """
-        self.info('Check status of tcpdump is installed or not')
-        tcpdump_installed = j.sal.ubuntu.is_pkg_installed('tcpdump')
+        self.info("Check status of tcpdump is installed or not")
+        tcpdump_installed = j.sal.ubuntu.is_pkg_installed("tcpdump")
         if tcpdump_installed:
-            self.info('tcpdump is installed, removing it')
+            self.info("tcpdump is installed, removing it")
             j.sal.process.execute("apt remove -y tcpdump")
-        self.info('installed tcpdump again by tested method')
-        j.sal.ubuntu.deb_download_install("http://download.unesp.br/linux/debian/pool/main/t/tcpdump/tcpdump_4.9.2-3_amd64.deb")
-        self.info('Get tcpdump status should be installed successfully ')
-        rc2, out2, err2 = j.sal.process.execute('dpkg -s tcpdump|grep Status')
-        self.info('verify that tcpdump installed successfully')
-        self.assertIn('install ok',out2)
-        self.info('remove tcpdump to return to origin state')
+        self.info("installed tcpdump again by tested method")
+        j.sal.ubuntu.deb_download_install(
+            "http://download.unesp.br/linux/debian/pool/main/t/tcpdump/tcpdump_4.9.2-3_amd64.deb"
+        )
+        self.info("Get tcpdump status should be installed successfully ")
+        rc2, out2, err2 = j.sal.process.execute("dpkg -s tcpdump|grep Status")
+        self.info("verify that tcpdump installed successfully")
+        self.assertIn("install ok", out2)
+        self.info("remove tcpdump to return to origin state")
         j.sal.process.execute("apt remove -y tcpdump")
         if tcpdump_installed:
-            self.info('install tcpdump to return to origin state as we remove it before testing ')
+            self.info("install tcpdump to return to origin state as we remove it before testing ")
             j.sal.process.execute("apt install -y tcpdump")
 
     def test023_pkg_remove(self):
@@ -535,17 +539,17 @@ class Test_Ubuntu(TestCase):
         #. Verify package has been removed by tested method
         #. Remove tcpdump to return to origin state
         """
-        self.info('Check the tcpdump is installed or not')
-        tcpdump_already_installed = j.sal.ubuntu.is_pkg_installed('tcpdump')
+        self.info("Check the tcpdump is installed or not")
+        tcpdump_already_installed = j.sal.ubuntu.is_pkg_installed("tcpdump")
         if not tcpdump_already_installed:
-            self.info('tcpdump not installed, installing it ')
+            self.info("tcpdump not installed, installing it ")
             j.sal.process.execute("apt install -y tcpdump")
-        self.info('remove tcpdump by tested method pkg_remove')
-        j.sal.ubuntu.pkg_remove('tcpdump')
-        self.info('verify package has been removed by tested method')
-        self.assertFalse(j.sal.ubuntu.is_pkg_installed('tcpdump'))
+        self.info("remove tcpdump by tested method pkg_remove")
+        j.sal.ubuntu.pkg_remove("tcpdump")
+        self.info("verify package has been removed by tested method")
+        self.assertFalse(j.sal.ubuntu.is_pkg_installed("tcpdump"))
         if not tcpdump_already_installed:
-            self.info('remove tcpdump to return to origin state')
+            self.info("remove tcpdump to return to origin state")
             j.sal.process.execute("apt remove -y tcpdump")
 
     def test024_service_disable_start_boot(self):
@@ -560,20 +564,22 @@ class Test_Ubuntu(TestCase):
         #. Enable cron service to create service file to return as origin state
         #. Disable cron service as cron service does not exist before testing to return back to origin state
         """
-        self.info('check cron file link exist or not ')
-        cron_file_exist = os.path.exists('/etc/rc5.d/S01cron')
+        self.info("check cron file link exist or not ")
+        cron_file_exist = os.path.exists("/etc/rc5.d/S01cron")
         if not cron_file_exist:
-            self.info('file does not exist, enable service so file will created')
-            self.ubuntu.service_enable_start_boot('cron')
-        self.info('disable cron service by using tested method service_disable_start_boot ')
-        self.ubuntu.service_disable_start_boot('cron')
-        self.info('verify that file does not exist after disable cron service')
-        self.assertFalse(os.path.exists('/etc/rc5.d/S01cron'))
-        self.info('enable cron service to create service file to return as origin state')
-        self.ubuntu.service_enable_start_boot('cron')
+            self.info("file does not exist, enable service so file will created")
+            self.ubuntu.service_enable_start_boot("cron")
+        self.info("disable cron service by using tested method service_disable_start_boot ")
+        self.ubuntu.service_disable_start_boot("cron")
+        self.info("verify that file does not exist after disable cron service")
+        self.assertFalse(os.path.exists("/etc/rc5.d/S01cron"))
+        self.info("enable cron service to create service file to return as origin state")
+        self.ubuntu.service_enable_start_boot("cron")
         if not cron_file_exist:
-            self.info('disable cron service as cron service does not exist before testing to return back to origin state')
-            self.ubuntu.service_disable_start_boot('cron')
+            self.info(
+                "disable cron service as cron service does not exist before testing to return back to origin state"
+            )
+            self.ubuntu.service_disable_start_boot("cron")
 
     def test025_service_enable_start_boot(self):
         """TC421
@@ -588,21 +594,21 @@ class Test_Ubuntu(TestCase):
         #. Verify cron file is exist after enabling service
         #. Return back the backup file to origin path
         """
-        self.info('check cron file link exist or not ')
-        cron_file_exist = os.path.exists('/etc/rc5.d/S01cron')
+        self.info("check cron file link exist or not ")
+        cron_file_exist = os.path.exists("/etc/rc5.d/S01cron")
         if cron_file_exist:
-            self.info('file exist,backup service file to /tmp before disabling it')
+            self.info("file exist,backup service file to /tmp before disabling it")
             j.sal.process.execute("cp /etc/rc5.d/S01cron /tmp")
-            self.info('disable service at boot')
-            self.ubuntu.service_disable_start_boot('cron')
-            self.info('Verify that file does not eixst after disabling service ')
-            self.assertFalse(os.path.exists('/etc/rc5.d/S01cron'))
-        self.info('enable service at boot again to check tested method ')
-        self.ubuntu.service_enable_start_boot('cron')
-        self.info('Verify cron file is exist after enabling service')
-        self.assertTrue(os.path.exists('/etc/rc5.d/S01cron'))
+            self.info("disable service at boot")
+            self.ubuntu.service_disable_start_boot("cron")
+            self.info("Verify that file does not eixst after disabling service ")
+            self.assertFalse(os.path.exists("/etc/rc5.d/S01cron"))
+        self.info("enable service at boot again to check tested method ")
+        self.ubuntu.service_enable_start_boot("cron")
+        self.info("Verify cron file is exist after enabling service")
+        self.assertTrue(os.path.exists("/etc/rc5.d/S01cron"))
         if cron_file_exist:
-            self.info('retrun back the backup file to origin path')
+            self.info("retrun back the backup file to origin path")
             j.sal.process.execute("cp /tmp/S01cron /etc/rc5.d/S01cron ")
 
     def test026_service_uninstall(self):
@@ -620,43 +626,43 @@ class Test_Ubuntu(TestCase):
         """
         mysys = None
         zdb_service_file = False
-        self.info('installing zdb from builder')
+        self.info("installing zdb from builder")
         j.builders.db.zdb.install()
-        self.info('checking system is systemd or not ')
+        self.info("checking system is systemd or not ")
         mysys = self._check_init_process()
-        if mysys == 'my_init':
-            self.info('system is init system')
-            zdb_service_file = os.path.exists('/etc/service/zdb/run')
-        elif mysys == 'systemd':
-            self.info('system is init systemd')
-            zdb_service_file = os.path.exists('/etc/systemd/system/zdb.service')
+        if mysys == "my_init":
+            self.info("system is init system")
+            zdb_service_file = os.path.exists("/etc/service/zdb/run")
+        elif mysys == "systemd":
+            self.info("system is init systemd")
+            zdb_service_file = os.path.exists("/etc/systemd/system/zdb.service")
         else:
-            self.info('something unexpected occurred while checking system type')
+            self.info("something unexpected occurred while checking system type")
             self.assertIn(mysys, ["systemd", "my_init"], "system not supported ")
         if zdb_service_file is False:
-            self.info('zdb service file config does not exist, install service so config file will created ')
-            self.ubuntu.service_install('zdb', '/sandbox/bin')
-        self.info('backup the config file to /tmp before testing ')
-        if mysys == 'my_init':
+            self.info("zdb service file config does not exist, install service so config file will created ")
+            self.ubuntu.service_install("zdb", "/sandbox/bin")
+        self.info("backup the config file to /tmp before testing ")
+        if mysys == "my_init":
             j.sal.process.execute("cp /etc/service/zdb/run /tmp/run_zdb")
         else:
             j.sal.process.execute("cp /etc/systemd/system/zdb.service /tmp")
 
-        self.info('uninstall service to test tested method service_uninstall')
-        self.ubuntu.service_uninstall('zdb')
-        self.info('Verify the zdb config file does not exist after uninstalling service ')
-        if mysys == 'my_init':
-            self.assertFalse(os.path.exists('/etc/service/zdb/run'))
+        self.info("uninstall service to test tested method service_uninstall")
+        self.ubuntu.service_uninstall("zdb")
+        self.info("Verify the zdb config file does not exist after uninstalling service ")
+        if mysys == "my_init":
+            self.assertFalse(os.path.exists("/etc/service/zdb/run"))
         else:
-            self.assertFalse(os.path.exists('/etc/systemd/system/zdb.service'))
-        self.info('return back backup file to orgin path after testing ')
-        if mysys == 'my_init':
+            self.assertFalse(os.path.exists("/etc/systemd/system/zdb.service"))
+        self.info("return back backup file to orgin path after testing ")
+        if mysys == "my_init":
             j.sal.process.execute("cp /tmp/run_zdb /etc/service/zdb/run ")
         else:
             j.sal.process.execute("cp /tmp/zdb.service /etc/systemd/system/zdb.service ")
         if zdb_service_file is False:
-            self.info('remove service config file to return back to origin state')
-            if mysys == 'my_init':
+            self.info("remove service config file to return back to origin state")
+            if mysys == "my_init":
                 j.sal.process.execute("rm /etc/service/zdb/run")
             else:
                 j.sal.process.execute("rm /etc/systemd/system/zdb.service")
@@ -671,12 +677,13 @@ class Test_Ubuntu(TestCase):
         #. Comapre step1 and step2, should be identical
 
         """
-        self.info('checking whoami method output')
+        self.info("checking whoami method output")
         sal_user = self.ubuntu.whoami()
-        self.info('checking OS whoami command output')
+        self.info("checking OS whoami command output")
         rc2, os_user, err2 = j.sal.process.execute("whoami")
-        self.info('comparing  whoami method output vs OS whoami command output')
+        self.info("comparing  whoami method output vs OS whoami command output")
         self.assertEquals(os_user.strip(), sal_user)
+
 
 def main(self=None):
     """

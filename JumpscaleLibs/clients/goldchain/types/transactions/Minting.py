@@ -520,14 +520,14 @@ class TransactionV130(TransactionBaseClass):
 
     def _from_json_data_object(self, data):
         self._coin_inputs = [CoinInput.from_json(ci) for ci in data.get("coininputs", []) or []]
-        self._coin_outputs = [CoinOutput.from_json(co) for co in data.get('coinoutputs', []) or []]
+        self._coin_outputs = [CoinOutput.from_json(co) for co in data.get("coinoutputs", []) or []]
         self._miner_fees = [Currency.from_json(fee) for fee in data.get("minerfees", []) or []]
         self._data = BinaryData.from_json(data.get("arbitrarydata", None) or "", strencoding="base64")
 
     def _json_data_object(self):
         return {
             "coininputs": [ci.json() for ci in self.coin_inputs],
-            'coinoutputs': [co.json() for co in self._coin_outputs],
+            "coinoutputs": [co.json() for co in self._coin_outputs],
             "minerfees": [fee.json() for fee in self.miner_fees],
             "arbitrarydata": self.data.json(),
         }
