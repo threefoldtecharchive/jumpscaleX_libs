@@ -68,7 +68,7 @@ class DocSite(j.baseclasses.object):
         repo_meta = j.sal.bcdbfs.file_read(meta_path).decode()
         repo_data = j.data.serializers.json.loads(repo_meta)
         repo_args = j.clients.git.getGitRepoArgs(repo_data["repo"])
-        path = repo_args[-3]
+        path = j.sal.fs.joinPaths(repo_args[-3], repo_data.get("base_path", ""))
 
         return cls(name=name, path=path)
 
@@ -642,9 +642,17 @@ class DocSite(j.baseclasses.object):
 
     __str__ = __repr__
 
+    @property
+    def base_path(self):
+        try:
+            repo_path = j.clients.git.findGitPath(self.path)
+            return self.path[len(repo_path) :].lstrip("/")
+        except j.exceptions.Input:
+            return ""
+
     def write_metadata(self):
         # Create file with extra content to be loaded in docsites
-        data = {"name": self.name, "repo": ""}
+        data = {"name": self.name, "repo": "", "base_path": self.base_path}
 
         if self.git:
             data["repo"] = "https://github.com/%s/%s" % (self.account, self.repo)
