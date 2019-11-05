@@ -53,13 +53,13 @@ class HTMLFactory(j.baseclasses.object_config_collection_testtools):
 
     def webparts_enable(self, url=""):
         """
-        will load webparts from https://github.com/threefoldtech/jumpscale_weblibs/tree/master/webparts if not url defined
+        will load webparts from https://github.com/threefoldtech/jumpscaleX_weblibs/tree/master/webparts if not url defined
 
         each webpart is an add function to manipulate the html page object
 
         """
         if not url:
-            url = "https://github.com/threefoldtech/jumpscale_weblibs/tree/master/webparts"
+            url = "https://github.com/threefoldtech/jumpscaleX_weblibs/tree/master/webparts"
         if url in self._webparts_done:
             return
         path = j.clients.git.getContentPathFromURLorPath(url)

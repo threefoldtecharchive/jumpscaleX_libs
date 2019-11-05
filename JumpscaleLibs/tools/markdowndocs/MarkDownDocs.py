@@ -345,7 +345,7 @@ class MarkDownDocs(j.baseclasses.object):
         raise j.exceptions.Base("no longer ok, need to use j.servers.openresty")
         url = "https://github.com/threefoldtech/OpenPublish"
         server_path = j.clients.git.getContentPathFromURLorPath(url)
-        url = "https://github.com/threefoldtech/jumpscale_weblibs"
+        url = "https://github.com/threefoldtech/jumpscaleX_weblibs"
         weblibs_path = j.clients.git.getContentPathFromURLorPath(url)
         j.sal.fs.symlink(
             "{}/static".format(weblibs_path), "{}/static/weblibs".format(server_path), overwriteTarget=False
