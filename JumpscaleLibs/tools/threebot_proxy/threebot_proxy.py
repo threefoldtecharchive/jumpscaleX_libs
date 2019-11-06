@@ -85,6 +85,7 @@ class ThreebotProxy(j.baseclasses.object):
         if not result["email"]["verified"]:
             return abort(400, "Email not verified")
 
+        self.session["username"] = username
         self.session["email"] = result["email"]["email"]
         self.session["authorized"] = True
         return redirect(self.next_url)
