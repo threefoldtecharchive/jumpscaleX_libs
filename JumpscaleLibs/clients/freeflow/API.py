@@ -16,30 +16,10 @@ class UserAPI(Api):
         self,
         username,
         email,
-        password,
-        firstname,
-        lastname,
-        title=None,
-        gender=None,
-        street=None,
-        city=None,
-        country=None,
-        zip=None,
     ):
 
         data = {
             "account": {"username": username, "email": email},
-            "profile": {
-                "firstname": firstname,
-                "lastname": lastname,
-                "title": title,
-                "gender": gender,
-                "street": street,
-                "city": city,
-                "zip": zip,
-                "country": Country.get_code(country),
-            },
-            "password": {"newPassword": password},
         }
 
         return self.request.post("/user", data)
