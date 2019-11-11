@@ -54,11 +54,11 @@ class SendGridClient(j.baseclasses.object_config):
         if attachments is None:
             attachments = []
 
-        sg = sendgrid.SendGridAPIClient(apikey=self.apikey)
-        from_email = Email(sender)
-        to_email = Email(recipients[0])
+        sg = sendgrid.SendGridAPIClient(api_key=self.apikey)
+        from_email = sender
+        to_email = recipients[0]
         content = Content(message_type, message)
-        mail = Mail(from_email, subject, to_email, content)
+        mail = Mail(from_email=from_email, subject=subject, to_emails=to_email, html_content=content)
 
         to = list(set(recipients))  # no duplicates.
         if len(to) > 1:
