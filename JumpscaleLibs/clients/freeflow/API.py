@@ -13,9 +13,7 @@ class UserAPI(Api):
         return self.request.get("/user", q=query)
 
     def create(
-        self,
-        username,
-        email,
+        self, username, email,
     ):
 
         data = {
