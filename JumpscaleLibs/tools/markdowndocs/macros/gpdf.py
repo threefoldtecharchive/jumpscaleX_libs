@@ -1,12 +1,7 @@
 import re
 
-PDF_URL = {
-    "document": "https://docs.google.com/document/d/{file_id}/export?format=pdf",
-    "presentation": "https://docs.google.com/presentation/d/{file_id}/export/pdf",
-    "spreadsheets": "https://docs.google.com/spreadsheets/d/{file_id}/export?format=pdf",
-}
 
-ID_REGEX = r"([a-zA-Z]+)\/d\/([a-zA-Z0-9-_]+)"
+DOC_INFO_REGEX = r"([a-zA-Z]+)\/d\/([a-zA-Z0-9-_]+)"
 
 
 def gpdf(doc, link, **kwargs):
@@ -22,12 +17,16 @@ def gpdf(doc, link, **kwargs):
     j = doc.docsite._j
 
     link = link.strip()
-    match = re.search(ID_REGEX, link)
+    match = re.search(DOC_INFO_REGEX, link)
     if match:
         doc_type, file_id = match.groups()
-        if doc_type not in PDF_URL:
-            raise j.exceptions.Value(f"{doc_type} is not a supported document type")
+        if doc_type not in ("document", "spreadsheets", "presentation"):
+            raise j.exceptions.Value(f"{doc_type} is not a supported document type ()")
 
-        pdf_link = PDF_URL[doc_type].format(file_id=file_id)
-        return f"[download as pdf]({pdf_link})"
+        pdf_link = f"/wiki/gdrive/{doc_type}/{file_id}"
+        # normal markdown links will be resolved by docsify, won't work
+        return f"""```inline_html
+            <a href="{pdf_link}">download as pdf</a>
+        ```
+        """
     raise j.exceptions.Value(f"cannot extract document type of id from an invalid link '{link}''")
