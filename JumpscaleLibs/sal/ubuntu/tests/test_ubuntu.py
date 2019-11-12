@@ -135,7 +135,7 @@ class Test_Ubuntu(TestCase):
         if wget_installed is True:
             self.info("uninstall wget to test install method  ")
         self.info("installing wget with version 1.19.4")
-        self.ubuntu.apt_install_version("wget", "1.19.4-1ubuntu2.2")
+        self.ubuntu.apt_install_version("wget", "1.19.4-1ubuntu2")
         self.info("checking installed wget version ")
         rc, out, err = j.sal.process.execute("wget -V", useShell=True)
         self.info("verifying installed wget version is 1.19.4")
