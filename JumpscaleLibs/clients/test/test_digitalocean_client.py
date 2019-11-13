@@ -31,7 +31,7 @@ class DigitalOceanClient(BaseTest):
         pro_list = []
         for project in cls.DO_CLIENT.projects:
             pro_list.append(project.name)
-        DELETEME_DO_TEST_PRO = [project for project in pro_list if 'DELETEME_DO_TEST' in project]
+        DELETEME_DO_TEST_PRO = [project for project in pro_list if "DELETEME_DO_TEST" in project]
         cls.info("delete all droplets in DELETEME_DO_TEST project")
         for project in DELETEME_DO_TEST_PRO:
             cls.info("delete all droplets in {} project".format(project))
@@ -68,7 +68,7 @@ class DigitalOceanClient(BaseTest):
             size_slug="s-1vcpu-2gb",
             sshkey=self.ssh_key,
             delete=delete_option,
-            project_name=project_name
+            project_name=project_name,
         )
         if test_create_first:
             self.info("grep first process_id, ip and port")
@@ -97,7 +97,9 @@ class DigitalOceanClient(BaseTest):
         self.info("check that droplet is created correctly, ssh to the machine, and ping google and check the output")
         output, error = self.os_command(
             'ssh -o "StrictHostKeyChecking no" root@{} -p {} \
-                                                     "ping -c 1 google.com"'.format(ip, port)
+                                                     "ping -c 1 google.com"'.format(
+                ip, port
+            )
         )
         if "0% packet loss" in output.decode():
             self.info("try to create a file and check the existence of this file")
@@ -123,7 +125,7 @@ class DigitalOceanClient(BaseTest):
         :return: bool.
         """
         self.info("create a project with {} name".format(project_name))
-        self.DO_CLIENT.project_create(project_name, "testing", description='testing project', is_default=is_default)
+        self.DO_CLIENT.project_create(project_name, "testing", description="testing project", is_default=is_default)
         self.info("use projects method to check the project existsnce in project list")
         projects = []
         for project in self.DO_CLIENT.projects:
@@ -229,9 +231,11 @@ class DigitalOceanClient(BaseTest):
         #. try to exist a droplet with random name.
         """
         droplet_name = "BLABLABLA_{}".format(randint(1, 1000))
-        self.info("try to check if there is droplet with name {} using droplet_exists method, it shouldn't be exists"
-                  .format(droplet_name)
-                  )
+        self.info(
+            "try to check if there is droplet with name {} using droplet_exists method, it shouldn't be exists".format(
+                droplet_name
+            )
+        )
         self.assertFalse(self.DO_CLIENT.droplet_exists(droplet_name))
 
     def test006_droplet_get_with_an_exists_name(self):
@@ -262,9 +266,11 @@ class DigitalOceanClient(BaseTest):
         #. try to get a droplet with random name.
         """
         droplet_name = "BLABLABLA_{}".format(randint(1, 1000))
-        self.info("try to check if there is droplet with name {} using droplet_get method, it shouldn't be exists"
-                  .format(droplet_name)
-                  )
+        self.info(
+            "try to check if there is droplet with name {} using droplet_get method, it shouldn't be exists".format(
+                droplet_name
+            )
+        )
         with self.assertRaises(Exception):
             self.DO_CLIENT.droplet_get(droplet_name)
 
@@ -319,8 +325,11 @@ class DigitalOceanClient(BaseTest):
             droplet_name_list.append(droplet_name)
         self.info("check that droplets are delete correctly")
         self.DO_CLIENT.droplets_all_delete(project=self.project_name, interactive=False)
-        self.info("use droplet_get method to check that droplet_all_delete method delete all droplets in {} project"
-                  .format(self.project_name))
+        self.info(
+            "use droplet_get method to check that droplet_all_delete method delete all droplets in {} project".format(
+                self.project_name
+            )
+        )
         time.sleep(30)
         for ip in ips:
             output, error = self.os_command("ping -c 5 {}".format(ip))
@@ -336,11 +345,11 @@ class DigitalOceanClient(BaseTest):
         #. check that the command is executed without any error, and the output equal to '18.04.3 (LTS) x64'.
         """
         self.info("get the image name with 'ubuntu 18.04' name")
-        image_get = self.DO_CLIENT.image_get('ubuntu 18.04')
+        image_get = self.DO_CLIENT.image_get("ubuntu 18.04")
         self.info("check that the command is executed without any error")
         self.assertTrue(image_get)
         self.info("the output equal to '18.04.3 (LTS) x64'.")
-        self.assertEqual('18.04.3 (LTS) x64', image_get.name)
+        self.assertEqual("18.04.3 (LTS) x64", image_get.name)
 
     def test011_image_get_with_non_exist_name(self):
         """
@@ -366,7 +375,7 @@ class DigitalOceanClient(BaseTest):
         """
         self.info("use image_names_get method to get all image names")
         image_list = self.DO_CLIENT.image_names_get()
-        self.assertIn('CoreOS 2247.5.0 (stable)', image_list)
+        self.assertIn("CoreOS 2247.5.0 (stable)", image_list)
 
     def test013_droplets_list_without_project_name(self):
         """
@@ -421,7 +430,7 @@ class DigitalOceanClient(BaseTest):
         self.assertNotEqual(self.DO_CLIENT.droplets_list(project=self.project_name), self.DO_CLIENT.droplets)
         self.info("check the new 2 created droplets are in the output of droplets_list")
         droplets_name = []
-        for droplet in (self.DO_CLIENT.droplets_list(project=self.project_name)):
+        for droplet in self.DO_CLIENT.droplets_list(project=self.project_name):
             droplets_name.append(droplet.name)
         self.assertListEqual(sorted(droplets_name), sorted(droplet_name_list))
 
@@ -441,8 +450,14 @@ class DigitalOceanClient(BaseTest):
         droplet_name = "Droplet-{}".format(self.RAND)
         self.info("create a new droplet {} ".format(droplet_name))
         self.info("create a new droplet with name {},and check if it created correctly or not".format(droplet_name))
-        test_create_first = self.DO_CLIENT.droplet_create(name=droplet_name, region="Amsterdam 3", image="ubuntu 18.04",
-                                                          size_slug="s-1vcpu-2gb", sshkey=self.ssh_key, delete=True)
+        test_create_first = self.DO_CLIENT.droplet_create(
+            name=droplet_name,
+            region="Amsterdam 3",
+            image="ubuntu 18.04",
+            size_slug="s-1vcpu-2gb",
+            sshkey=self.ssh_key,
+            delete=True,
+        )
         self.info("check the process_id to make sure that the droplet is created correctly")
         self.assertTrue(test_create_first[0].id)
         ip = test_create_first[1].addr
@@ -466,8 +481,9 @@ class DigitalOceanClient(BaseTest):
         droplet_name = "Droplet-{}".format(self.RAND)
         self.info("create a new droplet {} ".format(droplet_name))
         self.info("create a new droplet with name {},and check if it created correctly or not".format(droplet_name))
-        test_create_first = self.DO_CLIENT.droplet_create(name=droplet_name, region="Amsterdam 3", image="ubuntu 18.04",
-                                                          size_slug="s-1vcpu-2gb", sshkey=self.ssh_key)
+        test_create_first = self.DO_CLIENT.droplet_create(
+            name=droplet_name, region="Amsterdam 3", image="ubuntu 18.04", size_slug="s-1vcpu-2gb", sshkey=self.ssh_key
+        )
         self.info("check the process_id to make sure that the droplet is created correctly")
         self.assertTrue(test_create_first[0].id)
         ip = test_create_first[1].addr
@@ -491,7 +507,7 @@ class DigitalOceanClient(BaseTest):
         self.assertTrue(self.project_create(project_name, False))
         self.info("recreate a project {} again".format(project_name))
         with self.assertRaises(Exception):
-            self.DO_CLIENT.project_create(project_name, "testing", description='testing project',  is_default=False)
+            self.DO_CLIENT.project_create(project_name, "testing", description="testing project", is_default=False)
 
     def test019_projects(self):
         """
@@ -647,7 +663,7 @@ class DigitalOceanClient(BaseTest):
         self.info("check that the command is executed without any error")
         self.assertTrue(region)
         self.info("the region name equal to 'Amsterdam 3'")
-        self.assertEqual('Amsterdam 3', region.name)
+        self.assertEqual("Amsterdam 3", region.name)
 
     def test028_region_get_with_non_exist_name(self):
         """
