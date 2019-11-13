@@ -55,7 +55,7 @@ class GDriveClient(JSConfigClient):
             file.exportPDF(path=destpath)
             return True
 
-        return self._cache.get("exportFile_{}".format(file_id), method=do, expire=300)
+        return self._cache.get("exportFile_{}_{}".format(file_id, destpath), method=do, expire=300)
 
     def exportSlides(self, presentation, destpath="/tmp", staticdir=None, size="MEDIUM"):
         def do():
@@ -79,7 +79,7 @@ class GDriveClient(JSConfigClient):
                 j.sal.fs.moveDir(presentation_dir, staticdir)
             return True
 
-        return self._cache.get("exportSlides_{}".format(presentation), method=do, expire=300)
+        return self._cache.get("exportSlides_{}_{}".format(presentation, destpath), method=do, expire=300)
 
     def export_slides_with_ranges(self, presentation, destpath="/tmp", staticdir=None, size="MEDIUM"):
         def do():
