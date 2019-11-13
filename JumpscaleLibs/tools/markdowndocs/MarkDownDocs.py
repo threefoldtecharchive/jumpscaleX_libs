@@ -169,8 +169,8 @@ class MarkDownDocs(j.baseclasses.object):
         # else:
         #     self._log_debug("macros not loaded, already there")
 
-    def find_docs_path(self, path):
-        """try to find docs path inside a given repo path and return it if exists
+    def find_docs_path(self, path, base_path):
+        """try to find docs path from base_path inside a given repo path and return it if exists
 
         :param path: repo path, e.g. `/sandbox/code/github/threefoldfoundation/info_foundation`
         :type path: str
@@ -179,12 +179,12 @@ class MarkDownDocs(j.baseclasses.object):
         if not gitpath or gitpath != path:
             return path
 
-        docs_path = j.sal.fs.joinPaths(path, 'docs')
+        docs_path = j.sal.fs.joinPaths(path, base_path)
         if j.sal.fs.exists(docs_path):
             return docs_path
         return path
 
-    def load(self, path="", name="", sonic_client=None, pull=False, download=False):
+    def load(self, path="", name="", base_path="docs", pull=False, download=False):
         self.macros_load()
         if path.startswith("http"):
             # check if we already have a git repo, then the current checked-out branch
@@ -196,8 +196,8 @@ class MarkDownDocs(j.baseclasses.object):
                 # replace branch with current one
                 current_branch = j.clients.git.getCurrentBranch(repo_dest)
                 path = Linker.replace_branch(path, current_branch, host)
-            path = self.find_docs_path(j.clients.git.getContentPathFromURLorPath(path, pull=pull))
-        ds = DocSite(path=path, name=name, sonic_client=sonic_client or self._sonic_client)
+            path = self.find_docs_path(j.clients.git.getContentPathFromURLorPath(path, pull=pull), base_path)
+        ds = DocSite(path=path, name=name)
         self.docsites[ds.name] = ds
         return self.docsites[ds.name]
 
