@@ -81,6 +81,9 @@ class DocSite(j.baseclasses.object):
             if gitpath not in self.docgen._git_repos:
                 self._git = j.tools.markdowndocs._git_get(gitpath)
                 self.docgen._git_repos[gitpath] = self.git
+
+        if not self._git:
+            self._log_debug(f"docsite of {self.path} has not git repo")
         return self._git
         # MARKER FOR INCLUDE TO STOP  (HIDE)
 
