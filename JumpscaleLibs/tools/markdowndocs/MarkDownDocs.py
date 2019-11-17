@@ -172,7 +172,7 @@ class MarkDownDocs(j.baseclasses.object):
     def find_docs_path(self, path, base_path):
         """try to find docs path from base_path inside a given repo path and return it if exists
 
-        :param path: repo path, e.g. `/sandbox/code/github/threefoldfoundation/info_foundation`
+        :param path: repo path, e.g. `{DIR_BASE}/code/github/threefoldfoundation/info_foundation`
         :type path: str
         """
         gitpath = j.clients.git.findGitPath(path)
@@ -467,3 +467,4 @@ class MarkDownDocs(j.baseclasses.object):
         ds7.write()
 
         print("TEST FOR MARKDOWN PREPROCESSING IS DONE")
+

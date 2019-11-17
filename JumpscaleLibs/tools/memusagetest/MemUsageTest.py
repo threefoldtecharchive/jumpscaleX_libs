@@ -34,7 +34,7 @@ class MemUsageTest(j.baseclasses.object):
         kosmos 'j.tools.memusagetest.test_redis_lua_perf()'
 
         FOR RDM:
-        socat -v tcp-l:6379,reuseaddr,fork unix:/sandbox/var/redis.sock
+        socat -v tcp-l:6379,reuseaddr,fork unix:{DIR_BASE}/var/redis.sock
 
         """
 
@@ -340,4 +340,5 @@ class MemUsageTest(j.baseclasses.object):
         w
 
         hv = j.world.hypervisor
+
 

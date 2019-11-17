@@ -88,12 +88,8 @@ class Fixer(j.baseclasses.object):
 
         def process(path, arg):
             C = j.sal.fs.readFile(path)
-            # C = """
-            # j.core.tools.text_replace("{DIR_BASE}/test")
-            # (j.core.tools.text_replace("{DIR_BASE}/test2"))
-            # ( j.core.tools.text_replace("{DIR_BASE}/test2 "))
-            # """
-            p = re.compile(r"[\"']/sandbox(.*)[\"']")
+            # p = re.compile(r"[\"']/sandbox(.*)[\"']")
+            p = re.compile(r"/sandbox")
             result = p.search(C)
             changed = False
             if result and C.find("from Jumpscale import j") != -1:
@@ -102,12 +98,14 @@ class Fixer(j.baseclasses.object):
                 cont = True
                 for line in C.split("\n"):
                     result = p.search(line)
-                    if result and len(result.groups()) == 1:  # should only find 1
+                    if result:  # and len(result.groups()) == 1:  # should only find 1
                         found = result.string[result.start() : result.end()]
-                        m = result.groups()[0]
-                        m.replace("'", '"')
+                        if len(result.groups()) == 1:
+                            m = result.groups()[0]
+                            m.replace("'", '"')
                         print("FROM: %s" % line)
-                        line2 = line.replace(found, 'j.core.tools.text_replace("{DIR_BASE}%s")' % m)
+                        # line2 = line.replace(found, 'j.core.tools.text_replace("{DIR_BASE}%s")' % m)
+                        line2 = line.replace(found, "{DIR_BASE}")
                         print("TO  : %s" % line2)
                         if cont:
                             cont = j.tools.console.askYesNo("Ok to replace?", default=True)
@@ -125,4 +123,3 @@ class Fixer(j.baseclasses.object):
 
         path = j.core.tools.text_replace("{DIR_CODE}/github/threefoldtech")
         j.sal.fswalker.walkFunctional(path, callbackFunctionFile=process, callbackForMatchFile=callbackForMatchFile)
-
