@@ -4,6 +4,7 @@ import fnmatch
 from pathlib import Path
 from Jumpscale.core.generator.JSGenerator import *
 from .FixerReplace import FixerReplacer
+import re
 
 # ACTIONS
 ## R = Replace
@@ -78,3 +79,41 @@ class Fixer(j.baseclasses.object):
     def line_process(self, line):
         # self._log_debug("lineprocess:%s"%line)
         return self.replacer.line_process(line)
+
+    def sandbox_replacer(self):
+        """
+        kosmos 'j.tools.fixer.sandbox_replacer()'
+        BE CAREFULL THIS WILL WRITE THE CHANGES
+        """
+
+        def process(path, arg):
+            C = j.sal.fs.readFile(path)
+            # C = """
+            # "/sandbox/test"
+            # ("/sandbox/test2")
+            # ( '/sandbox/test2 ')
+            # """
+            p = re.compile(r"[\"']/sandbox(.*)[\"']")
+            result = p.search(C)
+            if result and C.find("from Jumpscale import j") != -1:
+                self._log_debug(path)
+                out = ""
+                for line in C.split("\n"):
+                    result = p.search(line)
+                    if result and len(result.groups()) == 1:  # should only find 1
+                        found = result.string[result.start() : result.end()]
+                        m = result.groups()[0]
+                        m.replace("'", '"')
+                        line = line.replace(found, 'j.core.tools.text_replace("{DIR_BASE}%s")' % m)
+                    out += line + "\n"
+                print(out)
+                j.shell()
+                w
+
+        def callbackForMatchFile(path, arg):
+            if path.lower().endswith(".py"):
+                if path.lower().find("installtools") == -1:
+                    return True
+
+        path = j.core.tools.text_replace("{DIR_CODE}/github/threefoldtech")
+        j.sal.fswalker.walkFunctional(path, callbackFunctionFile=process, callbackForMatchFile=callbackForMatchFile)

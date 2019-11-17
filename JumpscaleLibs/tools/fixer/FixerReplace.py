@@ -22,7 +22,6 @@ RI| self.prefab.core.run | j.sal.process.execute
 RI| self.prefab.core.createDir | j.sal.fs.createDir
 RI| self.prefab.core.file_download | self.prefab.core.file_download
 RI| self.prefab.system.package.install | j.builders.system.package.ensure
-
 """
 
 ERRORS = """
