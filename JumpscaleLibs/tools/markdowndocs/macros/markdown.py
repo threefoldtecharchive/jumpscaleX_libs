@@ -2,7 +2,7 @@ from Jumpscale import j
 from JumpscaleLibs.tools.googleslides.slides2html.google_links_utils import get_document_id
 
 
-CRED_FILE_PATH = "/sandbox/var/cred.json"
+CRED_FILE_PATH = j.core.tools.text_replace("{DIR_BASE}/var/cred.json")
 
 
 def markdown(doc, url, **kwargs):
@@ -19,3 +19,4 @@ def markdown(doc, url, **kwargs):
 
     output += ""
     return output
+

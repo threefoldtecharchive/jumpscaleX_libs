@@ -48,7 +48,7 @@ class MemUsageTest(j.baseclasses.object):
 
             from credis import Connection
 
-            r = Connection(path="/sandbox/var/redis.sock")
+            r = Connection(path=j.core.tools.text_replace("{DIR_BASE}/var/redis.sock"))
             r.connect()
             assert r.execute(b"PING") == b"PONG"
 
@@ -340,3 +340,4 @@ class MemUsageTest(j.baseclasses.object):
         w
 
         hv = j.world.hypervisor
+

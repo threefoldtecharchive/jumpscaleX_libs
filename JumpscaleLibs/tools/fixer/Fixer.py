@@ -89,26 +89,34 @@ class Fixer(j.baseclasses.object):
         def process(path, arg):
             C = j.sal.fs.readFile(path)
             # C = """
-            # "/sandbox/test"
-            # ("/sandbox/test2")
-            # ( '/sandbox/test2 ')
+            # j.core.tools.text_replace("{DIR_BASE}/test")
+            # (j.core.tools.text_replace("{DIR_BASE}/test2"))
+            # ( j.core.tools.text_replace("{DIR_BASE}/test2 "))
             # """
             p = re.compile(r"[\"']/sandbox(.*)[\"']")
             result = p.search(C)
+            changed = False
             if result and C.find("from Jumpscale import j") != -1:
-                self._log_debug(path)
+                print("- " + path)
                 out = ""
+                cont = True
                 for line in C.split("\n"):
                     result = p.search(line)
                     if result and len(result.groups()) == 1:  # should only find 1
                         found = result.string[result.start() : result.end()]
                         m = result.groups()[0]
                         m.replace("'", '"')
-                        line = line.replace(found, 'j.core.tools.text_replace("{DIR_BASE}%s")' % m)
+                        print("FROM: %s" % line)
+                        line2 = line.replace(found, 'j.core.tools.text_replace("{DIR_BASE}%s")' % m)
+                        print("TO  : %s" % line2)
+                        if cont:
+                            cont = j.tools.console.askYesNo("Ok to replace?", default=True)
+                        if cont:
+                            line = line2
+                            changed = True
                     out += line + "\n"
-                print(out)
-                j.shell()
-                w
+                if changed:
+                    j.sal.fs.writeFile(path, out)
 
         def callbackForMatchFile(path, arg):
             if path.lower().endswith(".py"):
@@ -117,3 +125,4 @@ class Fixer(j.baseclasses.object):
 
         path = j.core.tools.text_replace("{DIR_CODE}/github/threefoldtech")
         j.sal.fswalker.walkFunctional(path, callbackFunctionFile=process, callbackForMatchFile=callbackForMatchFile)
+
