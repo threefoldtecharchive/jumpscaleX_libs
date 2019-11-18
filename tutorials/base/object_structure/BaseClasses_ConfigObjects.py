@@ -78,9 +78,4 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
 
         assert ships.ibizaboat2 == ship2
 
-        # TODO: REEM
-        print("COMPLETION IN SHELL DOES NOT WORK, TRY SHIPS.[TAB]")
-
-        j.shell()
-
         print("TEST OK")
