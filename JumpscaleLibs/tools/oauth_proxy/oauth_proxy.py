@@ -104,7 +104,7 @@ class OauthProxy(j.baseclasses.object):
         @wraps(func)
         def decorator(*args, **kwargs):
             if not self.session.get("authorized", False):
-                self.session["next_url"] = request.path
+                self.session["next_url"] = request.url
                 return redirect(self.login_url)
             return func(*args, **kwargs)
 
