@@ -12,13 +12,9 @@ class UserAPI(Api):
             return self.request.get("/user")
         return self.request.get("/user", q=query)
 
-    def create(
-        self, username, email,
-    ):
+    def create(self, username, email):
 
-        data = {
-            "account": {"username": username, "email": email},
-        }
+        data = {"account": {"username": username, "email": email}}
 
         return self.request.post("/user", data)
 

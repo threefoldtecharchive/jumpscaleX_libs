@@ -51,7 +51,9 @@ PositionHasSLTP = "-244"  # When making an operation on the position has SLTP.
 AlreadyProcessed = "-246"  # When making an operation on the position that already processed.
 DataBaseError = "-247"  # unexpected database error
 NoData = "-1000"  # Request returned 0 data in list
-IsPaging = "-1200"  # GetHistory operation has returned more than 3000 rows and so you’ll need to call it with isPaging=true to retrieve remaning rows
+IsPaging = (
+    "-1200"
+)  # GetHistory operation has returned more than 3000 rows and so you’ll need to call it with isPaging=true to retrieve remaning rows
 PositionIsFreezed = "-236"  # When making any operation on the freezed position
 InvalidNewOldSamePassword = "-237"  # When changing password and the old password is the same of the new password
 InvalidOldPassword = "-239"  # When changing password and old password is invalid
