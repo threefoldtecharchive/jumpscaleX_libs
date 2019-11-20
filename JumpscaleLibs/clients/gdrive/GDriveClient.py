@@ -5,10 +5,6 @@ import os
 import httplib2
 import io
 
-try:
-    from googleapiclient.discovery import build
-except BaseException:
-    j.sal.process.execute("python3 -m pip install google-api-python-client")
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from .GDriveFile import *
