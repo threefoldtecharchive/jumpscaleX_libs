@@ -63,18 +63,18 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         # so we only check every sec
         ship2.scheduler.sleep_time = 1
 
-        nr = 1
+        nr = 10
 
         res = {}
         for i in range(nr):
             res[i] = ship2.scheduler.schedule("wait", ship1.wait_test, nr=nr)
 
-        # ship2.scheduler.schedule("waitrecurring", ship1.wait_test, period=2, nr=nr)
-        #
-        # event = ship2.scheduler.event_get("wait_event_1")
-        #
-        # for i in range(nr):
-        #     ship2.scheduler.schedule("waitb", ship1.wait_test, event=event, nr=nr)
+        ship2.scheduler.schedule("waitrecurring", ship1.wait_test, period=2, nr=nr)
+
+        event = ship2.scheduler.event_get("wait_event_1")
+
+        for i in range(nr):
+            ship2.scheduler.schedule("waitb", ship1.wait_test, event=event, nr=nr)
 
         # TODO: not behaving as it should
         gevent.sleep(1111)
