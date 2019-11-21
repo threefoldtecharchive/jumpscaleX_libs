@@ -15,7 +15,7 @@ j.tools.numtools.text2val("0.1mEUR")
 
 ## currencies
 
-see https://github.com/threefoldtech/jumpscale_/lib/blob/development/JumpscaleLib/clients/currencylayer/currencies.md for more info
+see https://github.com/threefoldtech/jumpscale_/lib/blob/master/JumpscaleLib/clients/currencylayer/currencies.md for more info
 
 ```
 import pprint; pprint.pprint(j.tools.numtools.currencies)
