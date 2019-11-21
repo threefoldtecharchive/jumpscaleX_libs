@@ -3,7 +3,7 @@ from uuid import uuid4
 from Jumpscale import j
 import os
 
-os.chdir("/sandbox/code/github/threefoldtech/digitalmeX/tests/gdrive")
+os.chdir(j.core.tools.text_replace("{DIR_BASE}/code/github/threefoldtech/digitalmeX/tests/gdrive"))
 
 
 class Basetest(TestCase):
@@ -18,7 +18,8 @@ class Basetest(TestCase):
         g_client = j.clients.gdrive.get()
         g_client.credfile = "cred.json"
         g_client.save()
-        j.sal.fs.createDir("/sandbox/var/gdrive/static/doc")
-        j.sal.fs.createDir("/sandbox/var/gdrive/static/slide")
-        j.sal.fs.createDir("/sandbox/var/gdrive/static/sheet")
+        j.sal.fs.createDir(j.core.tools.text_replace("{DIR_BASE}/var/gdrive/static/doc"))
+        j.sal.fs.createDir(j.core.tools.text_replace("{DIR_BASE}/var/gdrive/static/slide"))
+        j.sal.fs.createDir(j.core.tools.text_replace("{DIR_BASE}/var/gdrive/static/sheet"))
         j.servers.threebot.start(background=True)
+

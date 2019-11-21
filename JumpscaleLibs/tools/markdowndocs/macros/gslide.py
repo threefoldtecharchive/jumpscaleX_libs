@@ -3,7 +3,7 @@ from JumpscaleLibs.tools.googleslides.slides2html.google_links_utils import get_
 
 
 EXPORT_TMP_DIR = "/tmp"
-CRED_FILE_PATH = "/sandbox/var/cred.json"
+CRED_FILE_PATH = j.core.tools.text_replace("{DIR_BASE}/var/cred.json")
 
 
 def gslide(doc, **kwargs):
@@ -54,3 +54,4 @@ def gslide(doc, **kwargs):
             )
     output += "\n```"
     return output
+

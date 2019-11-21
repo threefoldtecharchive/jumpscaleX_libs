@@ -82,7 +82,7 @@ class Test_Ubuntu(TestCase):
             self.info("zdb file is exist ,service_uninstall to zdb service ")
             self.ubuntu.service_uninstall("zdb")
         self.info("service_install to zdb service ")
-        self.ubuntu.service_install("zdb", "/sandbox/bin")
+        self.ubuntu.service_install("zdb", j.core.tools.text_replace("{DIR_BASE}/bin"))
         self.info("Verify config file existing after using service_install")
         if mysys == "my_init":
             self.assertTrue(os.path.exists("/etc/service/zdb/run"))
@@ -92,7 +92,7 @@ class Test_Ubuntu(TestCase):
         self.ubuntu.service_uninstall("zdb")
         if zdb_service_file is True:
             self.info("zdb service install to return to origin state")
-            self.ubuntu.service_install("zdb", "/sandbox/zdb")
+            self.ubuntu.service_install("zdb", j.core.tools.text_replace("{DIR_BASE}/zdb"))
 
     def test003_version_get(self):
         """TC398
@@ -641,7 +641,7 @@ class Test_Ubuntu(TestCase):
             self.assertIn(mysys, ["systemd", "my_init"], "system not supported ")
         if zdb_service_file is False:
             self.info("zdb service file config does not exist, install service so config file will created ")
-            self.ubuntu.service_install("zdb", "/sandbox/bin")
+            self.ubuntu.service_install("zdb", j.core.tools.text_replace("{DIR_BASE}/bin"))
         self.info("backup the config file to /tmp before testing ")
         if mysys == "my_init":
             j.sal.process.execute("cp /etc/service/zdb/run /tmp/run_zdb")
@@ -720,3 +720,4 @@ def main(self=None):
     test_ubuntu.test026_service_uninstall()
     test_ubuntu.test027_whoami()
     test_ubuntu.tearDown()
+

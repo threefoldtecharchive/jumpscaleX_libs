@@ -63,7 +63,7 @@ def get_slides_path():
 
 
 def presentations_download(presentations):
-    gdrive_cl = j.clients.gdrive.get("slideshow_macro_client", credfile="/sandbox/var/cred.json")
+    gdrive_cl = j.clients.gdrive.get("slideshow_macro_client", credfile=j.core.tools.text_replace("{DIR_BASE}/var/cred.json"))
     slides_path = get_slides_path()
     j.sal.fs.createDir(slides_path)
     for presentation in presentations:
@@ -143,3 +143,4 @@ def slideshow_v2(doc, **kwargs):
 
 
 # for future work we propose to use islice function to help in slicing
+
