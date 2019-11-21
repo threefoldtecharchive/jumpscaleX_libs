@@ -33,8 +33,8 @@ class MarkdownLinkParser:
 
     account, repo and branch are optional, examples:
 
-    threefoldtech:jumpscaleX(development):docs/readme.md
-    jumpscaleX(development):docs/readme.md
+    threefoldtech:jumpscaleX(master):docs/readme.md
+    jumpscaleX(master):docs/readme.md
     jumpscaleX:docs/readme.md
     jumpscaleX:#123
     docs/readme.md

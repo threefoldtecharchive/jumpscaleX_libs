@@ -28,8 +28,8 @@ class Link(j.baseclasses.object):
 
     account, repo and branch are optional, examples:
 
-    threefoldtech:jumpscaleX(development):docs/readme.md
-    jumpscaleX(development):docs/readme.md
+    threefoldtech:jumpscaleX(master):docs/readme.md
+    jumpscaleX(master):docs/readme.md
     jumpscaleX:docs/readme.md
     jumpscaleX:#123
     docs/readme.md
@@ -66,7 +66,7 @@ class Link(j.baseclasses.object):
 
     def _process(self):
 
-        ##the basics:
+        # the basics:
 
         # get inside ()
         self.link_source = self.source.rsplit("(", 1)[1].split(")", 1)[0]  # find inside ()
@@ -93,7 +93,7 @@ class Link(j.baseclasses.object):
 
         if "http:" in self.link_source or "https:" in self.link_source:
             self.link_source_original = self.link_source
-            ## WORK TO PROCESS IMAGE WHICH WE CAN DOWNLOAD
+            # WORK TO PROCESS IMAGE WHICH WE CAN DOWNLOAD
             if self.source.startswith("!"):  # means its an image
                 if "?" in self.link_source:
                     link_source = self.link_source.split("?", 1)[0]
