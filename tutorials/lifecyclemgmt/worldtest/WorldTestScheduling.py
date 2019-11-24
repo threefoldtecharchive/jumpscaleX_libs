@@ -23,6 +23,11 @@ class Ship(j.baseclasses.object_config, j.baseclasses.threebot_actor):
         print("waittest:%s" % nr)
         return nr
 
+    def wait_test2(self, nr):
+        gevent.sleep(1)
+        print("waittest2:%s" % nr)
+        return nr
+
 
 class Ships(j.baseclasses.object_config_collection):
     """
@@ -38,7 +43,7 @@ class Ships(j.baseclasses.object_config_collection):
         pass
 
 
-class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object):
+class WorldTestScheduling(j.baseclasses.testtools, j.baseclasses.object):
 
     __jslocation__ = "j.tutorials.worldtest.scheduling"
 
@@ -48,7 +53,6 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
 
         kosmos -p 'j.tutorials.worldtest.scheduling.test()'
         """
-
         ships = Ships()
         ships.delete()
         r = ships.find()
@@ -69,15 +73,14 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         for i in range(nr):
             res[i] = ship2.scheduler.schedule("wait", ship1.wait_test, nr=nr)
 
-        ship2.scheduler.schedule("waitrecurring", ship1.wait_test, period=2, nr=nr)
+        ship2.scheduler.schedule("waitrecurring", ship1.wait_test2, period=2, nr=nr)
 
         event = ship2.scheduler.event_get("wait_event_1")
 
         for i in range(nr):
             ship2.scheduler.schedule("waitb", ship1.wait_test, event=event, nr=nr)
 
-        # TODO: not behaving as it should
-        gevent.sleep(1111)
+        gevent.sleep(1)
 
         j.shell()
 
