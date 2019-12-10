@@ -29,7 +29,7 @@ def write_script(doc, unique_id, actor, method, args, markdown=False):
     j.sal.bcdbfs.file_write(real_path, content)
 
     rel_outpath = doc.docsite.outpath.lstrip("/")
-    return j.sal.fs.joinPaths("/web/bcdbfs", rel_outpath, doc.path_dir_rel, script_name)
+    return j.sal.fs.joinPaths("/bcdbfs", rel_outpath, doc.path_dir_rel, script_name)
 
 
 def dynamic_content(doc, actor, method, markdown=False, **kwargs):
