@@ -60,7 +60,7 @@ class World(j.baseclasses.factory):
     generic usable factory
     """
 
-    _CHILDCLASSES = [Cars, Ships, Ship]
+    _CHILDCLASSES = [Cars, Ships]
 
 
 class World2(j.baseclasses.factory_data):
@@ -75,7 +75,7 @@ class World2(j.baseclasses.factory_data):
 
 class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object):
 
-    __jslocation__ = "j.tutorials.baseclasses.world"
+    __jslocation__ = "j.tutorials.world"
 
     def test(self):
         """
@@ -111,19 +111,16 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         w = World()
         w.reset()
 
-        assert len(w._children_recursive_get()) == 3
-
-        assert w.ship._id == None  # is an empty object because we did reset the world
+        assert len(w._children_recursive_get()) == 2
 
         assert len(w._dataprops_names_get()) == 0  # there are no dataproperties on the world object itself
-        assert len(w._children_names_get()) == 3  # there are 3 subobjects so there should be 3 names
+        assert len(w._children_names_get()) == 2  # there are 2 subobjects so there should be 2 names
 
         assert len(w.cars.find()) == 0
         assert len(w.cars._model.find()) == 0
         assert len(w.ships.find()) == 0
         assert len(w.ships._model.find()) == 0
         assert len(ships._model.find(name="ibizaboat")) == 0  # also need to check that find on name is 0
-        assert w.ship.name == ""  # means the data obj is empty
 
         assert w.cars._children._data == {}  # no children in memory, so got cleared
 
@@ -139,9 +136,6 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         assert car._id > 0
         assert car2._id > 0
 
-        w.ship.onsea = False
-        assert w.ship.onsea == False
-
         assert len(w.cars.find()) == 2
         assert len(w.cars._model._list_ids()) == 2
 
@@ -150,7 +144,7 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         assert len(w.cars.find(name="rabbit")) == 1
 
         allchildren = w._children_recursive_get()
-        assert len(allchildren) == 5
+        assert len(allchildren) == 4
 
         w.save()
         assert len(w.cars._model.find()) == 2  # now should be saved
@@ -161,9 +155,8 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         # proves that the data has been saved in the DB
 
         assert len(w.cars.find()) == 2
-
-        w2 = World2()
-        w3 = World2()
+        w2 = World2(name="world2")
+        w3 = World2(name="world3")
         assert isinstance(w2, j.baseclasses.object)
         assert isinstance(w2, j.baseclasses.object_config)
 
