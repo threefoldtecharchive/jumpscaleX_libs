@@ -8,6 +8,10 @@ from loguru import logger
 
 
 class Test_Ubuntu(TestCase):
+    """
+    j.sal.ubuntu._test(name='ubuntu')
+    """
+
     j.sal.process.execute("apt update -y")
     j.sal.process.execute("apt-get install -y python3-distutils-extra python3-dbus python3-apt")
 
@@ -516,7 +520,8 @@ class Test_Ubuntu(TestCase):
             j.sal.process.execute("apt remove -y vim-gtk")
         self.info("installed vim-gtk again by tested method")
         j.sal.ubuntu.deb_download_install(
-            "http://security.ubuntu.com/ubuntu/pool/universe/v/vim-gtk/vim-gtk_8.0.1453-1ubuntu1.1_amd64.deb"
+            "http://security.ubuntu.com/ubuntu/pool/universe/v/vim/vim-gtk_8.0.1453-1ubuntu1.1_amd64.deb",
+            remove_downloaded=True,
         )
         self.info("Get vim-gtk status should be installed successfully ")
         rc2, out2, err2 = j.sal.process.execute("dpkg -s vim-gtk|grep Status")
