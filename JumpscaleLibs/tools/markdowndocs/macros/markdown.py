@@ -19,4 +19,3 @@ def markdown(doc, url, **kwargs):
 
     output += ""
     return output
-

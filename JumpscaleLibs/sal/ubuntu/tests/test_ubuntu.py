@@ -720,4 +720,3 @@ def main(self=None):
     test_ubuntu.test026_service_uninstall()
     test_ubuntu.test027_whoami()
     test_ubuntu.tearDown()
-

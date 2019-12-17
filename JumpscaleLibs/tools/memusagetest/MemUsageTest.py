@@ -340,5 +340,3 @@ class MemUsageTest(j.baseclasses.object):
         w
 
         hv = j.world.hypervisor
-
-
