@@ -97,4 +97,8 @@ class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.obje
         assert len(w3.cars2.find()) == 3
         assert len(w2.cars2.find()) == 1
 
+        # clean up
+        w2.delete()
+        w3.delete()
+
         print("TEST OK")

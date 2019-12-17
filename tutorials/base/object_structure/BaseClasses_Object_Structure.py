@@ -63,16 +63,6 @@ class World(j.baseclasses.factory):
     _CHILDCLASSES = [Cars, Ships]
 
 
-class World2(j.baseclasses.factory_data):
-
-    _CHILDCLASSES = [Cars, Ships]
-    _SCHEMATEXT = """
-        @url = jumpscale.example.world2
-        name** = ""
-        color = "red,blue" (E)
-        """
-
-
 class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object):
 
     __jslocation__ = "j.tutorials.world"
@@ -152,5 +142,8 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
 
         assert len(w.cars.find()) == 2
         # proves that the data has been saved in the DB
+
+        # clean up
+        w.delete()
 
         print("TEST OK")
