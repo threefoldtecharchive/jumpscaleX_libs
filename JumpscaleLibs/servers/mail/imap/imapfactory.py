@@ -26,7 +26,6 @@ class ImapServer(j.baseclasses.factory):
         if not folder_model.find(name="inbox"):
             folder = folder_model.new()
             folder.name = "inbox"
-            folder.attributes = "All"
             folder.subscribed = True
             folder.save()
 
