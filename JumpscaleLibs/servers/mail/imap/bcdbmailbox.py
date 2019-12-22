@@ -146,6 +146,8 @@ class BCDBMailbox(mailbox.Mailbox):
         if not self._models.folder.find(name=name):
             folder = self._models.folder.new()
             folder.name = name
+            folder.attributes = "All"
+            folder.subscribed = True
             folder.save()
 
 
@@ -162,5 +164,7 @@ class BCDBMailboxdir(BCDBMailbox):
     def create(self, name):
         folder = self._models.folder.new()
         folder.name = name
+        folder.attributes = "All"
+        folder.subscribed = True
         folder.save()
         return BCDBMailbox(self._models, folder)
