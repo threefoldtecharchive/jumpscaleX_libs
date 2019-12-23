@@ -1,4 +1,11 @@
+import base64
+import json
+import redis
+import time
+import requests
+
 from Jumpscale import j
+
 
 JSBASE = j.baseclasses.object
 
@@ -234,6 +241,48 @@ class TFGateway(j.baseclasses.object):
             name, domain, "srv", records=[{"host": host, "port": port, "priority": priority, "weight": weight}]
         )
 
+    def create_service(self, domain=None, addr="0.0.0.0", clientsecret=None, tlsport=443, httpport=80):
+        """
+        add the service's domain record, secret to redis to start tcp router server with it
+        :param domain: service domain name (str)
+        :param addr: service ip (ip)
+        :param clientsecret: service secret (str)
+        :return:
+        """
+        service = {}
+        service["Key"] = "/tcprouter/service/{}".format(domain)
+        record = {"clientsecret": clientsecret}
+        json_dumped_record_bytes = json.dumps(record).encode()
+        b64_record = base64.b64encode(json_dumped_record_bytes).decode()
+        service["Value"] = b64_record
+        r = redis.Redis()
+        r.set(service["Key"], json.dumps(service))
+        self._log_info(f"SERVICE CREATED FOR: {domain} ")
+
+    def create_tcprouter_service_client(
+        self, name=None, local_address="127.0.0.1", local_port=80, remote_url=None, remote_port=18000, secret=None
+    ):
+        """
+        helper method to get/start tcprouter client [used to forward the traffic to tcprouter server]
+        :param name: client name (str)
+        :param local_address: ip of the running server you want to expose (ipaddr)
+        :param local_port: port of the running server you want to expose (ipport)
+        :param remote_url: destination domain name (str)
+        :param remote_port: remote tcprouter client port (usually 180000) (ippprt)
+        :param secret: client secret (str) should match the secret on the servers's service
+        :return: tcprouter client
+        """
+        client = j.clients.tcp_router.get(
+            name,
+            local_address=local_address,
+            local_port=local_port,
+            remote_url=remote_url,
+            remote_port=remote_port,
+            secret=secret,
+        )
+        client.connect()
+        return client
+
     def test(self):
         """
         kosmos 'j.tools.tf_gateway.test()'
@@ -245,3 +294,35 @@ class TFGateway(j.baseclasses.object):
 
         # to test
         # dig @ns1.name.com a.test.3bot.me
+
+    def test_tcprouter_client(self):
+        j.builders.network.tcprouter.start()
+
+        self.create_service(domain="myserver.local", addr="0.0.0.0", clientsecret="test_secret")
+
+        # start a dummy python3 server
+        python_server = j.servers.startupcmd.get("test_pythonserver", cmd_start="python3 -m http.server")
+        python_server.start()
+
+        client = self.create_tcprouter_service_client(
+            "test_client",
+            local_address="127.0.0.1",
+            local_port=80,
+            remote_url="myserver.local",
+            remote_port=18000,
+            secret="test_secret",
+        )
+
+        time.sleep(2)
+        assert requests.get("http://myserver.local").status_code == 200
+
+        # tear down
+        client.stop()
+        client.delete()
+        python_server.stop()
+        j.builders.network.tcprouter.stop()
+
+        r = redis.Redis()
+        r.delete("/tcprouter/service/myserver.local")
+
+        print("TEST OK")
