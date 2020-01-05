@@ -43,6 +43,7 @@ class TFChainWallet(j.baseclasses.object_config):
         key_count = 1 (I)
         key_scan_count = -1 (I)
         reservations_transactions = (LS)
+        mother_id** = 0 (I)
         """
 
     def _init(self, **kwargs):
