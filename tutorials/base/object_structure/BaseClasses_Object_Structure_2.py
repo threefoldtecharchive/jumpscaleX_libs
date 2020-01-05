@@ -10,6 +10,7 @@ class Car2(j.baseclasses.object_config):
         @url = jumpscale.example.car2.1
         name** = ""
         city = ""
+        mother_id** = 0 (I)
         """
 
     def _init(self, **kwargs):
@@ -34,6 +35,7 @@ class Ship2(j.baseclasses.object_config):
         name** = ""
         location = ""
         onsea = true (b)
+        mother_id** = 0 (I)
         """
 
     def _init(self, **kwargs):
@@ -80,7 +82,6 @@ class BaseClasses_Object_Structure_2(j.baseclasses.testtools, j.baseclasses.obje
         assert isinstance(w2, j.baseclasses.object)
         assert isinstance(w2, j.baseclasses.object_config)
         # needs to be 0 because is a new obj with other children
-
         assert len(w3.cars2.find()) == 0
 
         assert len(w2.cars2.find()) == 0
