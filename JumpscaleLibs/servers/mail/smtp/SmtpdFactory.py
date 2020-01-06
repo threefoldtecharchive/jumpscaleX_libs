@@ -38,10 +38,13 @@ class SmtpdFactory(j.baseclasses.object, j.baseclasses.testtools):
         except:
             db = j.data.bcdb.new("mails")
 
-        model = db.models_add(j.core.tools.text_replace("{DIR_BASE}/code/github/threefoldtech/jumpscaleX_libs/JumpscaleLibs/servers/mail/models/"))
+        model = db.models_add(
+            j.core.tools.text_replace(
+                "{DIR_BASE}/code/github/threefoldtech/jumpscaleX_libs/JumpscaleLibs/servers/mail/models/"
+            )
+        )
         self.start()
         print(name)
         self._test_run(name=name)
         self._log_info("All TESTS DONE")
         return "OK"
-

@@ -15,3 +15,5 @@ script:
   - source /sandbox/env.sh; cd /sandbox/code/github/threefoldtech/jumpscaleX_libs; nosetests-3.4 -v JumpscaleLibs 
     --with-noseexclude --exclude-dir=JumpscaleLibs/clients/github --exclude-dir=JumpscaleLibs/sal/dnsmasq 
     --exclude-dir=JumpscaleLibs/clients/test --with-xunit --xunit-file=/test.xml --xunit-testsuite-name=jumpscaleX_libs
+  - source /sandbox/env.sh; cd /sandbox/code/github/threefoldtech/jumpscaleX_libs; nosetests-3.4 -v test_loader.py 
+    --with-xunit --xunit-file=/test.xml --xunit-testsuite-name=Jumpscale_Tests

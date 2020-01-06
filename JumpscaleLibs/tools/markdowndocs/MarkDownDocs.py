@@ -467,4 +467,3 @@ class MarkDownDocs(j.baseclasses.object):
         ds7.write()
 
         print("TEST FOR MARKDOWN PREPROCESSING IS DONE")
-

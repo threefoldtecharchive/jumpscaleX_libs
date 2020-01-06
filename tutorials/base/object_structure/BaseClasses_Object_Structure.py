@@ -60,22 +60,12 @@ class World(j.baseclasses.factory):
     generic usable factory
     """
 
-    _CHILDCLASSES = [Cars, Ships, Ship]
-
-
-class World2(j.baseclasses.factory_data):
-
     _CHILDCLASSES = [Cars, Ships]
-    _SCHEMATEXT = """
-        @url = jumpscale.example.world2
-        name** = ""
-        color = "red,blue" (E)
-        """
 
 
 class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object):
 
-    __jslocation__ = "j.tutorials.baseclasses.world"
+    __jslocation__ = "j.tutorials.world"
 
     def test(self):
         """
@@ -83,7 +73,6 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
 
         kosmos -p 'j.tutorials.baseclasses.world.test()'
         """
-
         ships = Ships()
         ship1 = ships.get(name="ibizaboat")
         ships.reset()
@@ -111,19 +100,16 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         w = World()
         w.reset()
 
-        assert len(w._children_recursive_get()) == 3
-
-        assert w.ship._id == None  # is an empty object because we did reset the world
+        assert len(w._children_recursive_get()) == 2
 
         assert len(w._dataprops_names_get()) == 0  # there are no dataproperties on the world object itself
-        assert len(w._children_names_get()) == 3  # there are 3 subobjects so there should be 3 names
+        assert len(w._children_names_get()) == 2  # there are 2 subobjects so there should be 2 names
 
         assert len(w.cars.find()) == 0
         assert len(w.cars._model.find()) == 0
         assert len(w.ships.find()) == 0
         assert len(w.ships._model.find()) == 0
         assert len(ships._model.find(name="ibizaboat")) == 0  # also need to check that find on name is 0
-        assert w.ship.name == ""  # means the data obj is empty
 
         assert w.cars._children._data == {}  # no children in memory, so got cleared
 
@@ -139,9 +125,6 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         assert car._id > 0
         assert car2._id > 0
 
-        w.ship.onsea = False
-        assert w.ship.onsea == False
-
         assert len(w.cars.find()) == 2
         assert len(w.cars._model._list_ids()) == 2
 
@@ -150,7 +133,7 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         assert len(w.cars.find(name="rabbit")) == 1
 
         allchildren = w._children_recursive_get()
-        assert len(allchildren) == 5
+        assert len(allchildren) == 4
 
         w.save()
         assert len(w.cars._model.find()) == 2  # now should be saved
@@ -160,31 +143,7 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         assert len(w.cars.find()) == 2
         # proves that the data has been saved in the DB
 
-        assert len(w.cars.find()) == 2
-
-        w2 = World2()
-        w3 = World2()
-        assert isinstance(w2, j.baseclasses.object)
-        assert isinstance(w2, j.baseclasses.object_config)
-
-        # needs to be 0 because is a new obj with other children
-
-        assert len(w3.cars.find()) == 0
-
-        assert len(w2.cars.find()) == 0
-        car3 = w2.cars.get("rabbit3")
-        car3.save()
-        assert car3._id  # cannot be empty
-
-        assert len(w2.cars.find()) == 1  # then we know that world 2 only has 1 car
-
-        car4 = w3.cars.get("rabbit4")
-        car5 = w3.cars.get("rabbit5")
-        car6 = w3.cars.get("rabbit6")
-
-        assert len(w3.cars.find()) == 3
-        assert len(w2.cars.find()) == 1
-
-        assert len(w.cars.find()) == 6
+        # clean up
+        w.delete()
 
         print("TEST OK")

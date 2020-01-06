@@ -22,4 +22,3 @@ class Basetest(TestCase):
         j.sal.fs.createDir(j.core.tools.text_replace("{DIR_BASE}/var/gdrive/static/slide"))
         j.sal.fs.createDir(j.core.tools.text_replace("{DIR_BASE}/var/gdrive/static/sheet"))
         j.servers.threebot.start(background=True)
-

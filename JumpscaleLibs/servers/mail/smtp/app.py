@@ -11,7 +11,9 @@ class MailServer(SMTPServer):
         except:
             self.smtpInstance = j.data.bcdb.new("mails")
         self.smtpInstance.models_add(
-            j.core.tools.text_replace("{DIR_BASE}/code/github/threefoldtech/jumpscaleX_libs/JumpscaleLibs/servers/mail/models/")
+            j.core.tools.text_replace(
+                "{DIR_BASE}/code/github/threefoldtech/jumpscaleX_libs/JumpscaleLibs/servers/mail/models/"
+            )
         )
         self.mail_model = self.smtpInstance.model_get(url="jumpscale.email.message")
 
@@ -25,4 +27,3 @@ class MailServer(SMTPServer):
             return store_message(self.mail_model, data, folder="Sent")
 
         return store_message(self.mail_model, data)
-
