@@ -8,6 +8,10 @@ from loguru import logger
 
 
 class Test_Ubuntu(TestCase):
+    """
+    j.sal.ubuntu._test(name='ubuntu')
+    """
+
     j.sal.process.execute("apt update -y")
     j.sal.process.execute("apt-get install -y python3-distutils-extra python3-dbus python3-apt")
 
@@ -501,32 +505,33 @@ class Test_Ubuntu(TestCase):
         check download and install the package
 
         **Test Scenario**
-        #. Check status of tcpdump is installed or not
-        #. If tcpdump installed remove it by apt remove before install it
+        #. Check status of vim-gtk is installed or not
+        #. If vim-gtk installed remove it by apt remove before install it
         #. Installed it again by tested method
-        #. Get tcpdump status should be installed successfully
-        #. Verify that tcpdump installed successfully
-        #. Remove tcpdump to return to origin state
-        #. Install tcpdump to return to origin state as we remove it before testing
+        #. Get vim-gtk status should be installed successfully
+        #. Verify that vim-gtk installed successfully
+        #. Remove vim-gtk to return to origin state
+        #. Install vim-gtk to return to origin state as we remove it before testing
         """
-        self.info("Check status of tcpdump is installed or not")
-        tcpdump_installed = j.sal.ubuntu.is_pkg_installed("tcpdump")
-        if tcpdump_installed:
-            self.info("tcpdump is installed, removing it")
-            j.sal.process.execute("apt remove -y tcpdump")
-        self.info("installed tcpdump again by tested method")
+        self.info("Check status of vim-gtk: is installed or not")
+        vim_gtk_installed = j.sal.ubuntu.is_pkg_installed("vim-gtk")
+        if vim_gtk_installed:
+            self.info("vim-gtk is installed, removing it")
+            j.sal.process.execute("apt remove -y vim-gtk")
+        self.info("installed vim-gtk again by tested method")
         j.sal.ubuntu.deb_download_install(
-            "http://download.unesp.br/linux/debian/pool/main/t/tcpdump/tcpdump_4.9.2-3_amd64.deb"
+            "http://security.ubuntu.com/ubuntu/pool/universe/v/vim/vim-gtk_8.0.1453-1ubuntu1.1_amd64.deb",
+            remove_downloaded=True,
         )
-        self.info("Get tcpdump status should be installed successfully ")
-        rc2, out2, err2 = j.sal.process.execute("dpkg -s tcpdump|grep Status")
-        self.info("verify that tcpdump installed successfully")
+        self.info("Get vim-gtk status should be installed successfully ")
+        rc2, out2, err2 = j.sal.process.execute("dpkg -s vim-gtk|grep Status")
+        self.info("verify that vim-gtk installed successfully")
         self.assertIn("install ok", out2)
-        self.info("remove tcpdump to return to origin state")
-        j.sal.process.execute("apt remove -y tcpdump")
-        if tcpdump_installed:
-            self.info("install tcpdump to return to origin state as we remove it before testing ")
-            j.sal.process.execute("apt install -y tcpdump")
+        self.info("remove vim-gtk to return to origin state")
+        j.sal.process.execute("apt remove -y vim-gtk")
+        if vim_gtk_installed:
+            self.info("install vim-gtk to return to origin state as we remove it before testing ")
+            j.sal.process.execute("apt install -y vim-gtk")
 
     def test023_pkg_remove(self):
         """TC419
@@ -720,4 +725,3 @@ def main(self=None):
     test_ubuntu.test026_service_uninstall()
     test_ubuntu.test027_whoami()
     test_ubuntu.tearDown()
-

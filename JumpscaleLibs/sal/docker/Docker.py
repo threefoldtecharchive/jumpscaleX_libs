@@ -304,7 +304,7 @@ class Docker(j.baseclasses.object):
         if sharecode and j.sal.fs.exists(path=j.core.tools.text_replace("{DIR_BASE}/code")):
             self._log_info("share jumpscale code enable")
             if j.core.tools.text_replace("{DIR_BASE}/code") not in volsdict:
-                volsdict[j.core.tools.text_replace("{DIR_BASE}/code"] = j.core.tools.text_replace("{DIR_BASE}/code"))
+                volsdict[j.core.tools.text_replace("{DIR_BASE}/code")] = j.core.tools.text_replace("{DIR_BASE}/code")
 
         for fs in aysfs:
             self._init_aysfs(fs, name)
@@ -565,5 +565,3 @@ class Docker(j.baseclasses.object):
                 out.append(line)
 
         return "\n".join(out)
-
-

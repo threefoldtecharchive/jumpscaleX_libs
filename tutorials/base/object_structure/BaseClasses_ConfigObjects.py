@@ -34,7 +34,7 @@ class Ships(j.baseclasses.object_config_collection):
 
 class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object):
 
-    __jslocation__ = "j.tutorials.baseclasses.configobjects"
+    __jslocation__ = "j.tutorials.configobjects"
 
     def test(self):
         """
