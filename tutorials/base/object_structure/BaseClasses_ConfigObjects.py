@@ -40,7 +40,7 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         """
         to run:
 
-        kosmos -p 'j.tutorials.baseclasses.configobjects.test()'
+        kosmos -p 'j.tutorials.configobjects.test()'
         """
 
         ships = Ships()
@@ -63,6 +63,8 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         ship1.onsea = False
         # now a change will happen
         assert ship1.onsea == False
+
+        assert ship1._mother_id_get() == None  # because the ships obj has no id
 
         allchildren = ships._children_recursive_get()
         assert len(allchildren) == 2

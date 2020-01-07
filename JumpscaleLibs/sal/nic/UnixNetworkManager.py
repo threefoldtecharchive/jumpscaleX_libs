@@ -19,7 +19,7 @@ class UnixNetworkManager(j.baseclasses.object):
     __jslocation__ = "j.sal.nic"
 
     def _init(self, **kwargs):
-        self._executor = j.tools.executorLocal
+        self._executor = j.tools.executor.local
         self._nics = None
 
     def _nicExists(self, nic):

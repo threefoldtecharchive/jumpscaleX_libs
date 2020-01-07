@@ -69,6 +69,7 @@ class WorldTestScheduling(j.baseclasses.testtools, j.baseclasses.object):
 
         kosmos -p 'j.tutorials.worldtest.scheduling.test()'
         """
+
         ships = Ships()
         ships.delete()
         r = ships.find()
