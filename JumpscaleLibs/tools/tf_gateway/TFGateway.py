@@ -1,9 +1,5 @@
-import base64
-import json
-import redis
 import time
 import requests
-
 from Jumpscale import j
 
 
@@ -316,7 +312,6 @@ class TFGateway(j.baseclasses.object):
         python_server.stop()
         j.builders.network.tcprouter.stop()
 
-        r = redis.Redis()
-        r.delete("/tcprouter/service/myserver.local")
+        j.core.db.delete("/tcprouter/service/myserver.local")
 
         print("TEST OK")
