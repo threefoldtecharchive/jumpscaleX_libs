@@ -48,27 +48,7 @@ class TFGateway(j.baseclasses.object):
         j.builders.network.coredns.install()
         j.builders.network.coredns.start()
 
-    def tcpservice_register(self, domain, service_addr, service_port=443, service_http_port=80):
-        """
-        register a tcpservice to be used by tcprouter in j.core.db
-
-        :param domain: (Server Name Indicator SNI) (e.g www.facebook.com)
-        :type domain: str
-        :param service_addr: IPAddress of the service
-        :type service_endpoint: string
-        :param service_port: Port of the tls services
-        :type service_port: int
-        :param service_http_port: Port of the service
-        :type service_http_port: int
-        """
-        service = {}
-        service["Key"] = "/tcprouter/service/{}".format(domain)
-        record = {"addr": service_addr, "tlsport": service_port, "httpport": service_http_port}
-        json_dumped_record_bytes = j.data.serializers.json.dumps(record).encode()
-        b64_record = j.data.serializers.base64.encode(json_dumped_record_bytes).decode()
-        service["Value"] = b64_record
-        self.redisclient.set(service["Key"], j.data.serializers.json.dumps(service))
-
+    ## COREDNS redis backend
     def domain_register(self, name, domain="bots.grid.tf.", record_type="a", records=None):
         """registers domain in coredns (needs to be authoritative)
 
@@ -241,26 +221,39 @@ class TFGateway(j.baseclasses.object):
             name, domain, "srv", records=[{"host": host, "port": port, "priority": priority, "weight": weight}]
         )
 
-    def create_service(self, domain=None, addr="0.0.0.0", clientsecret=None, tlsport=443, httpport=80):
+    ## TCP Router redis backend
+    def tcpservice_register(self, domain, service_addr="", service_port=443, service_http_port=80, client_secret=""):
         """
-        add the service's domain record, secret to redis to start tcp router server with it
-        :param domain: service domain name (str)
-        :param addr: service ip (ip)
-        :param clientsecret: service secret (str)
-        :return:
+        register a tcpservice to be used by tcprouter in j.core.db
+
+        :param domain: (Server Name Indicator SNI) (e.g www.facebook.com)
+        :type domain: str
+        :param service_addr: IPAddress of the service
+        :type service_endpoint: string
+        :param service_port: Port of the tls services
+        :type service_port: int
+        :param service_http_port: Port of the service
+        :type service_http_port: int
         """
+        if not any([service_addr, client_secret]) or all([service_addr, client_secret]):
+            raise j.exceptions.Value(
+                f"Need to provide only service_addr (you passed {service_addr}) or client_secret (you passed {client_secret})"
+            )
         service = {}
         service["Key"] = "/tcprouter/service/{}".format(domain)
-        record = {"clientsecret": clientsecret}
-        json_dumped_record_bytes = json.dumps(record).encode()
-        b64_record = base64.b64encode(json_dumped_record_bytes).decode()
+        record = {
+            "addr": service_addr,
+            "tlsport": service_port,
+            "httpport": service_http_port,
+            "clientsecret": client_secret,
+        }
+        json_dumped_record_bytes = j.data.serializers.json.dumps(record).encode()
+        b64_record = j.data.serializers.base64.encode(json_dumped_record_bytes).decode()
         service["Value"] = b64_record
-        r = redis.Redis()
-        r.set(service["Key"], json.dumps(service))
-        self._log_info(f"SERVICE CREATED FOR: {domain} ")
+        self.redisclient.set(service["Key"], j.data.serializers.json.dumps(service))
 
     def create_tcprouter_service_client(
-        self, name=None, local_address="127.0.0.1", local_port=80, remote_url=None, remote_port=18000, secret=None
+        self, name=None, local_ip="127.0.0.1", local_port=80, remote_url=None, remote_port=18000, secret=None
     ):
         """
         helper method to get/start tcprouter client [used to forward the traffic to tcprouter server]
@@ -274,7 +267,7 @@ class TFGateway(j.baseclasses.object):
         """
         client = j.clients.tcp_router.get(
             name,
-            local_address=local_address,
+            local_ip=local_ip,
             local_port=local_port,
             remote_url=remote_url,
             remote_port=remote_port,
@@ -298,7 +291,8 @@ class TFGateway(j.baseclasses.object):
     def test_tcprouter_client(self):
         j.builders.network.tcprouter.start()
 
-        self.create_service(domain="myserver.local", addr="0.0.0.0", clientsecret="test_secret")
+        j.sal.hostsfile.hostnames_set("127.0.0.1", ["myserver.local"])
+        self.tcpservice_register(domain="myserver.local", client_secret="test_secret")
 
         # start a dummy python3 server
         python_server = j.servers.startupcmd.get("test_pythonserver", cmd_start="python3 -m http.server")
@@ -306,7 +300,7 @@ class TFGateway(j.baseclasses.object):
 
         client = self.create_tcprouter_service_client(
             "test_client",
-            local_address="127.0.0.1",
+            local_ip="127.0.0.1",
             local_port=80,
             remote_url="myserver.local",
             remote_port=18000,
