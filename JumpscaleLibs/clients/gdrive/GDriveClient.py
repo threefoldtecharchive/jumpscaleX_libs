@@ -4,7 +4,6 @@ from dateutil import parser
 import os
 import httplib2
 import io
-import json
 
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
@@ -40,7 +39,7 @@ class GDriveClient(JSConfigClient):
     def credentials(self):
         if not self._credentials:
             self._credentials = service_account.Credentials.from_service_account_info(
-                json.loads(self.info), scopes=SCOPES
+                j.data.json.loads(self.info), scopes=SCOPES
             )
         return self._credentials
 
