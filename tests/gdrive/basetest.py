@@ -15,9 +15,6 @@ class Basetest(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        g_client = j.clients.gdrive.get()
-        g_client.credfile = "cred.json"
-        g_client.save()
         j.sal.fs.createDir(j.core.tools.text_replace("{DIR_BASE}/var/gdrive/static/doc"))
         j.sal.fs.createDir(j.core.tools.text_replace("{DIR_BASE}/var/gdrive/static/slide"))
         j.sal.fs.createDir(j.core.tools.text_replace("{DIR_BASE}/var/gdrive/static/sheet"))

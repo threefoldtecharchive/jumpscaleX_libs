@@ -4,6 +4,7 @@ from dateutil import parser
 import os
 import httplib2
 import io
+import json
 
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
@@ -26,16 +27,21 @@ class GDriveClient(JSConfigClient):
     _SCHEMATEXT = """
     @url =  jumpscale.gdrive.client
     name** = "" (S)
-    credfile = "" (S)
+    info = "" (S)
     """
 
     def _init(self, **kwargs):
+        if not self.info:
+            raise j.exceptions.Input("gdrive info can't be empty")
+
         self._credentials = None
 
     @property
     def credentials(self):
         if not self._credentials:
-            self._credentials = service_account.Credentials.from_service_account_file(self.credfile, scopes=SCOPES)
+            self._credentials = service_account.Credentials.from_service_account_info(
+                json.loads(self.info), scopes=SCOPES
+            )
         return self._credentials
 
     def service_get(self, name="drive", version="v3"):
