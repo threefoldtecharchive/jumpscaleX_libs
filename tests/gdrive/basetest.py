@@ -3,7 +3,7 @@ from uuid import uuid4
 from Jumpscale import j
 import os
 
-os.chdir(j.core.tools.text_replace("{DIR_BASE}/code/github/threefoldtech/digitalmeX/tests/gdrive"))
+os.chdir(j.core.tools.text_replace("{DIR_BASE}/code/github/threefoldtech/jumpscaleX_libs/tests/gdrive"))
 
 
 class Basetest(TestCase):
