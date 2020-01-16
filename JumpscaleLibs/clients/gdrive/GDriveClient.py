@@ -39,7 +39,7 @@ class GDriveClient(JSConfigClient):
     def credentials(self):
         if not self._credentials:
             self._credentials = service_account.Credentials.from_service_account_info(
-                j.data.json.loads(self.info), scopes=SCOPES
+                j.data.serializers.json.loads(self.info), scopes=SCOPES
             )
         return self._credentials
 
