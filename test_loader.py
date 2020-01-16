@@ -1,8 +1,11 @@
 from unittest import TestCase
 
+from gevent.monkey import patch_all
 from parameterized import parameterized
 
 from Jumpscale import j
+
+patch_all(subprocess=False)
 
 
 class CoreTests(TestCase):
@@ -12,12 +15,9 @@ class CoreTests(TestCase):
             "j.tutorials.world2.test()",
             "j.tutorials.configobjects.test()",
             "j.tools.timer.test()",
-            "j.data.dict.editor.test()",
             "j.clients.github.test()",
-            "j.clients.logger.test()",
-            "j.servers.smtp.test()",
             "j.clients.coredns.test()",
-            "j.clients.digitalocean.test()",
+            "j.servers.smtp.test()",
         ]
     )
     def test(self, cmd):

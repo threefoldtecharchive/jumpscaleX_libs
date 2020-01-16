@@ -19,7 +19,8 @@ class SmtpdFactory(j.baseclasses.object, j.baseclasses.testtools):
             raise j.exceptions.Runtime("Server is already running")
         server = self.get_instance(address, port)
         self._running_greenlet = gevent.spawn(server.serve_forever)
-        gevent.joinall([self._running_greenlet])
+        if j.sal.nettools.waitConnectionTest(ipaddr="localhost", port=7002, timeout=60):
+            j.exceptions.Timeout("Server didn't start")
 
     def stop(self):
         if self._running_greenlet:
