@@ -3,6 +3,8 @@ Stellar Client
 """
 
 from Jumpscale import j
+from Jumpscale.clients.http.HttpClient import HTTPError
+
 try:
     from stellar_sdk import Server, Keypair, TransactionBuilder, Network
     from stellar_sdk.exceptions import BadRequestError
@@ -17,8 +19,6 @@ except (ModuleNotFoundError, ImportError):
 from stellar_sdk import Server, Keypair, TransactionBuilder, Network
 from stellar_sdk.exceptions import BadRequestError
 from stellar_base import Address
-
-import requests
 
 JSConfigClient = j.baseclasses.object_config
 
@@ -46,29 +46,34 @@ class StellarClient(JSConfigClient):
         kp = Keypair.random()
         self.address = kp.public_key
         self.secret = kp.secret
-        print("Key: {}".format(kp.secret))
-        print("Address: {}".format(kp.public_key))
+        self._log_info("Key: {}".format(kp.secret))
+        self._log_info("Address: {}".format(kp.public_key))
+        return kp
 
     def get_balance(self):
         """Gets balance for address
         """
         address = Address(address=self.address)
         address.get()
-
-        print('Balances: {}'.format(address.balances))
+        self._log_info('Balances: {}'.format(address.balances))
+        return address.balances
 
     def fund_account(self):
         """Funds a testnet address
         """
         if str(self.network) != "TEST":
-            return Exception("You can only fund your account when connected to testnet")
+            raise Exception("You can only fund your account when connected to testnet")
 
         try:
-            res = requests.get("https://friendbot.stellar.org/?addr=" + self.address)
-            res.raise_for_status()
-            print("account with address: {} funded through friendbot!".format(self.address))
-        except requests.exceptions.HTTPError:
-            print(res.json())
+            resp = j.clients.http.get_response("https://friendbot.stellar.org/?addr=" + self.address)
+            if resp.getcode() == 200:
+                self._log_info("account with address: {} funded through friendbot!".format(self.address))
+        except HTTPError as e:
+            if e.status_code == 400:
+                msg = e.msg
+                if isinstance(msg, (bytes, bytearray)):
+                    msg = msg.decode("utf-8")
+                    self._log_debug(msg)
 
     def activate_account(self, destination_address, starting_balance="12.50"):
         """Activates another address
@@ -90,10 +95,10 @@ class StellarClient(JSConfigClient):
         transaction.sign(source)
         try:
             response = server.submit_transaction(transaction)
-            print("Transaction hash: {}".format(response["hash"]))
-            print(response)
+            self._log_info("Transaction hash: {}".format(response["hash"]))
+            self._log_info(response)
         except BadRequestError as e:
-            print(e)
+            self.log_debug(e)
 
     def create_trustline(self, issueraddress, assetcode, limit):
         """Create a trustline between you and the issuer of an asset.
@@ -128,10 +133,10 @@ class StellarClient(JSConfigClient):
 
         try:
             response = server.submit_transaction(transaction)
-            print("Transaction hash: {}".format(response["hash"]))
-            print(response)
+            self._log_info("Transaction hash: {}".format(response["hash"]))
+            self._log_info(response)
         except BadRequestError as e:
-            print(e)
+            self.log_debug(e)
 
 
     def transfer(self, destination_address, amount, asset="XLM"):
@@ -157,7 +162,7 @@ class StellarClient(JSConfigClient):
         if asset != "XLM":
             assetStr = asset.split(':')
             if len(assetStr) != 2:
-                return Exception('Wrong asset format')
+                raise Exception('Wrong asset format')
             asset = assetStr[0]
             issuer = assetStr[1]
 
@@ -176,7 +181,7 @@ class StellarClient(JSConfigClient):
 
         try:
             response = server.submit_transaction(transaction)
-            print("Transaction hash: {}".format(response["hash"]))
-            print(response)
+            self._log_info("Transaction hash: {}".format(response["hash"]))
+            self._log_info(response)
         except BadRequestError as e:
-            print(e)
+            self.log_debug(e)
