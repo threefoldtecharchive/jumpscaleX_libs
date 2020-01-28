@@ -309,7 +309,7 @@ class MDMacro(MDCodeMacroDataBase):
             data = {}
         self.data = data
         self.type = "macro"
-        self.method = method.strip()
+        self.method = method.strip().strip(".")  # dots at the end of the line
         self.result = None
 
     @property
