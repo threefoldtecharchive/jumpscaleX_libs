@@ -1,3 +1,5 @@
+import time
+
 from Jumpscale import j
 
 
@@ -16,8 +18,10 @@ class LoggerClient(j.baseclasses.object_config):
         session = "jumpscale" (S)
         date = (D)
         context = "main" (S)
+        pid = 0 (I)
         log_list_prefix = "logs:" (S)
-        logs_max = 100 (I)
+        logs_max = 1000 (I)
+        wait_interval = 0 (F)
         """
 
     def _init(self, **kwargs):
@@ -43,9 +47,12 @@ class LoggerClient(j.baseclasses.object_config):
     def location(self):
         return "%s/%s/%s" % (self.session, self.date_str, self.context)
 
+    def print(self, logdict):
+        print(j.core.tools.log2str(logdict))
+
     def tail(self, method=None):
         if not method:
-            method = print
+            method = self.print
 
         prev_logs = []
 
@@ -54,11 +61,24 @@ class LoggerClient(j.baseclasses.object_config):
                 list_key = f"{self.log_list_prefix}{self.location}"
                 new_logs = self.redis_client.lrange(list_key, 0, self.logs_max)
                 logs_diff = set(new_logs) - set(prev_logs)
+
                 for log in logs_diff:
-                    method(log.decode())
+                    try:
+                        logstr = log.decode()
+                        logdict = j.data.serializers.json.loads(logstr)
+                    except:
+                        print(f"Cannot load log of '{logstr}'")
+                        continue
+
+                    if self.pid:
+                        if self.pid == logdict.get("processid"):
+                            method(logdict)
+                    else:
+                        method(logdict)
 
                 prev_logs = new_logs
-
+                if self.wait_interval:
+                    time.sleep(self.wait_interval)
             except KeyboardInterrupt:
                 break
 
