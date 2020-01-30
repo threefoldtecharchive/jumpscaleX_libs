@@ -26,6 +26,10 @@ _HORIZON_NETWORKS = {
     "TEST": "https://horizon-testnet.stellar.org",
     "STD": "https://horizon.stellar.org",
 }
+_NETWORK_PASSPHRASES = {
+    "TEST": Network.TESTNET_NETWORK_PASSPHRASE,
+    "STD":Network.PUBLIC_NETWORK_PASSPHRASE,
+}
 
 class StellarClient(JSConfigClient):
     """
@@ -86,7 +90,7 @@ class StellarClient(JSConfigClient):
         source_account = server.load_account(account_id=source.public_key)
         transaction = TransactionBuilder(
             source_account=source_account,
-            network_passphrase=Network.TESTNET_NETWORK_PASSPHRASE,
+            network_passphrase= _NETWORK_PASSPHRASES[str(self.network)],
             base_fee=100) \
             .append_create_account_op(destination=destination_address, starting_balance=starting_balance) \
             .build()
@@ -115,7 +119,7 @@ class StellarClient(JSConfigClient):
         transaction = (
             TransactionBuilder(
                 source_account=source_account,
-                network_passphrase=Network.TESTNET_NETWORK_PASSPHRASE,
+                network_passphrase=_NETWORK_PASSPHRASES[str(self.network)],
                 base_fee=base_fee,
             )
                 .append_change_trust_op(asset_issuer=issuer, asset_code=asset_code)
@@ -131,6 +135,7 @@ class StellarClient(JSConfigClient):
             self._log_info(response)
         except BadRequestError as e:
             self.log_debug(e)
+            raise e
 
 
     def transfer(self, destination_address, amount, asset="XLM"):
@@ -163,7 +168,7 @@ class StellarClient(JSConfigClient):
         transaction = (
             TransactionBuilder(
                 source_account=source_account,
-                network_passphrase=Network.TESTNET_NETWORK_PASSPHRASE,
+                network_passphrase=_NETWORK_PASSPHRASES[str(self.network)] ,
                 base_fee=base_fee,
             )
                 .append_payment_op(destination=destination_address, amount=str(amount), asset_code=asset, asset_issuer=issuer)
