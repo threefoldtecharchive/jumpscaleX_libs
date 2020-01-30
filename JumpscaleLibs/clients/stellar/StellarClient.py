@@ -9,12 +9,12 @@ try:
     from stellar_sdk import Server, Keypair, TransactionBuilder, Network
     from stellar_sdk.exceptions import BadRequestError
 except (ModuleNotFoundError, ImportError):
-    j.builders.runtime.python3.pip_package_install("stellar_sdk")
+    j.builders.runtimes.python3.pip_package_install("stellar_sdk")
 
 try:
     from stellar_base import Address
 except (ModuleNotFoundError, ImportError):
-    j.builders.runtime.python3.pip_package_install("stellar_base")
+    j.builders.runtimes.python3.pip_package_install("stellar_base")
 
 from stellar_sdk import Server, Keypair, TransactionBuilder, Network
 from stellar_sdk.exceptions import BadRequestError
