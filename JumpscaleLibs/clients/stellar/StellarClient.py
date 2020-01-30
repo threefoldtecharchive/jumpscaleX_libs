@@ -184,4 +184,5 @@ class StellarClient(JSConfigClient):
             self._log_info("Transaction hash: {}".format(response["hash"]))
             self._log_info(response)
         except BadRequestError as e:
-            self.log_debug(e)
+            self._log_debug(e)
+            raise e
