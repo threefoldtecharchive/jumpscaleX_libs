@@ -39,16 +39,14 @@ class StellarClient(JSConfigClient):
         address = (S)
         secret = (S)
         """
-
-    def new_keypair(self):
-        """Creates a new Stellar keypair (address and secret)
-        """
-        kp = Keypair.random()
+    def _init(self, **kwargs):
+        if self.secret =='':
+            kp = Keypair.random()
+            self.secret = kp.secret
+        else:
+            kp=Keypair.from_secret(self.secret)
         self.address = kp.public_key
-        self.secret = kp.secret
-        self._log_info("Key: {}".format(kp.secret))
-        self._log_info("Address: {}".format(kp.public_key))
-        return kp
+
 
     def get_balance(self):
         """Gets balance for address
@@ -58,11 +56,11 @@ class StellarClient(JSConfigClient):
         self._log_info('Balances: {}'.format(address.balances))
         return address.balances
 
-    def fund_account(self):
-        """Funds a testnet address
+    def activate_through_friendbot(self):
+        """Activates and funds a testnet account using riendbot
         """
         if str(self.network) != "TEST":
-            raise Exception("You can only fund your account when connected to testnet")
+            raise Exception('Account activation through friendbot is only available on testnet')
 
         try:
             resp = j.clients.http.get_response("https://friendbot.stellar.org/?addr=" + self.address)
@@ -76,7 +74,7 @@ class StellarClient(JSConfigClient):
                     self._log_debug(msg)
 
     def activate_account(self, destination_address, starting_balance="12.50"):
-        """Activates another address
+        """Activates another account
         :param destination_address: address of the destination.
         :type destination_address: str
         :param starting_balance: the balance that the destination address will start with. Must be a positive integer expressed as a string. If an empty string is provided, 12,5 XLM will be the starting balance
@@ -100,16 +98,12 @@ class StellarClient(JSConfigClient):
         except BadRequestError as e:
             self.log_debug(e)
 
-    def create_trustline(self, issueraddress, assetcode, limit):
+    def add_trustline(self, issuer, asset_code):
         """Create a trustline between you and the issuer of an asset.
-        :param issueraddress: address of the asset issuer.
-        :type issueraddress: str
-        :param assetcode: code which form the asset. For example: 'BTC', 'XRP', ...
-        :type assetcode: str
-        :param limit: The trust limit parameter limits the number of tokens the distribution account will be able to hold at once. It
-        is recommended to either make this number larger than the total number of tokens expected
-        to be available on the network or set it to be the maximum value (a total of max int64 stroops) that an account can hold. Expressed as a string.
-        :type limit: str
+        :param issuer: address of the asset issuer.
+        :type issuer: str
+        :param asset_code: code which form the asset. For example: 'BTC', 'XRP', ...
+        :type asset_code: str
         """
         server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
         source_keypair = Keypair.from_secret(self.secret)
@@ -124,7 +118,7 @@ class StellarClient(JSConfigClient):
                 network_passphrase=Network.TESTNET_NETWORK_PASSPHRASE,
                 base_fee=base_fee,
             )
-                .append_change_trust_op(asset_issuer=issueraddress, limit=limit, asset_code=assetcode)
+                .append_change_trust_op(asset_issuer=issuer, asset_code=asset_code)
                 .set_timeout(30)
                 .build()
         )
@@ -145,9 +139,9 @@ class StellarClient(JSConfigClient):
         :type destination_address: str
         :param amount: amount, can be a floating point number with 7 numbers after the decimal point expressed as a string.
         :type amount: str
-        :param asset: asset, asset to transfer (if none is specified the default 'XLM' is used),
+        :param asset: asset to transfer (if none is specified the default 'XLM' is used),
         if you wish to specify an asset it should be in format 'assetcode:issuer'. Where issuer is the address of the
-        issuer of said asset.
+        issuer of the asset.
         :type asset: str
         """
         server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
