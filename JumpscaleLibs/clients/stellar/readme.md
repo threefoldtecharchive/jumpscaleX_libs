@@ -21,11 +21,11 @@ wallet = j.clients.tfchain.new('my_wallet', network='TEST', secret='S.....')
 For example, add a trustline to TFT:GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3 (TFT on testnet):
 
 ``` python
-wallet.add_trustline('GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3', 'TFT')
+wallet.add_trustline('TFT,'GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3')
 ```
 
 and remove it again:
 
 ``` python
-wallet.delete_trustline('GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3', 'TFT')
+wallet.delete_trustline('TFT','GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3')
 ```

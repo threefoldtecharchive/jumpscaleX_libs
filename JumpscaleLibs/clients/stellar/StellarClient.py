@@ -103,30 +103,30 @@ class StellarClient(JSConfigClient):
             self.log_debug(e)
 
 
-    def add_trustline(self, issuer, asset_code):
+    def add_trustline(self, asset_code,issuer ):
         """Create a trustline between you and the issuer of an asset.
-        :param issuer: address of the asset issuer.
-        :type issuer: str
         :param asset_code: code which form the asset. For example: 'BTC', 'XRP', ...
         :type asset_code: str
+        :param issuer: address of the asset issuer.
+        :type issuer: str
         """
-        self._change_trustline(issuer, asset_code)
+        self._change_trustline(asset_code,issuer)
 
-    def delete_trustline(self, issuer, asset_code):
+    def delete_trustline(self, asset_code,issuer):
         """Deletes a trustline
-        :param issuer: address of the asset issuer.
-        :type issuer: str
         :param asset_code: code which form the asset. For example: 'BTC', 'XRP', ...
         :type asset_code: str
+        :param issuer: address of the asset issuer.
+        :type issuer: str
         """ 
-        self._change_trustline(issuer,asset_code, limit="0")
+        self._change_trustline(asset_code,issuer, limit="0")
 
-    def _change_trustline(self, issuer, asset_code, limit=None):
+    def _change_trustline(self,asset_code, issuer , limit=None):
         """Create a trustline between you and the issuer of an asset.
-        :param issuer: address of the asset issuer.
-        :type issuer: str
         :param asset_code: code which form the asset. For example: 'BTC', 'XRP', ...
         :type asset_code: str
+        :param issuer: address of the asset issuer.
+        :type issuer: str
         :param limit: The limit for the asset, defaults to max int64(922337203685.4775807). If the limit is set to “0” it deletes the trustline
         """
         server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
