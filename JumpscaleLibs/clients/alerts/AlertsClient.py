@@ -15,9 +15,7 @@ class AlertsClient(j.baseclasses.object_config):
 
     def _init(self, **kwargs):
         self._redis_client = None
-        self.serialize_json = True
-        self._rediskey_alerts = "alerts"
-        self._rediskey_logs = "logs:%s" % (self._threebot_name)
+        self._alert_handler = None
 
     @property
     def redis_client(self):
@@ -28,55 +26,48 @@ class AlertsClient(j.baseclasses.object_config):
 
         return self._redis_client
 
-    def walk(self, method, args={}):
+    @property
+    def alert_handler(self):
+        """
+        get an alert handler object and overrides it's redis connection to be able to connect to a remote server
+        """
+        if self._alert_handler is None:
+            self._alert_handler = j.tools.alerthandler
+            self._alert_handler.db = self.redis_client
+
+        return self._alert_handler
+
+    def list(self):
+        """
+        returns all alerts
         """
 
-        def method(key,errorobj,args):
-            return args
+        return self.alert_handler.list()
 
-        will walk over all alerts, can manipulate or fetch that way
-
-        :param method:
-        :return:
-        """
-        for key in self.redis_client.hkeys(self._rediskey_alerts):
-            obj = self.get(key)
-            args = method(key, obj, args)
-        return args
-
-    def list(self, sort_by=None):
-        """
-        returns all alerts sorted by and key
-        """
-
-        def llist(key, err, args):
-            args["res"].append([key, err])
-            return args
-
-        args = self.walk(llist, args={"res": []})
-        return args["res"]
-
-    def find(self, **kwargs):
-        """
-        find alerts
-        """
-        pass
-
-    def get(self, identifier):
+    def get(self, identifier, die=False):
         """
         get alert by identifier
         """
-        pass
+        return self.alert_handler.get(identifier=identifier, die=die)
 
     def delete(self, identifier):
         """
         deletes an alert by identifier
         """
-        pass
+        return self.alert_handler.delete(identifier=identifier)
 
     def delete_all(self):
         """
         deletes all alerts
         :return:
         """
-        pass
+        return self.alert_handler.delete_all()
+
+    def find(self, cat="", message=""):
+        """
+        find alerts with category or message
+        :param cat: category
+        :param message: message
+        :return: list of alerts
+        """
+        return self.alert_handler.find(cat=cat, message=message)
