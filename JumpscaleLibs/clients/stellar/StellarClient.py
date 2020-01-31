@@ -22,14 +22,9 @@ from stellar_base import Address
 
 JSConfigClient = j.baseclasses.object_config
 
-_HORIZON_NETWORKS = {
-    "TEST": "https://horizon-testnet.stellar.org",
-    "STD": "https://horizon.stellar.org",
-}
-_NETWORK_PASSPHRASES = {
-    "TEST": Network.TESTNET_NETWORK_PASSPHRASE,
-    "STD":Network.PUBLIC_NETWORK_PASSPHRASE,
-}
+_HORIZON_NETWORKS = {"TEST": "https://horizon-testnet.stellar.org", "STD": "https://horizon.stellar.org"}
+_NETWORK_PASSPHRASES = {"TEST": Network.TESTNET_NETWORK_PASSPHRASE, "STD": Network.PUBLIC_NETWORK_PASSPHRASE}
+
 
 class StellarClient(JSConfigClient):
     """
@@ -43,28 +38,28 @@ class StellarClient(JSConfigClient):
         address = (S)
         secret = (S)
         """
+
     def _init(self, **kwargs):
-        if self.secret =='':
+        if self.secret == "":
             kp = Keypair.random()
             self.secret = kp.secret
         else:
-            kp=Keypair.from_secret(self.secret)
+            kp = Keypair.from_secret(self.secret)
         self.address = kp.public_key
-
 
     def get_balance(self):
         """Gets balance for address
         """
         address = Address(address=self.address)
         address.get()
-        self._log_info('Balances: {}'.format(address.balances))
+        self._log_info("Balances: {}".format(address.balances))
         return address.balances
 
     def activate_through_friendbot(self):
         """Activates and funds a testnet account using riendbot
         """
         if str(self.network) != "TEST":
-            raise Exception('Account activation through friendbot is only available on testnet')
+            raise Exception("Account activation through friendbot is only available on testnet")
 
         try:
             resp = j.clients.http.get_response("https://friendbot.stellar.org/?addr=" + self.address)
@@ -88,12 +83,13 @@ class StellarClient(JSConfigClient):
         source = Keypair.from_secret(self.secret)
 
         source_account = server.load_account(account_id=source.public_key)
-        transaction = TransactionBuilder(
-            source_account=source_account,
-            network_passphrase= _NETWORK_PASSPHRASES[str(self.network)],
-            base_fee=100) \
-            .append_create_account_op(destination=destination_address, starting_balance=starting_balance) \
+        transaction = (
+            TransactionBuilder(
+                source_account=source_account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=100
+            )
+            .append_create_account_op(destination=destination_address, starting_balance=starting_balance)
             .build()
+        )
         transaction.sign(source)
         try:
             response = server.submit_transaction(transaction)
@@ -102,26 +98,25 @@ class StellarClient(JSConfigClient):
         except BadRequestError as e:
             self.log_debug(e)
 
-
-    def add_trustline(self, asset_code,issuer ):
+    def add_trustline(self, asset_code, issuer):
         """Create a trustline between you and the issuer of an asset.
         :param asset_code: code which form the asset. For example: 'BTC', 'XRP', ...
         :type asset_code: str
         :param issuer: address of the asset issuer.
         :type issuer: str
         """
-        self._change_trustline(asset_code,issuer)
+        self._change_trustline(asset_code, issuer)
 
-    def delete_trustline(self, asset_code,issuer):
+    def delete_trustline(self, asset_code, issuer):
         """Deletes a trustline
         :param asset_code: code which form the asset. For example: 'BTC', 'XRP', ...
         :type asset_code: str
         :param issuer: address of the asset issuer.
         :type issuer: str
-        """ 
-        self._change_trustline(asset_code,issuer, limit="0")
+        """
+        self._change_trustline(asset_code, issuer, limit="0")
 
-    def _change_trustline(self,asset_code, issuer , limit=None):
+    def _change_trustline(self, asset_code, issuer, limit=None):
         """Create a trustline between you and the issuer of an asset.
         :param asset_code: code which form the asset. For example: 'BTC', 'XRP', ...
         :type asset_code: str
@@ -142,9 +137,9 @@ class StellarClient(JSConfigClient):
                 network_passphrase=_NETWORK_PASSPHRASES[str(self.network)],
                 base_fee=base_fee,
             )
-                .append_change_trust_op(asset_issuer=issuer, asset_code=asset_code)
-                .set_timeout(30)
-                .build()
+            .append_change_trust_op(asset_issuer=issuer, asset_code=asset_code)
+            .set_timeout(30)
+            .build()
         )
 
         transaction.sign(source_keypair)
@@ -156,7 +151,6 @@ class StellarClient(JSConfigClient):
         except BadRequestError as e:
             self.log_debug(e)
             raise e
-
 
     def transfer(self, destination_address, amount, asset="XLM"):
         """Transfer assets to another address
@@ -179,21 +173,23 @@ class StellarClient(JSConfigClient):
         issuer = None
 
         if asset != "XLM":
-            assetStr = asset.split(':')
+            assetStr = asset.split(":")
             if len(assetStr) != 2:
-                raise Exception('Wrong asset format')
+                raise Exception("Wrong asset format")
             asset = assetStr[0]
             issuer = assetStr[1]
 
         transaction = (
             TransactionBuilder(
                 source_account=source_account,
-                network_passphrase=_NETWORK_PASSPHRASES[str(self.network)] ,
+                network_passphrase=_NETWORK_PASSPHRASES[str(self.network)],
                 base_fee=base_fee,
             )
-                .append_payment_op(destination=destination_address, amount=str(amount), asset_code=asset, asset_issuer=issuer)
-                .set_timeout(30)
-                .build()
+            .append_payment_op(
+                destination=destination_address, amount=str(amount), asset_code=asset, asset_issuer=issuer
+            )
+            .set_timeout(30)
+            .build()
         )
 
         transaction.sign(source_keypair)
