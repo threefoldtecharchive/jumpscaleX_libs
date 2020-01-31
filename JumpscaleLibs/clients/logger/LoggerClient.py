@@ -83,15 +83,19 @@ class LoggerClient(j.baseclasses.object_config):
                 break
 
     def _write_log_to_file(self, filepath, log):
+        if isinstance(log, str):
+            log = log.encode()
+
         with open(filepath, "ab") as fp:
-            fp.write(bytes(log, "UTF-8"))
+            fp.write(log)
             fp.write(b"\n")
 
     def dump(self, filepath):
         parent_dir = j.sal.fs.getParent(filepath)
         j.sal.fs.createDir(parent_dir)
 
-        def write_log(log):
+        def write_log(logdict):
+            log = j.core.tools.log2str(logdict)
             self._write_log_to_file(filepath, log)
 
         self.tail(method=write_log)
