@@ -49,7 +49,7 @@ def test001_uptime():
     with open("/proc/uptime") as f:
         data = f.read()
         uptime, _ = data.split(" ")
-    assert isclose(float(uptime), j.sal.ubuntu.uptime(), delta=2)
+    assert isclose(float(uptime), j.sal.ubuntu.uptime(), abs_tol=2)
 
 
 def test002_service_install():
@@ -121,10 +121,11 @@ def test004_apt_install_check():
     """
     info("checking ping is installed or not ")
     j.sal.ubuntu.apt_install_check("iputils-ping", "ping")
-    # with assertRaises(Exception) as myexcept:
-    #     ubuntu.apt_install_check("iputils-ping", "elfankosh")
-    #     info("There is exceptions RuntimeError due to elfankosh is not a command")
-    #     assertIn("Could not execute: 'which elfankosh'", myexcept.exception.args[0])
+    try:
+        j.sal.ubuntu.apt_install_check("iputils-ping", "elfankosh")
+        info("There is exceptions RuntimeError due to elfankosh is not a command")
+    except Exception as myexcept:
+        assert "Could not execute: 'which elfankosh'" in myexcept.exception.args[0]
 
 
 def test005_apt_install_version():
@@ -509,16 +510,18 @@ def test021_check_os():
         if release_num > 14:
             info("verifying tested method should return True")
             assert j.sal.ubuntu.check()
-    #     else:
-    #         with assertRaises(j.exceptions.RuntimeError) as myexcept:
-    #             ubuntu.check()
-    #             info("There is exceptions RuntimeError as Only ubuntu version 14+ supported")
-    #             assertIn("Only ubuntu version 14+ supported", myexcept.exception.args[0])
-    # else:
-    #     with assertRaises(j.exceptions.RuntimeError) as e:
-    #         ubuntu.check()
-    #         info("There is exceptions RuntimeError as the OS is not between Ubuntu or LinuxMint")
-    #         assertIn("Only Ubuntu/Mint supported", e.exception.args[0])
+        else:
+            try:
+                j.sal.ubuntu.check()
+                info("There is exceptions RuntimeError as Only ubuntu version 14+ supported")
+            except (j.exceptions.RuntimeError) as myexcept:
+                assert "Only ubuntu version 14+ supported" in myexcept.exception.args[0]
+    else:
+        try:
+            j.sal.ubuntu.check()
+            info("There is exceptions RuntimeError as the OS is not between Ubuntu or LinuxMint")
+        except (j.exceptions.RuntimeError) as e:
+            assert "Only Ubuntu/Mint supported" in e.exception.args[0]
 
 
 def test022_deb_download_install():
