@@ -6,7 +6,17 @@ from Jumpscale import j
 from Jumpscale.clients.http.HttpClient import HTTPError
 
 try:
-    from stellar_sdk import Server, Keypair, TransactionBuilder, Network, Signer, Asset, operation, Transaction, TransactionEnvelope
+    from stellar_sdk import (
+        Server,
+        Keypair,
+        TransactionBuilder,
+        Network,
+        Signer,
+        Asset,
+        operation,
+        Transaction,
+        TransactionEnvelope,
+    )
     from stellar_sdk.exceptions import BadRequestError
 except (ModuleNotFoundError, ImportError):
     j.builders.runtimes.python3.pip_package_install("stellar_sdk")
@@ -51,7 +61,6 @@ class StellarClient(JSConfigClient):
         else:
             kp = Keypair.from_secret(self.secret)
         self.address = kp.public_key
-
 
     def create_keypair(self):
         kp = Keypair.random()
@@ -243,33 +252,40 @@ class StellarClient(JSConfigClient):
             asset_code = assetStr[0]
             issuer = assetStr[1]
 
-        self._log_info('Sending {amount} {asset_code} from {from_address} to {destination_address}'.format(amount=amount, asset_code=asset_code, from_address=from_kp.public_key, destination_address=destination_address))
+        self._log_info(
+            "Sending {amount} {asset_code} from {from_address} to {destination_address}".format(
+                amount=amount,
+                asset_code=asset_code,
+                from_address=from_kp.public_key,
+                destination_address=destination_address,
+            )
+        )
 
-        self._log_info('Creating escrow account')
+        self._log_info("Creating escrow account")
         escrow_kp = self.create_keypair()
 
         # minimum account balance as described at https://www.stellar.org/developers/guides/concepts/fees.html#minimum-account-balance
         server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
         base_fee = server.fetch_base_fee()
         base_reserve = 0.5
-        minimum_account_balance = (2+1+3)*base_reserve  # 1 trustline and 3 signers
-        required_XLM = minimum_account_balance+base_fee*0.0000001*3
+        minimum_account_balance = (2 + 1 + 3) * base_reserve  # 1 trustline and 3 signers
+        required_XLM = minimum_account_balance + base_fee * 0.0000001 * 3
 
-        self._log_info('Activating escrow account')
+        self._log_info("Activating escrow account")
         self.activate_account(escrow_kp.public_key, str(math.ceil(required_XLM)))
 
         if asset != "XLM":
-            self._log_info('Adding trustline to escrow account')
+            self._log_info("Adding trustline to escrow account")
             self.add_trustline(asset_code, issuer, escrow_kp.secret)
 
-        preauth_tx = self.create_preauth_transaction(escrow_kp, unlock_time)
+        preauth_tx = self._create_preauth_transaction(escrow_kp, unlock_time)
         preauth_tx_hash = preauth_tx.hash()
 
         # save the preauth transaction
         self.preauth_txs[escrow_kp.public_key] = preauth_tx.to_xdr()
 
-        self.set_account_signers(escrow_kp.public_key, destination_address, preauth_tx_hash, escrow_kp)
-        self._log_info('Unlock Transaction:')
+        self._set_account_signers(escrow_kp.public_key, destination_address, preauth_tx_hash, escrow_kp)
+        self._log_info("Unlock Transaction:")
         self._log_info(preauth_tx.to_xdr())
 
         self.transfer(escrow_kp.public_key, amount, asset)
@@ -277,33 +293,35 @@ class StellarClient(JSConfigClient):
         self._log_info("Pre authorizating transaction xdr: {xdr}".format(xdr=preauth_tx.to_xdr()))
         return preauth_tx.to_xdr()
 
-    def create_preauth_transaction(self, escrow_kp, unlock_time):
+    def _create_preauth_transaction(self, escrow_kp, unlock_time):
         server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
         escrow_account = server.load_account(escrow_kp.public_key)
         escrow_account.increment_sequence_number()
-        tx = TransactionBuilder(escrow_account).append_set_options_op(
-            master_weight=0,
-            low_threshold=1,
-            med_threshold=1,
-            high_threshold=1).add_time_bounds(
-            unlock_time,
-            0).build()
+        tx = (
+            TransactionBuilder(escrow_account)
+            .append_set_options_op(master_weight=0, low_threshold=1, med_threshold=1, high_threshold=1)
+            .add_time_bounds(unlock_time, 0)
+            .build()
+        )
         tx.sign(escrow_kp)
         return tx
 
-    def set_account_signers(self, address, public_key_signer, preauth_tx_hash, signer_kp):
+    def _set_account_signers(self, address, public_key_signer, preauth_tx_hash, signer_kp):
         server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
         account = server.load_account(address)
-        tx = TransactionBuilder(account).append_pre_auth_tx_signer(
-            preauth_tx_hash,
-            1).append_ed25519_public_key_signer(
-            public_key_signer,
-            1).append_set_options_op(master_weight=1,low_threshold=2,med_threshold=2,high_threshold=2).build()
+        tx = (
+            TransactionBuilder(account)
+            .append_pre_auth_tx_signer(preauth_tx_hash, 1)
+            .append_ed25519_public_key_signer(public_key_signer, 1)
+            .append_set_options_op(master_weight=1, low_threshold=2, med_threshold=2, high_threshold=2)
+            .build()
+        )
 
         tx.sign(signer_kp)
         response = server.submit_transaction(tx)
         self._log_info(response)
-        self._log_info('Set the signers of {address} to {pk_signer} and {preauth_hash_signer}'.format(
-            address=address,
-            pk_signer=public_key_signer,
-            preauth_hash_signer=preauth_tx_hash))
+        self._log_info(
+            "Set the signers of {address} to {pk_signer} and {preauth_hash_signer}".format(
+                address=address, pk_signer=public_key_signer, preauth_hash_signer=preauth_tx_hash
+            )
+        )
