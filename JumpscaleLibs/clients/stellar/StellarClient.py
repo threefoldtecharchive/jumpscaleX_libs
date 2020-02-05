@@ -229,6 +229,9 @@ class StellarClient(JSConfigClient):
         :param unlock_time: should be an epoch timestamp indicating when the funds should be unlocked.
         :type unlock_time: float
         """
+        if time.time() >= unlock_time:
+            raise Exception("Unlock time should be a timestamp in the future")
+
         from_kp = Keypair.from_secret(self.secret)
         issuer = None
         asset_code = ""
@@ -255,8 +258,9 @@ class StellarClient(JSConfigClient):
         self._log_info('Activating escrow account')
         self.activate_account(escrow_kp.public_key, str(math.ceil(required_XLM)))
 
-        self._log_info('Adding trustline to escrow account')
-        self.add_trustline(asset_code, issuer, escrow_kp.secret)
+        if asset != "XLM":
+            self._log_info('Adding trustline to escrow account')
+            self.add_trustline(asset_code, issuer, escrow_kp.secret)
 
         preauth_tx = self.create_preauth_transaction(escrow_kp, unlock_time)
         preauth_tx_hash = preauth_tx.hash()
@@ -274,9 +278,6 @@ class StellarClient(JSConfigClient):
         return preauth_tx.to_xdr()
 
     def create_preauth_transaction(self, escrow_kp, unlock_time):
-        if time.time() >= unlock_time:
-            raise Exception("Unlock time should be a timestamp in the future")
-
         server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
         escrow_account = server.load_account(escrow_kp.public_key)
         escrow_account.increment_sequence_number()
