@@ -6,7 +6,7 @@ from Jumpscale import j
 from Jumpscale.clients.http.HttpClient import HTTPError
 
 try:
-    from stellar_sdk import Server, Keypair, TransactionBuilder, Network
+    from stellar_sdk import Server, Keypair, TransactionBuilder, Network, Signer, Asset, operation, Transaction, TransactionEnvelope
     from stellar_sdk.exceptions import BadRequestError
 except (ModuleNotFoundError, ImportError):
     j.builders.runtimes.python3.pip_package_install("stellar_sdk")
@@ -19,7 +19,10 @@ except (ModuleNotFoundError, ImportError):
 from stellar_sdk import Server, Keypair, TransactionBuilder, Network
 from stellar_sdk.exceptions import BadRequestError
 from stellar_base import Address
+from urllib import parse
 import time
+import decimal
+import math
 
 JSConfigClient = j.baseclasses.object_config
 
@@ -38,6 +41,7 @@ class StellarClient(JSConfigClient):
         network** = "STD,TEST" (E)
         address = (S)
         secret = (S)
+        preauth_txs = (dict)
         """
 
     def _init(self, **kwargs):
@@ -173,9 +177,6 @@ class StellarClient(JSConfigClient):
         issuer of the asset.
         :type asset: str
         """
-
-        self._log_info(destination_address)
-
         server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
         source_keypair = Keypair.from_secret(self.secret)
         source_public_key = source_keypair.public_key
@@ -216,7 +217,7 @@ class StellarClient(JSConfigClient):
             raise e
 
     def create_preauth_transaction(self, escrow_kp):
-        unlock_time = int(time.time())+60*10 # 10 minutes from now
+        unlock_time = int(time.time())+60*1 # 10 minutes from now
         server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
         escrow_account = server.load_account(escrow_kp.public_key)
         escrow_account.increment_sequence_number()
@@ -240,7 +241,7 @@ class StellarClient(JSConfigClient):
             1).append_set_options_op(master_weight=1,low_threshold=2,med_threshold=2,high_threshold=2).build()
 
         tx.sign(signer_kp)
-        response=server.submit_transaction(tx)
+        response = server.submit_transaction(tx)
         self._log_info(response)
         self._log_info('Set the signers of {address} to {pk_signer} and {preauth_hash_signer}'.format(
             address=address,
@@ -272,25 +273,107 @@ class StellarClient(JSConfigClient):
         minimum_account_balance = (2+1+3)*base_reserve  # 1 trustline and 3 signers
         required_XLM = minimum_account_balance+base_fee*0.0000001*3
 
-        try:
-            self._log_info('Activating escrow account')
-            self.activate_account(escrow_kp.public_key, starting_balance=str(math.ceil(required_XLM)))
-        except Exception as e:
-            self._log_debug(e)
+        self._log_info('Activating escrow account')
+        self.activate_account(escrow_kp.public_key, str(math.ceil(required_XLM)))
+
+        self._log_info('Adding trustline to escrow account')
+        self.add_trustline(asset_code, issuer, escrow_kp.secret)
+
+        preauth_tx = self.create_preauth_transaction(escrow_kp)
+        preauth_tx_hash = preauth_tx.hash()
+
+        # save the preauth transaction
+        self.preauth_txs[escrow_kp.public_key] = preauth_tx.to_xdr()
+
+        self.set_account_signers(escrow_kp.public_key, destination_address, preauth_tx_hash, escrow_kp)
+        self._log_info('Unlock Transaction:')
+        self._log_info(preauth_tx.to_xdr())
+
+        self.transfer(escrow_kp.public_key, amount, asset)
+
+    def find_escrow_accounts(self, asset):
+        stellar_asset = self._asset_from_full_string(asset)
+        server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
+        accounts_endpoint = server.accounts()
+        accounts_endpoint.signer(self.address)
+        old_cursor='old'
+        new_cursor=''
+        while new_cursor != old_cursor:
+            old_cursor = new_cursor
+            accounts_endpoint.cursor(new_cursor)
+            response = accounts_endpoint.call()
+            next_link = response['_links']['next']['href']
+            next_link_query = parse.urlsplit(next_link).query
+            new_cursor = parse.parse_qs(next_link_query)['cursor'][0]
+            accounts = response['_embedded']['records']
+            for account in accounts:
+                account_id = account['account_id']
+                if account_id == self.address: continue # Do not take the receiver's account
+                balances = account['balances']
+                asset_balances = [balance for balance in balances if balance['asset_type']==stellar_asset.guess_asset_type() and balance['asset_code']== stellar_asset.code and balance['asset_issuer']==stellar_asset.issuer]
+                asset_balance = decimal.Decimal(0)
+                for balance in asset_balances:
+                    asset_balance+= decimal.Decimal(balance['balance'])
+                if asset_balance == decimal.Decimal(): continue # 0 so skip
+
+                all_signers = account['signers']
+                preauth_signers= [signer['key'] for signer in all_signers if signer['type']=='preauth_tx']
+
+                print('Account {account} with {asset_balance} {asset_code} has unlocktransaction hashes {unlockhashes}'.format(account=account_id,asset_balance=asset_balance, asset_code=stellar_asset.code, unlockhashes=preauth_signers))
+                return self.create_refund_transaction(account_id, stellar_asset, balances)
+
+                #TODO check the tresholds and signers
+                #TODO if we can merge, the amount is unlocked ( if len(preauth_signers))==0
+
+    def create_refund_transaction(self, account_id, stellar_asset, balances):
+        server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
+        account = server.load_account(account_id)
+        account.increment_sequence_number()
+        base_fee = server.fetch_base_fee()
+
+        redeem_operations = []
+
+        for balance in balances:
+            payment_op = operation.Payment(destination=self.address, asset=stellar_asset, amount=balance['balance'])
+            redeem_operations.append(payment_op)
+
+            if (balance['asset_type'] != 'native'):
+                remove_trust_op = operation.ChangeTrust(asset=Asset(code=balance['asset_code'], issuer=balance['asset_issuer']), limit='0')
+                redeem_operations.append(remove_trust_op)
+
+        account_merge_op = operation.AccountMerge(destination=self.address)
+        redeem_operations.append(account_merge_op)
+
+        tx = Transaction(
+            source=account,
+            sequence=1,
+            fee=base_fee,
+            operations=redeem_operations,
+        )
+
+        tx_envelope = TransactionEnvelope(
+            transaction=tx,
+            network_passphrase=_NETWORK_PASSPHRASES[str(self.network)],
+        )
+
+        tx_envelope.sign_hashx(self.secret.encode('utf-8').hex())
+
+        # kp = Keypair.from_secret(self.secret)
+        # tx_envelope.sign(kp)
+
+        xdr_tx = tx_envelope.to_xdr()
 
         try:
-            self._log_info('Adding trustline to escrow account')
-            self.add_trustline(asset_code, issuer, escrow_kp.secret)
-        except Exception as e:
+            response = server.submit_transaction(xdr_tx)
+            self._log_info("Transaction hash: {}".format(response["hash"]))
+            self._log_info(response)
+        except BadRequestError as e:
             self._log_debug(e)
+            raise e
 
-        try:
-            preauth_tx = self.create_preauth_transaction(escrow_kp)
-            preauth_tx_hash= preauth_tx.hash()
-            self.set_account_signers(escrow_kp.public_key, destination_address, preauth_tx_hash, escrow_kp)
-            self._log_info('Unlock Transaction:')
-            self._log_info(preauth_tx.to_xdr())
-        except Exception as e:
-            self._log_debug(e)
+    def _asset_from_full_string(self, full_asset_string):
+        split_asset= full_asset_string.split(':',1)
+        asset_code=split_asset[0]
+        asset_issuer=split_asset[1]
 
-        return self.transfer(destination_address=escrow_kp.public_key, amount=amount, asset=asset)
+        return Asset(asset_code,asset_issuer)
