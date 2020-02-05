@@ -216,40 +216,19 @@ class StellarClient(JSConfigClient):
             self._log_debug(e)
             raise e
 
-    def create_preauth_transaction(self, escrow_kp):
-        unlock_time = int(time.time())+60*1 # 10 minutes from now
-        server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
-        escrow_account = server.load_account(escrow_kp.public_key)
-        escrow_account.increment_sequence_number()
-        tx = TransactionBuilder(escrow_account).append_set_options_op(
-            master_weight=0,
-            low_threshold=1,
-            med_threshold=1,
-            high_threshold=1).add_time_bounds(
-            unlock_time,
-            0).build()
-        tx.sign(escrow_kp)
-        return tx
-
-    def set_account_signers(self, address, public_key_signer, preauth_tx_hash, signer_kp):
-        server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
-        account = server.load_account(address)
-        tx = TransactionBuilder(account).append_pre_auth_tx_signer(
-            preauth_tx_hash,
-            1).append_ed25519_public_key_signer(
-            public_key_signer,
-            1).append_set_options_op(master_weight=1,low_threshold=2,med_threshold=2,high_threshold=2).build()
-
-        tx.sign(signer_kp)
-        response = server.submit_transaction(tx)
-        self._log_info(response)
-        self._log_info('Set the signers of {address} to {pk_signer} and {preauth_hash_signer}'.format(
-            address=address,
-            pk_signer=public_key_signer,
-            preauth_hash_signer=preauth_tx_hash))
-
-
-    def send_locked_funds(self, destination_address, amount, asset):
+    def transfer_locked_funds(self, destination_address, amount, asset, unlock_time):
+        """Transfer locked assets to another address
+        :param destination_address: address of the destination.
+        :type destination_address: str
+        :param amount: amount, can be a floating point number with 7 numbers after the decimal point expressed as a string.
+        :type amount: str
+        :param asset: asset to transfer (if none is specified the default 'XLM' is used),
+        if you wish to specify an asset it should be in format 'assetcode:issuer'. Where issuer is the address of the
+        issuer of the asset.
+        :type asset: str
+        :param unlock_time: should be an epoch timestamp indicating when the funds should be unlocked.
+        :type unlock_time: float
+        """
         from_kp = Keypair.from_secret(self.secret)
         issuer = None
         asset_code = ""
@@ -279,7 +258,7 @@ class StellarClient(JSConfigClient):
         self._log_info('Adding trustline to escrow account')
         self.add_trustline(asset_code, issuer, escrow_kp.secret)
 
-        preauth_tx = self.create_preauth_transaction(escrow_kp)
+        preauth_tx = self.create_preauth_transaction(escrow_kp, unlock_time)
         preauth_tx_hash = preauth_tx.hash()
 
         # save the preauth transaction
@@ -291,89 +270,39 @@ class StellarClient(JSConfigClient):
 
         self.transfer(escrow_kp.public_key, amount, asset)
 
-    def find_escrow_accounts(self, asset):
-        stellar_asset = self._asset_from_full_string(asset)
+        self._log_info("Pre authorizating transaction xdr: {xdr}".format(xdr=preauth_tx.to_xdr()))
+        return preauth_tx.to_xdr()
+
+    def create_preauth_transaction(self, escrow_kp, unlock_time):
+        if time.time() >= unlock_time:
+            raise Exception("Unlock time should be a timestamp in the future")
+
         server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
-        accounts_endpoint = server.accounts()
-        accounts_endpoint.signer(self.address)
-        old_cursor='old'
-        new_cursor=''
-        while new_cursor != old_cursor:
-            old_cursor = new_cursor
-            accounts_endpoint.cursor(new_cursor)
-            response = accounts_endpoint.call()
-            next_link = response['_links']['next']['href']
-            next_link_query = parse.urlsplit(next_link).query
-            new_cursor = parse.parse_qs(next_link_query)['cursor'][0]
-            accounts = response['_embedded']['records']
-            for account in accounts:
-                account_id = account['account_id']
-                if account_id == self.address: continue # Do not take the receiver's account
-                balances = account['balances']
-                asset_balances = [balance for balance in balances if balance['asset_type']==stellar_asset.guess_asset_type() and balance['asset_code']== stellar_asset.code and balance['asset_issuer']==stellar_asset.issuer]
-                asset_balance = decimal.Decimal(0)
-                for balance in asset_balances:
-                    asset_balance+= decimal.Decimal(balance['balance'])
-                if asset_balance == decimal.Decimal(): continue # 0 so skip
+        escrow_account = server.load_account(escrow_kp.public_key)
+        escrow_account.increment_sequence_number()
+        tx = TransactionBuilder(escrow_account).append_set_options_op(
+            master_weight=0,
+            low_threshold=1,
+            med_threshold=1,
+            high_threshold=1).add_time_bounds(
+            unlock_time,
+            0).build()
+        tx.sign(escrow_kp)
+        return tx
 
-                all_signers = account['signers']
-                preauth_signers= [signer['key'] for signer in all_signers if signer['type']=='preauth_tx']
-
-                print('Account {account} with {asset_balance} {asset_code} has unlocktransaction hashes {unlockhashes}'.format(account=account_id,asset_balance=asset_balance, asset_code=stellar_asset.code, unlockhashes=preauth_signers))
-                return self.create_refund_transaction(account_id, stellar_asset, balances)
-
-                #TODO check the tresholds and signers
-                #TODO if we can merge, the amount is unlocked ( if len(preauth_signers))==0
-
-    def create_refund_transaction(self, account_id, stellar_asset, balances):
+    def set_account_signers(self, address, public_key_signer, preauth_tx_hash, signer_kp):
         server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
-        account = server.load_account(account_id)
-        account.increment_sequence_number()
-        base_fee = server.fetch_base_fee()
+        account = server.load_account(address)
+        tx = TransactionBuilder(account).append_pre_auth_tx_signer(
+            preauth_tx_hash,
+            1).append_ed25519_public_key_signer(
+            public_key_signer,
+            1).append_set_options_op(master_weight=1,low_threshold=2,med_threshold=2,high_threshold=2).build()
 
-        redeem_operations = []
-
-        for balance in balances:
-            payment_op = operation.Payment(destination=self.address, asset=stellar_asset, amount=balance['balance'])
-            redeem_operations.append(payment_op)
-
-            if (balance['asset_type'] != 'native'):
-                remove_trust_op = operation.ChangeTrust(asset=Asset(code=balance['asset_code'], issuer=balance['asset_issuer']), limit='0')
-                redeem_operations.append(remove_trust_op)
-
-        account_merge_op = operation.AccountMerge(destination=self.address)
-        redeem_operations.append(account_merge_op)
-
-        tx = Transaction(
-            source=account,
-            sequence=1,
-            fee=base_fee,
-            operations=redeem_operations,
-        )
-
-        tx_envelope = TransactionEnvelope(
-            transaction=tx,
-            network_passphrase=_NETWORK_PASSPHRASES[str(self.network)],
-        )
-
-        tx_envelope.sign_hashx(self.secret.encode('utf-8').hex())
-
-        # kp = Keypair.from_secret(self.secret)
-        # tx_envelope.sign(kp)
-
-        xdr_tx = tx_envelope.to_xdr()
-
-        try:
-            response = server.submit_transaction(xdr_tx)
-            self._log_info("Transaction hash: {}".format(response["hash"]))
-            self._log_info(response)
-        except BadRequestError as e:
-            self._log_debug(e)
-            raise e
-
-    def _asset_from_full_string(self, full_asset_string):
-        split_asset= full_asset_string.split(':',1)
-        asset_code=split_asset[0]
-        asset_issuer=split_asset[1]
-
-        return Asset(asset_code,asset_issuer)
+        tx.sign(signer_kp)
+        response = server.submit_transaction(tx)
+        self._log_info(response)
+        self._log_info('Set the signers of {address} to {pk_signer} and {preauth_hash_signer}'.format(
+            address=address,
+            pk_signer=public_key_signer,
+            preauth_hash_signer=preauth_tx_hash))
