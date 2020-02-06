@@ -41,9 +41,9 @@ def test_add_remove_paths():
 
     open("/etc/exports", "w+").close()
     nfs = NFS()
-    home = nfs.add("/home")
-    var = nfs.add("/var")
-    etc = nfs.add("/etc")
+    nfs.add("/home")
+    nfs.add("/var")
+    nfs.add("/etc")
     with pytest.raises(Exception):
         home = nfs.add("/home")
 
@@ -61,14 +61,3 @@ def test_add_remove_paths():
     if found:
         with open("/etc/exports", "w+") as f:
             f.write(file)
-
-
-def main(self=None):
-    """
-    to run:
-
-    kosmos 'j.sal.nfs._test(name="nfs")'
-
-    """
-    test_add_remove_paths()
-    test_add_remove_list_clients()

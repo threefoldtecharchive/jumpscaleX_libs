@@ -1,7 +1,10 @@
 from Jumpscale import j
 import os
 
+skip = j.baseclasses.testtools._skip
 
+
+@skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/65")
 def test():
     dname = j.sal.fs.getDirName(os.path.abspath(__file__))
 

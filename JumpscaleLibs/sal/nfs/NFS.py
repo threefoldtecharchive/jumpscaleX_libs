@@ -38,7 +38,7 @@ class NFSExport(JSBASE):
 
     def client_add(self, name="*", options="rw,sync"):
         """Add client to access shared directory
-        
+
         :param name: client like:
         hostname,
         ip address (ex: 192.168.0.4),
@@ -88,7 +88,7 @@ class NFSExport(JSBASE):
         return str(self)
 
 
-class NFS(JSBASE):
+class NFS(JSBASE, j.baseclasses.testtools):
     __jslocation__ = "j.sal.nfs"
 
     def _init(self, **kwargs):
@@ -132,7 +132,7 @@ class NFS(JSBASE):
     @property
     def exports(self):
         """List shared directories
-        
+
         rtype: list
         """
         if self._exports is None:
@@ -188,10 +188,10 @@ class NFS(JSBASE):
             raise NFSError(response.stderr.strip())
         return response.stdout.strip()
 
-    def _test(self, name=""):
+    def test(self, name=""):
         """Run tests under tests
 
         :param name: basename of the file to run, defaults to "".
         :type name: str, optional
         """
-        self._test_run(name=name, obj_key="main")
+        self._tests_run(name=name)

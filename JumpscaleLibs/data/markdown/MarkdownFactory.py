@@ -13,9 +13,10 @@ from .MarkdownDocument import *
 from .MarkdownComponents import *
 
 JSBASE = j.baseclasses.object
+TESTTOOLS = j.baseclasses.testtools
 
 
-class MarkdownFactory(j.baseclasses.object):
+class MarkdownFactory(JSBASE, TESTTOOLS):
     __jslocation__ = "j.data.markdown"
 
     @property
@@ -38,22 +39,10 @@ class MarkdownFactory(j.baseclasses.object):
     #     raise j.exceptions.Base()
     #     #use prefab to install components required to get pdf generation to work
 
-    def test(self):
+    def test(self, name=""):
         """
         kosmos 'j.data.markdown.test()'
+
         """
-        from .tests.test1 import test
 
-        test()
-        from .tests.test2 import test
-
-        test()
-        from .tests.test3 import test
-
-        test()
-        from .tests.test4 import test
-
-        test()
-        from .tests.test5 import test
-
-        test()
+        self._tests_run(name=name)
