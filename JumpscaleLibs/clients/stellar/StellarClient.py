@@ -27,6 +27,7 @@ from urllib import parse
 import time
 import decimal
 import math
+from .balance import Balance
 
 JSConfigClient = j.baseclasses.object_config
 
@@ -56,14 +57,18 @@ class StellarClient(JSConfigClient):
             kp = Keypair.from_secret(self.secret)
         self.address = kp.public_key
 
-    def _get_horizon_server(self)
+    def _get_horizon_server(self):
         return Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
 
     def get_balance(self):
         """Gets balance for address
         """
-        response= self._get_horizon_server().accounts().account_id(address).call()
-        return (response['balances'])
+        response= self._get_horizon_server().accounts().account_id(self.address).call()
+        balances=j.baseclasses.dict()
+        for response_balance in response['balances']:
+            balance = Balance.from_horizon_response(response_balance)
+            balances[balance.asset_code]=balance
+        return balances
 
     def activate_through_friendbot(self):
         """Activates and funds a testnet account using riendbot
