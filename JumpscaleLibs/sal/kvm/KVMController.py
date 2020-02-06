@@ -10,7 +10,7 @@ class KVMController(j.baseclasses.object):
     def __init__(self, executor=None, base_path=None):
         JSBASE.__init__(self)
         if executor is None:
-            executor = j.tools.executorLocal
+            executor = j.tools.executor.local
         self.executor = executor
         if self.executor.prefab.id == "localhost":
             host = "localhost"

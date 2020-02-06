@@ -43,7 +43,7 @@ def lsblk(device=None, executor=None):
     Run lsblk on con, and returned the parsed results
     """
     if executor is None:
-        executor = j.tools.executorLocal
+        executor = j.tools.executor.local
     try:
         command = COMMAND
         if device:

@@ -23,7 +23,7 @@ class Ipmi(JSConfigBase):
     def power_on(self):
         """ Power on ipmi host
         """
-        j.tools.executorLocal.execute(
+        j.tools.executor.local.execute(
             "ipmitool -H {host} -U {user} -P {password} -p {port} chassis power on".format(
                 host=self.bmc, user=self.user, password=self.password_, port=self.port
             )
@@ -32,7 +32,7 @@ class Ipmi(JSConfigBase):
     def power_off(self):
         """ Power off ipmi host
         """
-        j.tools.executorLocal.execute(
+        j.tools.executor.local.execute(
             "ipmitool -H {host} -U {user} -P {password} -p {port} chassis power off".format(
                 host=self.bmc, user=self.user, password=self.password_, port=self.port
             )
@@ -44,7 +44,7 @@ class Ipmi(JSConfigBase):
         :return: power status of node ('on')
         :rtype: str
         """
-        _, out, _ = j.tools.executorLocal.execute(
+        _, out, _ = j.tools.executor.local.execute(
             "ipmitool -H {host} -U {user} -P {password} -p {port} chassis power status".format(
                 host=self.bmc, user=self.user, password=self.password_, port=self.port
             )
@@ -66,7 +66,7 @@ class Ipmi(JSConfigBase):
             self.power_on()
             return
 
-        j.tools.executorLocal.execute(
+        j.tools.executor.local.execute(
             "ipmitool -H {host} -U {user} -P {password} -p {port} chassis power cycle".format(
                 host=self.bmc, user=self.user, password=self.password_, port=self.port
             )

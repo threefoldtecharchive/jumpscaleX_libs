@@ -63,6 +63,16 @@ class World(j.baseclasses.factory):
     _CHILDCLASSES = [Cars, Ships]
 
 
+class World2(j.baseclasses.factory_data):
+
+    _CHILDCLASSES = [Cars, Ships]
+    _SCHEMATEXT = """
+        @url = jumpscale.example.world2
+        name** = ""
+        color = "red,blue" (E)
+        """
+
+
 class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object):
 
     __jslocation__ = "j.tutorials.world"
@@ -71,7 +81,7 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         """
         to run:
 
-        kosmos -p 'j.tutorials.baseclasses.world.test()'
+        kosmos -p 'j.tutorials.world.test()'
         """
         ships = Ships()
         ship1 = ships.get(name="ibizaboat")
@@ -79,6 +89,7 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
 
         # test that all ids, indexes, ... are empty
         assert len(ships._model._list_ids()) == 0
+        assert ships._model.count() == 0
         assert len(ships.find()) == 0
         assert len(ships._model.find()) == 0
         assert len(ships._model.find(name="ibizaboat")) == 0  # also need to check that find on name is 0
@@ -95,16 +106,18 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         assert len(ships._model.find()) == 1
 
         # small test to see that the dataprops are visible
-        assert len(ship1._dataprops_names_get()) == 3
+        assert len(ship1._dataprops_names_get()) == 4
 
         w = World()
         w.reset()
 
         assert len(w._children_recursive_get()) == 2
+        # indeed correct children are cars & ships which are empty though
 
         assert len(w._dataprops_names_get()) == 0  # there are no dataproperties on the world object itself
         assert len(w._children_names_get()) == 2  # there are 2 subobjects so there should be 2 names
 
+        # here we check they are empty
         assert len(w.cars.find()) == 0
         assert len(w.cars._model.find()) == 0
         assert len(w.ships.find()) == 0
@@ -119,6 +132,8 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
 
         car = w.cars.get("rabbit")
         car2 = w.cars.get("bobby")
+
+        assert car2._mother_id_get() == None  # because the cars & world obj have no id
 
         assert car.name == "rabbit"
         assert car2.name == "bobby"
@@ -143,7 +158,30 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         assert len(w.cars.find()) == 2
         # proves that the data has been saved in the DB
 
-        # clean up
-        w.delete()
+        assert len(w.cars.find()) == 2
+        w2 = World2(name="world2")
+        w3 = World2(name="world3")
+        assert isinstance(w2, j.baseclasses.object)
+        assert isinstance(w2, j.baseclasses.object_config)
+
+        # needs to be 0 because is a new obj with other children
+
+        assert len(w3.cars.find()) == 0
+
+        assert len(w2.cars.find()) == 0
+        car3 = w2.cars.get("rabbit3")
+        car3.save()
+        assert car3._id  # cannot be empty
+
+        assert len(w2.cars.find()) == 1  # then we know that world 2 only has 1 car
+
+        car4 = w3.cars.get("rabbit4")
+        car5 = w3.cars.get("rabbit5")
+        car6 = w3.cars.get("rabbit6")
+
+        assert len(w3.cars.find()) == 3
+        assert len(w2.cars.find()) == 1
+
+        assert len(w.cars.find()) == 6
 
         print("TEST OK")
