@@ -21,14 +21,8 @@ try:
 except (ModuleNotFoundError, ImportError):
     j.builders.runtimes.python3.pip_package_install("stellar_sdk")
 
-try:
-    from stellar_base import Address
-except (ModuleNotFoundError, ImportError):
-    j.builders.runtimes.python3.pip_package_install("stellar_base")
-
 from stellar_sdk import Server, Keypair, TransactionBuilder, Network
 from stellar_sdk.exceptions import BadRequestError
-from stellar_base import Address
 from urllib import parse
 import time
 import decimal
@@ -56,23 +50,20 @@ class StellarClient(JSConfigClient):
 
     def _init(self, **kwargs):
         if self.secret == "":
-            kp = self.create_keypair()
+            kp = Keypair.random()
             self.secret = kp.secret
         else:
             kp = Keypair.from_secret(self.secret)
         self.address = kp.public_key
 
-    def create_keypair(self):
-        kp = Keypair.random()
-        return kp
+    def _get_horizon_server(self)
+        return Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
 
     def get_balance(self):
         """Gets balance for address
         """
-        address = Address(address=self.address)
-        address.get()
-        self._log_info("Balances: {}".format(address.balances))
-        return address.balances
+        response= self._get_horizon_server().accounts().account_id(address).call()
+        return (response['balances'])
 
     def activate_through_friendbot(self):
         """Activates and funds a testnet account using riendbot
@@ -98,7 +89,7 @@ class StellarClient(JSConfigClient):
         :param starting_balance: the balance that the destination address will start with. Must be a positive integer expressed as a string. If an empty string is provided, 12,5 XLM will be the starting balance
         :type assetcode: str
         """
-        server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
+        server = self._get_horizon_server()
         source = Keypair.from_secret(self.secret)
 
         source_account = server.load_account(account_id=source.public_key)
@@ -147,7 +138,7 @@ class StellarClient(JSConfigClient):
         if secret is None:
             secret = self.secret
 
-        server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
+        server = self._get_horizon_server()
         source_keypair = Keypair.from_secret(secret)
         source_public_key = source_keypair.public_key
         source_account = server.load_account(source_public_key)
@@ -170,12 +161,11 @@ class StellarClient(JSConfigClient):
         try:
             response = server.submit_transaction(transaction)
             self._log_info("Transaction hash: {}".format(response["hash"]))
-            self._log_info(response)
         except BadRequestError as e:
             self.log_debug(e)
             raise e
 
-    def transfer(self, destination_address, amount, asset="XLM"):
+    def transfer(self, destination_address, amount, asset="XLM", locked_until=None):
         """Transfer assets to another address
         :param destination_address: address of the destination.
         :type destination_address: str
@@ -185,15 +175,9 @@ class StellarClient(JSConfigClient):
         if you wish to specify an asset it should be in format 'assetcode:issuer'. Where issuer is the address of the
         issuer of the asset.
         :type asset: str
+        :param locked_until: optional epoch timestamp indicating until when the tokens  should be locked.
+        :type locked_until: float
         """
-        server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
-        source_keypair = Keypair.from_secret(self.secret)
-        source_public_key = source_keypair.public_key
-        source_account = server.load_account(source_public_key)
-
-        base_fee = server.fetch_base_fee()
-
-        issuer = None
 
         if asset != "XLM":
             assetStr = asset.split(":")
@@ -201,6 +185,18 @@ class StellarClient(JSConfigClient):
                 raise Exception("Wrong asset format")
             asset = assetStr[0]
             issuer = assetStr[1]
+
+        if not locked_until is None:
+            return self._transfer_locked_tokens(destination_address,amount,asset,issuer,locked_until)
+
+        server = self._get_horizon_server()
+        source_keypair = Keypair.from_secret(self.secret)
+        source_public_key = source_keypair.public_key
+        source_account = server.load_account(source_public_key)
+
+        base_fee = server.fetch_base_fee()
+
+        issuer = None
 
         transaction = (
             TransactionBuilder(
@@ -225,32 +221,21 @@ class StellarClient(JSConfigClient):
             self._log_debug(e)
             raise e
 
-    def transfer_locked_funds(self, destination_address, amount, asset, unlock_time):
+    def _transfer_locked_tokens(self, destination_address, amount, asset_code, asset_issuer, unlock_time):
         """Transfer locked assets to another address
         :param destination_address: address of the destination.
         :type destination_address: str
         :param amount: amount, can be a floating point number with 7 numbers after the decimal point expressed as a string.
         :type amount: str
-        :param asset: asset to transfer (if none is specified the default 'XLM' is used),
-        if you wish to specify an asset it should be in format 'assetcode:issuer'. Where issuer is the address of the
-        issuer of the asset.
-        :type asset: str
-        :param unlock_time: should be an epoch timestamp indicating when the funds should be unlocked.
+        :param asset_code: asset to transfer 
+        :type asset_code: str
+        :param asset_issuer: if the asset_code is different from 'XlM', the issuer address
+        :type asset_issuer: str
+        :param unlock_time: an epoch timestamp indicating when the funds should be unlocked.
         :type unlock_time: float
         """
-        if time.time() >= unlock_time:
-            raise Exception("Unlock time should be a timestamp in the future")
 
         from_kp = Keypair.from_secret(self.secret)
-        issuer = None
-        asset_code = ""
-
-        if asset != "XLM":
-            assetStr = asset.split(":")
-            if len(assetStr) != 2:
-                raise Exception("Wrong asset format")
-            asset_code = assetStr[0]
-            issuer = assetStr[1]
 
         self._log_info(
             "Sending {amount} {asset_code} from {from_address} to {destination_address}".format(
@@ -262,10 +247,10 @@ class StellarClient(JSConfigClient):
         )
 
         self._log_info("Creating escrow account")
-        escrow_kp = self.create_keypair()
+        escrow_kp  = Keypair.random()
 
         # minimum account balance as described at https://www.stellar.org/developers/guides/concepts/fees.html#minimum-account-balance
-        server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
+        server = self._get_horizon_server()
         base_fee = server.fetch_base_fee()
         base_reserve = 0.5
         minimum_account_balance = (2 + 1 + 3) * base_reserve  # 1 trustline and 3 signers
@@ -274,11 +259,11 @@ class StellarClient(JSConfigClient):
         self._log_info("Activating escrow account")
         self.activate_account(escrow_kp.public_key, str(math.ceil(required_XLM)))
 
-        if asset != "XLM":
+        if asset_code != "XLM":
             self._log_info("Adding trustline to escrow account")
-            self.add_trustline(asset_code, issuer, escrow_kp.secret)
+            self.add_trustline(asset_code, asset_issuer, escrow_kp.secret)
 
-        preauth_tx = self._create_preauth_transaction(escrow_kp, unlock_time)
+        preauth_tx = self._create_unlock_transaction(escrow_kp, unlock_time)
         preauth_tx_hash = preauth_tx.hash()
 
         # save the preauth transaction
@@ -288,13 +273,11 @@ class StellarClient(JSConfigClient):
         self._log_info("Unlock Transaction:")
         self._log_info(preauth_tx.to_xdr())
 
-        self.transfer(escrow_kp.public_key, amount, asset)
-
-        self._log_info("Pre authorizating transaction xdr: {xdr}".format(xdr=preauth_tx.to_xdr()))
+        self.transfer(escrow_kp.public_key, amount, asset_code+":"+asset_issuer)
         return preauth_tx.to_xdr()
-
-    def _create_preauth_transaction(self, escrow_kp, unlock_time):
-        server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
+    
+    def _create_unlock_transaction(self, escrow_kp, unlock_time):
+        server = self._get_horizon_server()
         escrow_account = server.load_account(escrow_kp.public_key)
         escrow_account.increment_sequence_number()
         tx = (
@@ -307,7 +290,7 @@ class StellarClient(JSConfigClient):
         return tx
 
     def _set_account_signers(self, address, public_key_signer, preauth_tx_hash, signer_kp):
-        server = Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
+        server = self._get_horizon_server()
         account = server.load_account(address)
         tx = (
             TransactionBuilder(account)
