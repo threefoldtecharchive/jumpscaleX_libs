@@ -27,7 +27,7 @@ from urllib import parse
 import time
 import decimal
 import math
-from .balance import Balance
+from .balance import Balance, EscrowAccount, AccountBalances
 
 JSConfigClient = j.baseclasses.object_config
 
@@ -63,12 +63,42 @@ class StellarClient(JSConfigClient):
     def get_balance(self):
         """Gets balance for address
         """
-        response= self._get_horizon_server().accounts().account_id(self.address).call()
-        balances=j.baseclasses.dict()
-        for response_balance in response['balances']:
-            balance = Balance.from_horizon_response(response_balance)
-            balances[balance.asset_code]=balance
-        return balances
+        all_balances = AccountBalances(self.address)
+        response = self._get_horizon_server().accounts().account_id(self.address).call()
+        for response_balance in response["balances"]:
+            all_balances.add_balance(Balance.from_horizon_response(response_balance))
+        for account in self._find_escrow_accounts():
+            all_balances.add_escrow_account(account)
+        return all_balances
+
+    def _find_escrow_accounts(self):
+        escrow_accounts = []
+        accounts_endpoint = self._get_horizon_server().accounts()
+        accounts_endpoint.signer(self.address)
+        old_cursor = "old"
+        new_cursor = ""
+        while new_cursor != old_cursor:
+            old_cursor = new_cursor
+            accounts_endpoint.cursor(new_cursor)
+            response = accounts_endpoint.call()
+            next_link = response["_links"]["next"]["href"]
+            next_link_query = parse.urlsplit(next_link).query
+            new_cursor = parse.parse_qs(next_link_query)["cursor"][0]
+            accounts = response["_embedded"]["records"]
+            for account in accounts:
+                account_id = account["account_id"]
+                if account_id == self.address:
+                    continue  # Do not take the receiver's account
+                all_signers = account["signers"]
+                preauth_signers = [signer["key"] for signer in all_signers if signer["type"] == "preauth_tx"]
+                # TODO check the tresholds and signers
+                # TODO if we can merge, the amount is unlocked ( if len(preauth_signers))==0
+                balances = []
+                for response_balance in account["balances"]:
+                    balances.append(Balance.from_horizon_response(response_balance))
+                escrow_account = EscrowAccount(account_id, preauth_signers, balances)
+                escrow_accounts.append(escrow_account)
+        return escrow_accounts
 
     def activate_through_friendbot(self):
         """Activates and funds a testnet account using riendbot
@@ -114,8 +144,8 @@ class StellarClient(JSConfigClient):
             self.log_debug(e)
 
     def add_trustline(self, asset_code, issuer, secret=None):
-        """Create a trustline between you and the issuer of an asset.
-        :param asset_code: code which form the asset. For example: 'BTC', 'XRP', ...
+        """Create a trustline to an asset.
+        :param asset_code: code of the asset. For example: 'BTC', 'TFT', ...
         :type asset_code: str
         :param issuer: address of the asset issuer.
         :type issuer: str
@@ -124,7 +154,7 @@ class StellarClient(JSConfigClient):
 
     def delete_trustline(self, asset_code, issuer, secret=None):
         """Deletes a trustline
-        :param asset_code: code which form the asset. For example: 'BTC', 'XRP', ...
+        :param asset_code: code of the asset. For example: 'BTC', 'XRP', ...
         :type asset_code: str
         :param issuer: address of the asset issuer.
         :type issuer: str
@@ -133,7 +163,7 @@ class StellarClient(JSConfigClient):
 
     def _change_trustline(self, asset_code, issuer, limit=None, secret=None):
         """Create a trustline between you and the issuer of an asset.
-        :param asset_code: code which form the asset. For example: 'BTC', 'XRP', ...
+        :param asset_code: code which form the asset. For example: 'BTC', 'TFT', ...
         :type asset_code: str
         :param issuer: address of the asset issuer.
         :type issuer: str
@@ -183,7 +213,7 @@ class StellarClient(JSConfigClient):
         :param locked_until: optional epoch timestamp indicating until when the tokens  should be locked.
         :type locked_until: float
         """
-
+        self._log_info("Sending {} {} to {}".format(amount, asset, destination_address))
         if asset != "XLM":
             assetStr = asset.split(":")
             if len(assetStr) != 2:
@@ -191,8 +221,8 @@ class StellarClient(JSConfigClient):
             asset = assetStr[0]
             issuer = assetStr[1]
 
-        if not locked_until is None:
-            return self._transfer_locked_tokens(destination_address,amount,asset,issuer,locked_until)
+        if locked_until is not None:
+            return self._transfer_locked_tokens(destination_address, amount, asset, issuer, locked_until)
 
         server = self._get_horizon_server()
         source_keypair = Keypair.from_secret(self.secret)
@@ -200,8 +230,6 @@ class StellarClient(JSConfigClient):
         source_account = server.load_account(source_public_key)
 
         base_fee = server.fetch_base_fee()
-
-        issuer = None
 
         transaction = (
             TransactionBuilder(
@@ -221,7 +249,6 @@ class StellarClient(JSConfigClient):
         try:
             response = server.submit_transaction(transaction)
             self._log_info("Transaction hash: {}".format(response["hash"]))
-            self._log_info(response)
         except BadRequestError as e:
             self._log_debug(e)
             raise e
@@ -241,18 +268,19 @@ class StellarClient(JSConfigClient):
         """
 
         from_kp = Keypair.from_secret(self.secret)
-
+        unlock_time = math.ceil(unlock_time)
         self._log_info(
-            "Sending {amount} {asset_code} from {from_address} to {destination_address}".format(
+            "Sending {amount} {asset_code} from {from_address} to {destination_address} locked until {unlock_time}".format(
                 amount=amount,
                 asset_code=asset_code,
                 from_address=from_kp.public_key,
                 destination_address=destination_address,
+                unlock_time=unlock_time,
             )
         )
 
         self._log_info("Creating escrow account")
-        escrow_kp  = Keypair.random()
+        escrow_kp = Keypair.random()
 
         # minimum account balance as described at https://www.stellar.org/developers/guides/concepts/fees.html#minimum-account-balance
         server = self._get_horizon_server()
@@ -278,9 +306,9 @@ class StellarClient(JSConfigClient):
         self._log_info("Unlock Transaction:")
         self._log_info(preauth_tx.to_xdr())
 
-        self.transfer(escrow_kp.public_key, amount, asset_code+":"+asset_issuer)
+        self.transfer(escrow_kp.public_key, amount, asset_code + ":" + asset_issuer)
         return preauth_tx.to_xdr()
-    
+
     def _create_unlock_transaction(self, escrow_kp, unlock_time):
         server = self._get_horizon_server()
         escrow_account = server.load_account(escrow_kp.public_key)
