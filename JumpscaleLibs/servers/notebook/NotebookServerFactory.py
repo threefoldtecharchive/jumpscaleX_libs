@@ -44,9 +44,15 @@ class NotebookServerFactory(j.baseclasses.object):
                 cmd_start = "cd %s;voila %s" % (dirpath, basepath)
                 j.sal.process.executeInteractive(cmd_start)
         else:
-            cmd_start = "jupyter lab --ip=0.0.0.0 --no-browser --allow-root"
-            cmd = j.servers.startupcmd.get("notebook", cmd_start=cmd_start)
-            cmd.start()
+            if not voila:
+                cmd_start = "jupyter lab --ip=0.0.0.0 --allow-root %s" % path
+                cmd = j.servers.startupcmd.get("notebook", cmd_start=cmd_start)
+                cmd.start()
+            else:
+                cmd_start = "voila %s" % (path)
+                cmd = j.servers.startupcmd.get("voila", cmd_start=cmd_start)
+                cmd.start()
+
             url = "http://172.17.0.2:8888/?token=6a2d48493cf72c098135dc5fa0ea4f318d9e7185ca30b1fb"
             # TODO: need to show url where to go to
 
