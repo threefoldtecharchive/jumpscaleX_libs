@@ -44,9 +44,9 @@ class GoldChainClientFactory(JSConfigBaseFactory):
     def errors(self):
         return self._error_types
 
-    def test(self, name=""):
+    def _test(self, name=""):
         """
         kosmos 'j.clients.goldchain.test()'
         :return:
         """
-        self._test_run(name=name)
+        self._tests_run(name=name)

@@ -3,7 +3,7 @@ import pytest
 from JumpscaleLibs.data.rivine.SiaBinaryEncoder import IntegerOutOfRange
 
 
-def main(self):
+def test():
     """
     to run:
 

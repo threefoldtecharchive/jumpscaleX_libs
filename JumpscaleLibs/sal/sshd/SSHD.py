@@ -7,7 +7,7 @@ OP_DEL = "-"
 OP_ERS = "--"
 
 
-class SSHD(JSBASE):
+class SSHD(JSBASE, j.baseclasses.testtools):
 
     __jslocation__ = "j.sal.sshd"
 
@@ -84,3 +84,10 @@ class SSHD(JSBASE):
         pth = j.tools.path.get("/etc/ssh/sshd_config")
         pth.write_text("PasswordAuthentication no", append=True)
         self.executer("service ssh restart")
+
+    def test_sshd(self, name=""):
+        """
+        to run
+        kosmos -p 'j.sal.sshd.test_sshd()'
+        """
+        self._tests_run(name=name)

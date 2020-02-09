@@ -3,8 +3,10 @@ from collections import namedtuple
 from .asimap.server import Server
 import os
 
+TESTTOOLS = j.baseclasses.testtools
 
-class ImapServer(j.baseclasses.factory):
+
+class ImapServer(j.baseclasses.factory, TESTTOOLS):
     __jslocation__ = "j.servers.imap"
 
     def start(self, address="0.0.0.0", port=7143):
@@ -34,3 +36,10 @@ class ImapServer(j.baseclasses.factory):
         Models = namedtuple("Models", "message folder")
         models = Models(message_model, folder_model)
         return models
+
+    def test(self, name=""):
+        """
+        kosmos 'j.servers.imap.test()'
+
+        """
+        self._tests_run(name=name)

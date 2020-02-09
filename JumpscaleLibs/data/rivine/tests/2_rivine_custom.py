@@ -1,7 +1,7 @@
 from Jumpscale import j
 
 
-def main(self):
+def test():
     """
     to run:
 
@@ -12,6 +12,8 @@ def main(self):
     # a class that provides a custom encoding logic for its types,
     # required in order to be able to encode Python objects
     class Answer(j.data.rivine.BaseRivineObjectEncoder):
+        self = j.data.rivine
+
         def __init__(self, number=0):
             self._number = number
 
