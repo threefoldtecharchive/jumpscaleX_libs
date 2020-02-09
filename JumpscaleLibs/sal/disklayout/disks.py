@@ -41,7 +41,7 @@ class BlkInfo(j.baseclasses.object):
         self.name = name
         self.type = type
         self.size = int(size)
-        self._executor = executor or j.tools.executorLocal
+        self._executor = executor or j.tools.executor.local
         JSBASE.__init__(self)
 
     def __str__(self):
@@ -52,7 +52,7 @@ class BlkInfo(j.baseclasses.object):
 
     def mount(self):
         """
-        Mount partition 
+        Mount partition
         """
         if self.invalid:
             raise PartitionError("Partition is invalid")
@@ -194,7 +194,7 @@ class DiskInfo(BlkInfo):
 
     def format(self, size, force=False):
         """
-        Create new partition and format it as configured 
+        Create new partition and format it as configured
 
         :size: in bytes
 

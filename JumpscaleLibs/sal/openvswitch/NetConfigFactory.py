@@ -16,7 +16,7 @@ class NetConfigFactory(j.baseclasses.object):
     def _init(self, **kwargs):
         self._layout = None
         self.PHYSMTU = 2000  # will fit all switches
-        self._executor = j.tools.executorLocal
+        self._executor = j.tools.executor.local
         self.netcl = netcl
 
     def getConfigFromSystem(self, reload=False):

@@ -123,11 +123,10 @@ class DigitalOcean(j.baseclasses.object_config):
 
     def image_get(self, name):
         for item in self.digitalocean_account_images:
-            if item.description:
-                name_do = item.description.lower()
-            else:
-                name_do = item.distribution + " " + item.name
-            if name_do.lower().find(name) != -1:
+            name_do1 = item.description.lower()
+            name_do2 = item.distribution + " " + item.name
+            print(f" - {name_do1}--{name_do2}")
+            if name_do1.lower().find(name) != -1 or name_do2.lower().find(name) != -1:
                 return item
         raise j.exceptions.Base("did not find image:%s" % name)
 
