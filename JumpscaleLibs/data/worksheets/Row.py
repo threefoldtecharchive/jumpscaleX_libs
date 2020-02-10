@@ -79,10 +79,10 @@ class Row(j.baseclasses.object):
                 self.cells[colid] = prev
             prev = self.cells[colid]
 
-    def aggregate(self, period="Y", aggregateAction=None, roundnr=2):
+    def aggregate(self, period="Y", aggregateAction="T", roundnr=2):
         """
         @param period is Q or Y (Quarter/Year)
-        @param aggregateAction LAST,FIRST,MIN,MAX,AVG
+        @param aggregateAction LAST,FIRST,MIN,MAX,AVG,SUM
         """
         if aggregateAction:
             self.aggregateAction = aggregateAction
