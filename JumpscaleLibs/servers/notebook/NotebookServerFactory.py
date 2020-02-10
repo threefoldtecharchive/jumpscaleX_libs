@@ -24,11 +24,35 @@ class NotebookServerFactory(j.baseclasses.object):
 
     def start(
         self,
-        path="{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks",
-        background=True,
+        path="{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks/threefold_simulator.ipynb",
+        background=False,
+        voila=False,
     ):
-        path = j.core.tools.text_replace(path)
+        """
+        kosmos 'j.servers.notebook.start()'
+        kosmos 'j.servers.notebook.start(voila=True)'
+        """
         self.install()
+        path = j.core.tools.text_replace(path)
+        dirpath = j.sal.fs.getDirName(path)
+        basepath = j.sal.fs.getBaseName(path)
+        self._log_info(path)
+        if not background:
+            if not voila:
+                cmd_start = "cd %s;jupyter lab --ip=0.0.0.0 --allow-root %s" % (dirpath, basepath)
+                j.sal.process.executeInteractive(cmd_start)
+            else:
+                cmd_start = "cd %s;voila %s" % (dirpath, basepath)
+                j.sal.process.executeInteractive(cmd_start)
+        else:
+            if not voila:
+                cmd_start = "jupyter lab --ip=0.0.0.0 --allow-root %s" % path
+                cmd = j.servers.startupcmd.get("notebook", cmd_start=cmd_start)
+                cmd.start()
+            else:
+                cmd_start = "voila %s" % (path)
+                cmd = j.servers.startupcmd.get("voila", cmd_start=cmd_start)
+                cmd.start()
 
         j.sal.process.execute(
             f"""sed -i "/c.NotebookApp.notebook_dir/c\c.NotebookApp.notebook_dir = '{path}'" ~/.jupyter/jupyter_notebook_config.py"""
@@ -37,6 +61,8 @@ class NotebookServerFactory(j.baseclasses.object):
         j.sal.process.execute(cmd)
         url = "http://172.17.0.2:8888/?token=6a2d48493cf72c098135dc5fa0ea4f318d9e7185ca30b1fb"
         pass
+        # url = "http://172.17.0.2:8888/?token=6a2d48493cf72c098135dc5fa0ea4f318d9e7185ca30b1fb"
+        # TODO: need to show url where to go to
 
     def test(self):
         """
