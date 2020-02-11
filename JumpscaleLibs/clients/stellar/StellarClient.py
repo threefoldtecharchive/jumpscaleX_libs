@@ -21,12 +21,13 @@ try:
 except (ModuleNotFoundError, ImportError):
     j.builders.runtimes.python3.pip_package_install("stellar_sdk")
 
-from stellar_sdk import Server, Keypair, TransactionBuilder, Network
+from stellar_sdk import Server, Keypair, TransactionBuilder, Network, TransactionEnvelope,strkey
 from stellar_sdk.exceptions import BadRequestError
 from urllib import parse
 import time
 import decimal
 import math
+import base64
 from .balance import Balance, EscrowAccount, AccountBalances
 
 JSConfigClient = j.baseclasses.object_config
@@ -56,6 +57,20 @@ class StellarClient(JSConfigClient):
         else:
             kp = Keypair.from_secret(self.secret)
         self.address = kp.public_key
+        self.preauth_txs={}
+    
+    def set_unlock_transaction(self,unlock_transaction):
+        """
+        Adds a xdr encoded unlocktransaction
+        :param unlock_transaction: xdr encoded unlocktransactionaddress of the destination.
+        :type destination_address: str
+        """
+        txe=TransactionEnvelope.from_xdr(unlock_transaction, _NETWORK_PASSPHRASES[str(self.network)])
+        tx_hash= txe.hash()
+        unlock_hash=strkey.StrKey.encode_pre_auth_tx(tx_hash)
+       
+        self.preauth_txs[unlock_hash]=unlock_transaction
+
 
     def _get_horizon_server(self):
         return Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
@@ -96,7 +111,7 @@ class StellarClient(JSConfigClient):
                 balances = []
                 for response_balance in account["balances"]:
                     balances.append(Balance.from_horizon_response(response_balance))
-                escrow_account = EscrowAccount(account_id, preauth_signers, balances)
+                escrow_account = EscrowAccount(account_id, preauth_signers, balances,_NETWORK_PASSPHRASES[str(self.network)],self.preauth_txs)
                 escrow_accounts.append(escrow_account)
         return escrow_accounts
 
@@ -248,6 +263,7 @@ class StellarClient(JSConfigClient):
 
         try:
             response = server.submit_transaction(transaction)
+            print("Transaction hash: {}".format(response["hash"]))
             self._log_info("Transaction hash: {}".format(response["hash"]))
         except BadRequestError as e:
             self._log_debug(e)

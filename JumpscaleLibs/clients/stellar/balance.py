@@ -1,3 +1,6 @@
+from stellar_sdk import TransactionEnvelope
+import datetime
+
 class Balance(object):
     def __init__(self, balance=0.0, asset_code="XLM", asset_issuer=None):
         self.balance = balance
@@ -26,15 +29,33 @@ class Balance(object):
 
 
 class EscrowAccount(object):
-    def __init__(self, address, unlockhashes, balances):
+    def __init__(self, address, unlockhashes, balances,network_passphrase, known_unlock_Transactions={}):
         self.address = address
         self.unlockhashes = unlockhashes
         self.balances = balances
+        self.network_passphrase=network_passphrase
+        self.unlock_time=None
+        self._set_unlock_conditions(known_unlock_Transactions)
+
+    def _set_unlock_conditions(self,known_unlock_Transactions={}):
+        for unlock_hash in self.unlockhashes:
+            if unlock_hash in known_unlock_Transactions:
+                print("known unlockhash "+unlock_hash)
+                unlockTransaction_xdr=known_unlock_Transactions[unlock_hash]
+                txe=TransactionEnvelope.from_xdr(unlockTransaction_xdr,self.network_passphrase)
+                tx= txe.transaction
+                print(tx.time_bounds)
+                if tx.time_bounds is not None:
+                    self.unlock_time= tx.time_bounds.min_time
+                
 
     def __str__(self):
-        representation = "Escrow account {account_id} with unlockhashes {unlockhashes}".format(
-            account_id=self.address, unlockhashes=self.unlockhashes
-        )
+        if self.unlock_time is not None:
+            representation="Escrow account {account_id} locked until {unlock_time:%B %d %Y %H:%M:%S}".format(
+            account_id=self.address, unlock_time=datetime.datetime.fromtimestamp( self.unlock_time))
+        else:
+            representation = "Escrow account {account_id} with unknown unlockhashes {unlockhashes}".format(
+            account_id=self.address, unlockhashes=self.unlockhashes)
         for balance in self.balances:
             representation += "\n- {balance} {asset_code} ({asset_issuer})".format(
                 balance=balance.balance, asset_code=balance.asset_code, asset_issuer=balance.asset_issuer
