@@ -21,7 +21,7 @@ try:
 except (ModuleNotFoundError, ImportError):
     j.builders.runtimes.python3.pip_package_install("stellar_sdk")
 
-from stellar_sdk import Server, Keypair, TransactionBuilder, Network, TransactionEnvelope,strkey
+from stellar_sdk import Server, Keypair, TransactionBuilder, Network, TransactionEnvelope, strkey
 from stellar_sdk.exceptions import BadRequestError
 from urllib import parse
 import time
@@ -57,31 +57,30 @@ class StellarClient(JSConfigClient):
         else:
             kp = Keypair.from_secret(self.secret)
         self.address = kp.public_key
-        self.preauth_txs={}
-    
-    def set_unlock_transaction(self,unlock_transaction):
+        self.preauth_txs = {}
+
+    def set_unlock_transaction(self, unlock_transaction):
         """
         Adds a xdr encoded unlocktransaction
         :param unlock_transaction: xdr encoded unlocktransactionaddress of the destination.
         :type destination_address: str
         """
-        txe=TransactionEnvelope.from_xdr(unlock_transaction, _NETWORK_PASSPHRASES[str(self.network)])
-        tx_hash= txe.hash()
-        unlock_hash=strkey.StrKey.encode_pre_auth_tx(tx_hash)
-       
-        self.preauth_txs[unlock_hash]=unlock_transaction
+        txe = TransactionEnvelope.from_xdr(unlock_transaction, _NETWORK_PASSPHRASES[str(self.network)])
+        tx_hash = txe.hash()
+        unlock_hash = strkey.StrKey.encode_pre_auth_tx(tx_hash)
 
+        self.preauth_txs[unlock_hash] = unlock_transaction
 
     def _get_horizon_server(self):
         return Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
 
     def _get_free_balances(self, address=None):
         if address is None:
-            address=self.address
+            address = self.address
         balances = AccountBalances(address)
         response = self._get_horizon_server().accounts().account_id(address).call()
         for response_balance in response["balances"]:
-            balances.add_balance(Balance.from_horizon_response(response_balance)) 
+            balances.add_balance(Balance.from_horizon_response(response_balance))
         return balances
 
     def get_balance(self):
@@ -117,49 +116,57 @@ class StellarClient(JSConfigClient):
                 balances = []
                 for response_balance in account["balances"]:
                     balances.append(Balance.from_horizon_response(response_balance))
-                escrow_account = EscrowAccount(account_id, preauth_signers, balances,_NETWORK_PASSPHRASES[str(self.network)],self.preauth_txs)
+                escrow_account = EscrowAccount(
+                    account_id, preauth_signers, balances, _NETWORK_PASSPHRASES[str(self.network)], self.preauth_txs
+                )
                 escrow_accounts.append(escrow_account)
         return escrow_accounts
-    
+
     def claim_locked_funds(self):
-        balances= self.get_balance()
-        for locked_account  in balances.escrow_accounts:
+        balances = self.get_balance()
+        for locked_account in balances.escrow_accounts:
             if locked_account.can_be_unlocked():
                 self._unlock_account(locked_account)
-      
+
     def _unlock_account(self, escrow_account):
-        submitted_unlock_transactions=0
+        submitted_unlock_transactions = 0
         for unlockhash in escrow_account.unlockhashes:
             if unlockhash in self.preauth_txs:
                 self._get_horizon_server().submit_transaction(self.preauth_txs[unlockhash])
-                submitted_unlock_transactions+=1
-        if submitted_unlock_transactions== len(escrow_account.unlockhashes):
+                submitted_unlock_transactions += 1
+        if submitted_unlock_transactions == len(escrow_account.unlockhashes):
             self._merge_account(escrow_account.address)
 
     def _merge_account(self, address):
-        server= self._get_horizon_server()
+        server = self._get_horizon_server()
         account = server.load_account(address)
-        #Increment the sequence number in case the unlock transaction was not processed before the load_account call
+        # Increment the sequence number in case the unlock transaction was not processed before the load_account call
         account.increment_sequence_number()
-        balances=self._get_free_balances(address)
-        base_fee= server.fetch_base_fee()
-        transaction_builder =  TransactionBuilder(
-                source_account=account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee)
+        balances = self._get_free_balances(address)
+        base_fee = server.fetch_base_fee()
+        transaction_builder = TransactionBuilder(
+            source_account=account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee
+        )
         for balance in balances.balances:
             if balance.is_native():
                 continue
-             #Step 1: Transfer custom assets
+            # Step 1: Transfer custom assets
             transaction_builder.append_payment_op(
-                destination=self.address, amount=balance.balance, asset_code=balance.asset_code, asset_issuer=balance.asset_issuer
-            )                 
-            #Step 2: Delete trustlines
-            transaction_builder.append_change_trust_op(asset_issuer=balance.asset_issuer, asset_code=balance.asset_code,limit="0")
-        #Step 3: Merge account 
+                destination=self.address,
+                amount=balance.balance,
+                asset_code=balance.asset_code,
+                asset_issuer=balance.asset_issuer,
+            )
+            # Step 2: Delete trustlines
+            transaction_builder.append_change_trust_op(
+                asset_issuer=balance.asset_issuer, asset_code=balance.asset_code, limit="0"
+            )
+        # Step 3: Merge account
         transaction_builder.append_account_merge_op(self.address)
 
-        transaction_builder.set_timeout(30)   
-        transaction =transaction_builder.build()
-        signer_kp=Keypair.from_secret(self.secret)
+        transaction_builder.set_timeout(30)
+        transaction = transaction_builder.build()
+        signer_kp = Keypair.from_secret(self.secret)
         transaction.sign(signer_kp)
         server.submit_transaction(transaction)
 
@@ -195,7 +202,9 @@ class StellarClient(JSConfigClient):
         base_fee = server.fetch_base_fee()
         transaction = (
             TransactionBuilder(
-                source_account=source_account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee
+                source_account=source_account,
+                network_passphrase=_NETWORK_PASSPHRASES[str(self.network)],
+                base_fee=base_fee,
             )
             .append_create_account_op(destination=destination_address, starting_balance=starting_balance)
             .build()
@@ -251,7 +260,7 @@ class StellarClient(JSConfigClient):
                 network_passphrase=_NETWORK_PASSPHRASES[str(self.network)],
                 base_fee=base_fee,
             )
-            .append_change_trust_op(asset_issuer=issuer, asset_code=asset_code,limit=limit)
+            .append_change_trust_op(asset_issuer=issuer, asset_code=asset_code, limit=limit)
             .set_timeout(30)
             .build()
         )
