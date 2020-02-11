@@ -1,5 +1,5 @@
 from stellar_sdk import TransactionEnvelope
-import datetime
+import datetime, time
 
 class Balance(object):
     def __init__(self, balance=0.0, asset_code="XLM", asset_issuer=None):
@@ -17,6 +17,9 @@ class Balance(object):
             asset_code = response_balance["asset_code"]
             asset_issuer = response_balance["asset_issuer"]
         return Balance(balance, asset_code, asset_issuer)
+
+    def is_native(self):
+        return self.asset_code == "XLM" and self.asset_issuer is None 
 
     def __str__(self):
         representation = "{balance} {asset_code}".format(balance=self.balance, asset_code=self.asset_code)
@@ -40,27 +43,37 @@ class EscrowAccount(object):
     def _set_unlock_conditions(self,known_unlock_Transactions={}):
         for unlock_hash in self.unlockhashes:
             if unlock_hash in known_unlock_Transactions:
-                print("known unlockhash "+unlock_hash)
                 unlockTransaction_xdr=known_unlock_Transactions[unlock_hash]
                 txe=TransactionEnvelope.from_xdr(unlockTransaction_xdr,self.network_passphrase)
                 tx= txe.transaction
-                print(tx.time_bounds)
                 if tx.time_bounds is not None:
                     self.unlock_time= tx.time_bounds.min_time
                 
+    
+    def can_be_unlocked(self):
+        if len(self.unlockhashes) ==0:
+            return True
+        if self.unlock_time is not None:
+            return time.time() > self.unlock_time
+        return False
 
     def __str__(self):
         if self.unlock_time is not None:
             representation="Escrow account {account_id} locked until {unlock_time:%B %d %Y %H:%M:%S}".format(
             account_id=self.address, unlock_time=datetime.datetime.fromtimestamp( self.unlock_time))
         else:
-            representation = "Escrow account {account_id} with unknown unlockhashes {unlockhashes}".format(
-            account_id=self.address, unlockhashes=self.unlockhashes)
+            if len(self.unlockhashes)==0:
+                representation = "Escrow account {account_id} is free to be claimed".format(
+                account_id=self.address)
+            else:
+                representation = "Escrow account {account_id} with unknown unlockhashes {unlockhashes}".format(
+                account_id=self.address, unlockhashes=self.unlockhashes)
         for balance in self.balances:
             representation += "\n- {balance} {asset_code} ({asset_issuer})".format(
                 balance=balance.balance, asset_code=balance.asset_code, asset_issuer=balance.asset_issuer
             )
         return representation
+
 
     def __repr__(self):
         return str(self)

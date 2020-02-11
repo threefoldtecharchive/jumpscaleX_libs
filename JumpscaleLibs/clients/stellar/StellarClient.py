@@ -75,13 +75,19 @@ class StellarClient(JSConfigClient):
     def _get_horizon_server(self):
         return Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
 
+    def _get_free_balances(self, address=None):
+        if address is None:
+            address=self.address
+        balances = AccountBalances(address)
+        response = self._get_horizon_server().accounts().account_id(address).call()
+        for response_balance in response["balances"]:
+            balances.add_balance(Balance.from_horizon_response(response_balance)) 
+        return balances
+
     def get_balance(self):
         """Gets balance for address
         """
-        all_balances = AccountBalances(self.address)
-        response = self._get_horizon_server().accounts().account_id(self.address).call()
-        for response_balance in response["balances"]:
-            all_balances.add_balance(Balance.from_horizon_response(response_balance))
+        all_balances = self._get_free_balances()
         for account in self._find_escrow_accounts():
             all_balances.add_escrow_account(account)
         return all_balances
@@ -114,6 +120,45 @@ class StellarClient(JSConfigClient):
                 escrow_account = EscrowAccount(account_id, preauth_signers, balances,_NETWORK_PASSPHRASES[str(self.network)],self.preauth_txs)
                 escrow_accounts.append(escrow_account)
         return escrow_accounts
+    
+    def claim_locked_funds(self):
+        balances= self.get_balance()
+        for locked_account  in balances.escrow_accounts:
+            if locked_account.can_be_unlocked():
+                self._unlock_account(locked_account)
+      
+    def _unlock_account(self, escrow_account):
+        submitted_unlock_transactions=0
+        for unlockhash in escrow_account.unlockhashes:
+            if unlockhash in self.preauth_txs:
+                self._get_horizon_server().submit_transaction(self.preauth_txs[unlockhash])
+                submitted_unlock_transactions+=1
+        if submitted_unlock_transactions== len(escrow_account.unlockhashes):
+            self._merge_account(escrow_account.address)
+
+    def _merge_account(self, address):
+        server= self._get_horizon_server()
+        account = server.load_account(address)
+        balances=self._get_free_balances(address)
+        base_fee= server.fetch_base_fee()
+        transaction_builder =  TransactionBuilder(
+                source_account=account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee)
+        for balance in balances.balances:
+            if balance.is_native():
+                continue
+             #Step 1: Transfer custom assets
+            transaction_builder.append_payment_op(
+                destination=self.address, amount=balance.balance, asset_code=balance.asset_code, asset_issuer=balance.asset_issuer
+            )                 
+            #Step 2: Delete trustlines
+            transaction_builder.append_change_trust_op(asset_issuer=balance.asset_issuer, asset_code=balance.asset_code,limit="0")
+        #Step 3: Merge account 
+        transaction_builder.append_account_merge_op(self.address)
+        transaction_builder.set_timeout(30)   
+        transaction =transaction_builder.build()
+        signer_kp=Keypair.from_secret(self.secret)
+        transaction.sign(signer_kp)
+        server.submit_transaction(transaction)
 
     def activate_through_friendbot(self):
         """Activates and funds a testnet account using riendbot
@@ -143,9 +188,11 @@ class StellarClient(JSConfigClient):
         source = Keypair.from_secret(self.secret)
 
         source_account = server.load_account(account_id=source.public_key)
+
+        base_fee = server.fetch_base_fee()
         transaction = (
             TransactionBuilder(
-                source_account=source_account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=100
+                source_account=source_account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee
             )
             .append_create_account_op(destination=destination_address, starting_balance=starting_balance)
             .build()
@@ -201,7 +248,7 @@ class StellarClient(JSConfigClient):
                 network_passphrase=_NETWORK_PASSPHRASES[str(self.network)],
                 base_fee=base_fee,
             )
-            .append_change_trust_op(asset_issuer=issuer, asset_code=asset_code)
+            .append_change_trust_op(asset_issuer=issuer, asset_code=asset_code,limit=limit)
             .set_timeout(30)
             .build()
         )

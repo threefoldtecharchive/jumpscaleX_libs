@@ -38,7 +38,7 @@ Send 1000 TFT to another address:
 j.clients.stellar.my_wallet.transfer('<destination address>',"1000", asset="TFT:GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3")
 ```
 
-Send 1000 TFT to another address but time locked  until within 10 minutes:
+Send 1000 TFT to another address but time locked until within 10 minutes:
 
 ```python
 j.clients.stellar.issuerwallet.transfer(j.clients.stellar.testwallet.address,"1000", asset="TFT:GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3", locked_until=time.time()+10*60)
