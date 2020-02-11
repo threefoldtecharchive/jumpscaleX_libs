@@ -169,7 +169,7 @@ class StellarClient(JSConfigClient):
         try:
             resp = j.clients.http.get_response("https://friendbot.stellar.org/?addr=" + self.address)
             if resp.getcode() == 200:
-                self._log_info("account with address: {} funded through friendbot!".format(self.address))
+                self._log_info("account with address: {} funded through friendbot".format(self.address))
         except HTTPError as e:
             if e.status_code == 400:
                 msg = e.msg
@@ -310,7 +310,6 @@ class StellarClient(JSConfigClient):
 
         try:
             response = server.submit_transaction(transaction)
-            print("Transaction hash: {}".format(response["hash"]))
             self._log_info("Transaction hash: {}".format(response["hash"]))
         except BadRequestError as e:
             self._log_debug(e)

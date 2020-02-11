@@ -59,19 +59,20 @@ class EscrowAccount(object):
 
     def __str__(self):
         if self.unlock_time is not None:
-            representation="Escrow account {account_id} locked until {unlock_time:%B %d %Y %H:%M:%S}".format(
+            representation="Locked until {unlock_time:%B %d %Y %H:%M:%S} on escrow account {account_id} ".format(
             account_id=self.address, unlock_time=datetime.datetime.fromtimestamp( self.unlock_time))
         else:
             if len(self.unlockhashes)==0:
-                representation = "Escrow account {account_id} is free to be claimed".format(
+                representation = "Free to be claimed on escrow account {account_id}".format(
                 account_id=self.address)
             else:
                 representation = "Escrow account {account_id} with unknown unlockhashes {unlockhashes}".format(
                 account_id=self.address, unlockhashes=self.unlockhashes)
         for balance in self.balances:
-            representation += "\n- {balance} {asset_code} ({asset_issuer})".format(
-                balance=balance.balance, asset_code=balance.asset_code, asset_issuer=balance.asset_issuer
-            )
+            representation += "\n- {balance} {asset_code}".format(
+                balance=balance.balance, asset_code=balance.asset_code)
+            if balance.asset_issuer is not None:
+                representation += ":{asset_issuer}".format(asset_issuer=balance.asset_issuer)
         return representation
 
 
