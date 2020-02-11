@@ -139,6 +139,8 @@ class StellarClient(JSConfigClient):
     def _merge_account(self, address):
         server= self._get_horizon_server()
         account = server.load_account(address)
+        #Increment the sequence number in case the unlock transaction was not processed before the load_account call
+        account.increment_sequence_number()
         balances=self._get_free_balances(address)
         base_fee= server.fetch_base_fee()
         transaction_builder =  TransactionBuilder(
@@ -154,6 +156,7 @@ class StellarClient(JSConfigClient):
             transaction_builder.append_change_trust_op(asset_issuer=balance.asset_issuer, asset_code=balance.asset_code,limit="0")
         #Step 3: Merge account 
         transaction_builder.append_account_merge_op(self.address)
+
         transaction_builder.set_timeout(30)   
         transaction =transaction_builder.build()
         signer_kp=Keypair.from_secret(self.secret)
