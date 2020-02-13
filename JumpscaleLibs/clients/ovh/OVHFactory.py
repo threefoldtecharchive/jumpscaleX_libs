@@ -3,6 +3,7 @@ from Jumpscale import j
 from .OVHClient import OVHClient
 
 JSConfigBaseFactory = j.baseclasses.object_config_collection
+skip = j.baseclasses.testtools._skip
 
 
 class OVHFactory(JSConfigBaseFactory):
@@ -62,6 +63,7 @@ class OVHFactory(JSConfigBaseFactory):
     #     cl.serverInstall(name="", installationTemplate="ubuntu1704-server_64", sshKeyName="ovh",
     # useDistribKernel=True, noRaid=True, hostname="", wait=True)
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/81")
     def test(self, appkey="", appsecret="", consumerkey=""):
         """
         do:
