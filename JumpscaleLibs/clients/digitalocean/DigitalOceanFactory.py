@@ -5,7 +5,7 @@ from .DigitalOcean import DigitalOcean
 skip = j.baseclasses.testtools._skip
 
 
-class DigitalOceanFactory(j.baseclasses.object_config_collection_testtools):
+class DigitalOceanFactory(j.baseclasses.object_config_collection_testtools, j.baseclasses.testtools):
 
     __jslocation__ = "j.clients.digitalocean"
     _CHILDCLASS = DigitalOcean
@@ -84,3 +84,5 @@ class DigitalOceanFactory(j.baseclasses.object_config_collection_testtools):
         self._log_info(c.digitalocean_regions)
         self._log_info(droplet.ip_address)
 
+    def test_DO_client(self, name=""):
+        self._tests_run(name=name)
