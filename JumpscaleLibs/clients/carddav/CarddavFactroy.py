@@ -6,5 +6,5 @@ JSConfigFactoryBase = j.baseclasses.object_config_collection
 
 
 class CarddavFactory(JSConfigFactoryBase):
-    __jslocation__ = "j.clients.carddav"
+    # check https://github.com/threefoldtech/jumpscaleX_libs/issues/88
     _CHILDCLASS = CarddavClient
