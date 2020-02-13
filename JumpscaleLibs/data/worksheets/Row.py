@@ -79,10 +79,13 @@ class Row(j.baseclasses.object):
                 self.cells[colid] = prev
             prev = self.cells[colid]
 
-    def aggregate(self, period="Y"):
+    def aggregate(self, period="Y", aggregateAction="T", roundnr=2):
         """
         @param period is Q or Y (Quarter/Year)
+        @param aggregateAction LAST,FIRST,MIN,MAX,AVG,SUM
         """
+        if aggregateAction:
+            self.aggregateAction = aggregateAction
 
         def calc(months):
 
@@ -94,7 +97,10 @@ class Row(j.baseclasses.object):
             if self.aggregateAction == "MIN":
                 result = 9999999999999999999
             for m in months:
-                val = self.cells[m]
+                if self.cells[m]:
+                    val = float(self.cells[m])
+                else:
+                    val = 0
                 if val is None:
                     raise j.exceptions.RuntimeError(
                         "Cannot aggregrate row %s from group %s,\n%s" % (self.name, self.groupname, self.cells)
@@ -124,7 +130,20 @@ class Row(j.baseclasses.object):
                 months = [3 * (quarter - 1) + i for i in range(3)]
                 # name=self._getYearStringFromYearNr(year)
                 result[quarter - 1] = calc(months)
-        return result
+
+        result2 = []
+        for item in result:
+            if item is None:
+                item = 0
+            if item == 0:
+                result2.append(0)
+            elif roundnr == 0:
+                item = float(item)
+                result2.append(int(round(item, roundnr)))
+            else:
+                item = float(item)
+                result2.append(round(item, roundnr))
+        return result2
 
     def interpolate(self, start=None, stop=None, variation=0, min=None, max=None):
         """
