@@ -3,7 +3,6 @@ from math import isclose
 from loguru import logger
 from Jumpscale import j
 
-
 """
 j.sal.ubuntu._test(name='ubuntu')
 """
@@ -13,6 +12,9 @@ j.sal.process.execute("apt-get install -y python3-distutils-extra python3-dbus p
 
 LOGGER = logger
 LOGGER.add("Config_manager_{time}.log")
+
+
+skip = j.baseclasses.testtools._skip
 
 
 def info(message):
@@ -53,7 +55,6 @@ def test001_uptime():
 
 
 def test002_service_install():
-
     """TC396
     service_install is not a package install which is mean only create a config file in /etc/init/ dir
 
@@ -179,7 +180,6 @@ def test006_deb_install():
 
 
 def test007_pkg_list():
-
     """TC403
     list files of dpkg.
 
@@ -288,7 +288,6 @@ def test011_service_status():
 
 
 def test012_apt_find_all():
-
     """TC408
     find all packages match with the package_name, this mean must not be installed
 
@@ -358,7 +357,6 @@ def test015_apt_get_cache_keys():
 
 
 def test016_apt_get_installed():
-
     """TC412
     Get all the installed packages.
 
@@ -522,6 +520,9 @@ def test021_check_os():
             info("There is exceptions RuntimeError as the OS is not between Ubuntu or LinuxMint")
         except (j.exceptions.RuntimeError) as e:
             assert "Only Ubuntu/Mint supported" in e.exception.args[0]
+
+
+skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/71")
 
 
 def test022_deb_download_install():
@@ -753,4 +754,3 @@ def main():
     test025_service_enable_start_boot()
     test026_service_uninstall()
     test027_whoami()
-
