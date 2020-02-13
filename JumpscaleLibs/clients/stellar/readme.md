@@ -4,7 +4,7 @@
 
 ```python
 # valid types for network: STD and TEST, by default it is set to STD
-wallet = j.clients.tfchain.new('my_wallet', network='TEST')
+wallet = j.clients.stellar.new('my_wallet', network='TEST')
 # available as `j.clients.stellar.my_wallet` from now on
 ```
 
@@ -12,7 +12,7 @@ wallet = j.clients.tfchain.new('my_wallet', network='TEST')
 
 ```python
 # valid types for network: STD and TEST, by default it is set to STD
-wallet = j.clients.tfchain.new('my_wallet', network='TEST', secret='S.....')
+wallet = j.clients.stellar.new('my_wallet', network='TEST', secret='S.....')
 # available as `j.clients.stellar.my_wallet` from now on
 ```
 
