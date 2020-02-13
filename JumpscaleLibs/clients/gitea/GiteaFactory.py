@@ -12,6 +12,7 @@ from pprint import pprint as print
 
 JSConfigBase = j.baseclasses.object_config_collection
 JSBASE = j.baseclasses.object
+skip = j.baseclasses.testtools._skip
 
 
 class GiteaFactory(JSConfigBase):
@@ -47,6 +48,7 @@ class GiteaFactory(JSConfigBase):
         c = j.tools.raml.get(self._path)
         c.client_python_generate()
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/78")
     def test(self):
         """
         kosmos 'j.clients.gitea.test()'

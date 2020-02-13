@@ -15,9 +15,8 @@ import time
 from Jumpscale import j
 
 JSConfigs = j.baseclasses.object_config_collection
-
-
 JSBASE = j.baseclasses.object_config_collection
+skip = j.baseclasses.testtools._skip
 
 
 class ZerotierFactory(JSConfigs):
@@ -188,6 +187,7 @@ class ZerotierFactory(JSConfigs):
             "no networks found with id {}, make sure that you properly joined this network".format(network_id)
         )
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/87")
     def test(self):
         """
         kosmos 'j.clients.zerotier.test()'

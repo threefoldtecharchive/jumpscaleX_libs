@@ -8,6 +8,7 @@ from Jumpscale import j
 from .IYOClient import IYOClient
 
 DEFAULT_BASE_URL = "https://itsyou.online/api"
+skip = j.baseclasses.testtools._skip
 
 
 class IYOFactory(j.baseclasses.object_config_collection_testtools):
@@ -53,6 +54,7 @@ class IYOFactory(j.baseclasses.object_config_collection_testtools):
         claims = jwt.get_unverified_claims(jwt_token)
         return claims["exp"]
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_core/issues/526")
     def test(self):
         """
         do:

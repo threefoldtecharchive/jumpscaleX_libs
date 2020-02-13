@@ -3,6 +3,7 @@ from .SendGridClient import SendGridClient
 
 
 JSConfigs = j.baseclasses.object_config_collection
+skip = j.baseclasses.testtools._skip
 
 
 class SendgridFactory(JSConfigs):
@@ -10,6 +11,7 @@ class SendgridFactory(JSConfigs):
     __jslocation__ = "j.clients.sendgrid"
     _CHILDCLASS = SendGridClient
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/83")
     def test(self):
         """
 

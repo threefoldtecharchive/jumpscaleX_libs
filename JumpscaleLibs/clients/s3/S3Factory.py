@@ -3,6 +3,7 @@ from Jumpscale import j
 from .S3Client import S3Client
 
 JSConfigBase = j.baseclasses.object_config_collection
+skip = j.baseclasses.testtools._skip
 
 
 class S3Factory(JSConfigBase):
@@ -19,6 +20,7 @@ class S3Factory(JSConfigBase):
         p = j.tools.prefab.local
         p.runtimes.pip.install("minio")
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/82")
     def test(self):
         """
         do:
