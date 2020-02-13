@@ -10,6 +10,7 @@ except:
 from .PostgresqlClient import PostgresClient
 
 JSConfigs = j.baseclasses.object_config_collection
+skip = j.baseclasses.testtools._skip
 
 
 class PostgresqlFactory(JSConfigs):
@@ -74,6 +75,7 @@ class PostgresqlFactory(JSConfigs):
         cl.save()
         return cl
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/72")
     def test(self):
         """
         kosmos 'j.clients.postgres.test()'

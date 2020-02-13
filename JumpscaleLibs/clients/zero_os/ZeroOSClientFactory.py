@@ -4,6 +4,8 @@ from urllib.parse import urlparse
 from Jumpscale import j
 from .ZeroOSClient import ZeroOSClient
 
+skip = j.baseclasses.testtools._skip
+
 
 class ZeroOSFactory(j.baseclasses.object_config_collection_testtools):
     """
@@ -181,6 +183,7 @@ class ZeroOSFactory(j.baseclasses.object_config_collection_testtools):
             cl.save()
         return cl
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/86")
     def test(self):
         """
         kosmos 'j.clients.zos.test()'
