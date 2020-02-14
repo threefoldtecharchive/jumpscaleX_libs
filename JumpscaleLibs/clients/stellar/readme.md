@@ -36,7 +36,10 @@ Send 1000 TFT to another address:
 
 ```python
 j.clients.stellar.my_wallet.transfer('<destination address>',"1000", asset="TFT:GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3")
+'9c6888ea3d461aff4605246e9e58c07c172513b3d8dc4a621edd745fec1b17a4'
 ```
+
+The returned string is the hash of the transaction.
 
 Send 1000 TFT to another address but time locked until within 10 minutes:
 
@@ -45,7 +48,15 @@ j.clients.stellar.my_wallet.transfer('<destination address>',"1000", asset="TFT:
 
 'AAAAAAbKy5zVPcXiRCYKwpv6SkIXXJRCV97nwH9PtRniy+7fAAAAZAADNQcAAAADAAAAAQAAAABeQs2iAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAFAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAAAAAAAAAAAAAAAAAAB4svu3wAAAEAE6w7jduF+Vx0zwKTlLkxCSaogT/q3nyso1VowS0tL6mLFJ0/+afCe4dbubvzXy9AuBbaF9h0vgslESCey0IcB'
 ```
-The returned value is the unlocktransaction
+The returned string is the unlocktransaction
+
+## Adding memo_text to a payment
+
+
+```python
+j.clients.stellar.my_wallet.transfer('<destination address>',"10", asset="TFT:GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3", memo_text="test")
+'9c6888ea3d461aff4605246e9e58c07c172513b3d8dc4a621edd745fec1b17a4'
+```
 
 ## checking the balance of an account
 
@@ -72,7 +83,6 @@ Locked balances:
  - Locked until February 11 2020 15:52:02 on escrow account GADMVS442U64LYSEEYFMFG72JJBBOXEUIJL55Z6AP5H3KGPCZPXN6MHD
 - 1000.0000000 TFT:GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3
 - 3.9999600 XLM
-
 ```
 
 ## claim locked funds
@@ -87,3 +97,5 @@ Balances
   2000.0000000 TFT:GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3
   10003.9999100 XLM
 ```
+
+

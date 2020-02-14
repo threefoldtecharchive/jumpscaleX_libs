@@ -274,7 +274,7 @@ class StellarClient(JSConfigClient):
             self.log_debug(e)
             raise e
 
-    def transfer(self, destination_address, amount, asset="XLM", locked_until=None):
+    def transfer(self, destination_address, amount, asset="XLM", locked_until=None, memo_text=None):
         """Transfer assets to another address
         :param destination_address: address of the destination.
         :type destination_address: str
@@ -286,6 +286,8 @@ class StellarClient(JSConfigClient):
         :type asset: str
         :param locked_until: optional epoch timestamp indicating until when the tokens  should be locked.
         :type locked_until: float
+        :param text_memo: optional memo text to add to the transaction, a string encoded using either ASCII or UTF-8, up to 28-bytes long 
+        :type: Union[str, bytes]
         """
         self._log_info("Sending {} {} to {}".format(amount, asset, destination_address))
         if asset != "XLM":
@@ -305,24 +307,25 @@ class StellarClient(JSConfigClient):
 
         base_fee = server.fetch_base_fee()
 
-        transaction = (
-            TransactionBuilder(
-                source_account=source_account,
-                network_passphrase=_NETWORK_PASSPHRASES[str(self.network)],
-                base_fee=base_fee,
-            )
-            .append_payment_op(
-                destination=destination_address, amount=str(amount), asset_code=asset, asset_issuer=issuer
-            )
-            .set_timeout(30)
-            .build()
+        transaction_builder = TransactionBuilder(
+            source_account=source_account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee
         )
+        transaction_builder.append_payment_op(
+            destination=destination_address, amount=str(amount), asset_code=asset, asset_issuer=issuer
+        )
+        transaction_builder.set_timeout(30)
+        if memo_text is not None:
+            transaction_builder.add_text_memo(memo_text)
+
+        transaction = transaction_builder.build()
 
         transaction.sign(source_keypair)
 
         try:
             response = server.submit_transaction(transaction)
-            self._log_info("Transaction hash: {}".format(response["hash"]))
+            tx_hash = response["hash"]
+            self._log_info("Transaction hash: {}".format(tx_hash))
+            return tx_hash
         except BadRequestError as e:
             self._log_debug(e)
             raise e
