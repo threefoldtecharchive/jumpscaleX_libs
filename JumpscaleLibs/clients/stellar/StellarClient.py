@@ -29,6 +29,7 @@ import decimal
 import math
 import base64
 from .balance import Balance, EscrowAccount, AccountBalances
+from .transaction import TransactionSummary
 
 JSConfigClient = j.baseclasses.object_config
 
@@ -329,6 +330,25 @@ class StellarClient(JSConfigClient):
         except BadRequestError as e:
             self._log_debug(e)
             raise e
+
+    def list_transactions(self):
+        tx_endpoint = self._get_horizon_server().transactions()
+        tx_endpoint.for_account(self.address)
+        tx_endpoint.include_failed(False)
+        transactions = []
+        old_cursor = "old"
+        new_cursor = ""
+        while old_cursor != new_cursor:
+            old_cursor = new_cursor
+            tx_endpoint.cursor(new_cursor)
+            response = tx_endpoint.call()
+            next_link = response["_links"]["next"]["href"]
+            next_link_query = parse.urlsplit(next_link).query
+            new_cursor = parse.parse_qs(next_link_query)["cursor"][0]
+            response_transactions = response["_embedded"]["records"]
+            for response_transaction in response_transactions:
+                transactions.append(TransactionSummary.from_horizon_response(response_transaction))
+        return transactions
 
     def _transfer_locked_tokens(self, destination_address, amount, asset_code, asset_issuer, unlock_time):
         """Transfer locked assets to another address
