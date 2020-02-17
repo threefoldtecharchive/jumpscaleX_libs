@@ -4,7 +4,7 @@ from JumpscaleLibs.clients.goldchain.stub.ExplorerClientStub import GoldChainExp
 from JumpscaleLibs.clients.goldchain.test_utils import cleanup
 
 
-def main(self):
+def test():
     """
     to run:
 

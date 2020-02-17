@@ -34,18 +34,19 @@ class SmtpdFactory(j.baseclasses.object, j.baseclasses.testtools):
         return server
 
     def test(self, name=""):
+        """
+        kosmos 'j.servers.smtp.test()'
+
+        """
         try:
             db = j.data.bcdb.get("mails")
         except:
             db = j.data.bcdb.new("mails")
 
-        model = db.models_add(
+        db.models_add(
             j.core.tools.text_replace(
                 "{DIR_BASE}/code/github/threefoldtech/jumpscaleX_libs/JumpscaleLibs/servers/mail/models/"
             )
         )
-        self.start()
-        print(name)
-        self._test_run(name=name)
+        self._tests_run(name=name)
         self._log_info("All TESTS DONE")
-        return "OK"

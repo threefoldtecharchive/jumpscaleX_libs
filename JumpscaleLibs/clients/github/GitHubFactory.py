@@ -19,19 +19,3 @@ class GitHubFactory(JSConfigs):
         from .Issue import Issue
 
         return Issue
-
-    def test(self):
-        """
-
-        kosmos 'j.clients.github.test()'
-
-        """
-
-        # use config manager
-        # go to configured github account
-        # create repo test_1
-        # list repo
-        # create some issues on repo
-        # populate labels / milestones
-        # list the issues
-        # ...

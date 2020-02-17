@@ -88,6 +88,4 @@ class DictEditorFactory(j.baseclasses.object_config_collection_testtools):
         description = ""
         """
         s = j.data.schema.get_from_text(schema_text=schema)
-        o = s.new()
-
-        j.shell()
+        s.new()

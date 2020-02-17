@@ -3,7 +3,7 @@ import pytest
 from JumpscaleLibs.data.rivine.RivineBinaryEncoder import IntegerOutOfRange, SliceLengthOutOfRange
 
 
-def main(self):
+def test():
     """
     to run:
 

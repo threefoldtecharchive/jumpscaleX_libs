@@ -1,6 +1,8 @@
 from Jumpscale import j
 from .CoreXClient import CoreXClient
 
+skip = j.baseclasses.testtools._skip
+
 
 class CoreXClientFactory(j.baseclasses.object_config_collection_testtools):
 
@@ -10,6 +12,7 @@ class CoreXClientFactory(j.baseclasses.object_config_collection_testtools):
     def _init(self, **kwargs):
         pass
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_core/issues/524")
     def test(self):
         """
         kosmos 'j.clients.corex.test()'
@@ -36,7 +39,7 @@ class CoreXClientFactory(j.baseclasses.object_config_collection_testtools):
 
             assert cl.process_list() == []
 
-            j.shell()
+            # j.shell()
 
             r = cl.process_start("mc", "mc")
 

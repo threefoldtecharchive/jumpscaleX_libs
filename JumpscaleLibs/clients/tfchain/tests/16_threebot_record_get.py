@@ -9,7 +9,7 @@ from JumpscaleLibs.clients.tfchain.types.CryptoTypes import PublicKey
 from JumpscaleLibs.clients.tfchain.test_utils import cleanup
 
 
-def main(self):
+def test():
     """
     to run:
 

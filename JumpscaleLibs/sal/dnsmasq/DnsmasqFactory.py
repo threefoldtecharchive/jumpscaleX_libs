@@ -2,9 +2,10 @@ from Jumpscale import j
 from .Dnsmasq import DNSMasq
 
 JSBASE = j.baseclasses.object
+TESTTOOLS = j.baseclasses.testtools
 
 
-class DnsmasqFactory(JSBASE):
+class DnsmasqFactory(JSBASE, TESTTOOLS):
     """Factory class to deal with Dnsmasq"""
 
     __jslocation__ = "j.sal.dnsmasq"
@@ -17,3 +18,11 @@ class DnsmasqFactory(JSBASE):
         :rtype: Dnsmasq class
         """
         return DNSMasq(path=path)
+
+    def test(self, name=""):
+        """Run tests under tests
+
+        :param name: basename of the file to run, defaults to "".
+        :type name: str, optional
+        """
+        self._tests_run(name=name)
