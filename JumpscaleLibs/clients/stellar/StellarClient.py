@@ -29,7 +29,7 @@ import decimal
 import math
 import base64
 from .balance import Balance, EscrowAccount, AccountBalances
-from .transaction import TransactionSummary
+from .transaction import TransactionSummary, Effect
 
 JSConfigClient = j.baseclasses.object_config
 
@@ -331,9 +331,15 @@ class StellarClient(JSConfigClient):
             self._log_debug(e)
             raise e
 
-    def list_transactions(self):
+    def list_transactions(self, address=None):
+        """Get the transactions for an adddres
+        :param address: address of the effects.In None, the address of this wallet is taken
+        :type address: str
+        """
+        if address is None:
+            address = self.address
         tx_endpoint = self._get_horizon_server().transactions()
-        tx_endpoint.for_account(self.address)
+        tx_endpoint.for_account(address)
         tx_endpoint.include_failed(False)
         transactions = []
         old_cursor = "old"
@@ -349,6 +355,33 @@ class StellarClient(JSConfigClient):
             for response_transaction in response_transactions:
                 transactions.append(TransactionSummary.from_horizon_response(response_transaction))
         return transactions
+
+    def get_transaction_effects(self, transaction_hash, address=None):
+        """Get the effects on an adddressfor a specific transaction
+        :param transaction_hash: hash of the transaction
+        :type transaction_hash: str
+        :param address: address of the effects.In None, the address of this wallet is taken
+        :type address: str
+        """
+        if address is None:
+            address = self.address
+        effects = []
+        endpoint = self._get_horizon_server().effects()
+        endpoint.for_transaction(transaction_hash)
+        old_cursor = "old"
+        new_cursor = ""
+        while old_cursor != new_cursor:
+            old_cursor = new_cursor
+            endpoint.cursor(new_cursor)
+            response = endpoint.call()
+            next_link = response["_links"]["next"]["href"]
+            next_link_query = parse.urlsplit(next_link).query
+            new_cursor = parse.parse_qs(next_link_query)["cursor"][0]
+            response_effects = response["_embedded"]["records"]
+            for response_effect in response_effects:
+                if "account" in response_effect and response_effect["account"] == address:
+                    effects.append(Effect.from_horizon_response(response_effect))
+        return effects
 
     def _transfer_locked_tokens(self, destination_address, amount, asset_code, asset_issuer, unlock_time):
         """Transfer locked assets to another address
