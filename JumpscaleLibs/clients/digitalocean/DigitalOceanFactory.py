@@ -1,6 +1,8 @@
 from Jumpscale import j
 from .DigitalOcean import DigitalOcean
 
+skip = j.baseclasses.testtools._skip
+
 
 skip = j.baseclasses.testtools._skip
 
