@@ -1,6 +1,5 @@
 import os
 from math import isclose
-from loguru import logger
 from Jumpscale import j
 
 """
@@ -10,15 +9,12 @@ j.sal.ubuntu._test(name='ubuntu')
 j.sal.process.execute("apt update -y")
 j.sal.process.execute("apt-get install -y python3-distutils-extra python3-dbus python3-apt")
 
-LOGGER = logger
-LOGGER.add("Config_manager_{time}.log")
-
 
 skip = j.baseclasses.testtools._skip
 
 
 def info(message):
-    LOGGER.info(message)
+    j.tools.logger._log_info(message)
 
 
 def _check_init_process():
@@ -520,9 +516,6 @@ def test021_check_os():
             info("There is exceptions RuntimeError as the OS is not between Ubuntu or LinuxMint")
         except (j.exceptions.RuntimeError) as e:
             assert "Only Ubuntu/Mint supported" in e.exception.args[0]
-
-
-skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/71")
 
 
 def test022_deb_download_install():
