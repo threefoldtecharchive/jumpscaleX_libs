@@ -13,7 +13,7 @@ JSBASE = j.baseclasses.object
 
 
 class KVM(j.baseclasses.object):
-    __jslocation__ = "j.sal.kvm"
+    # check https://github.com/threefoldtech/jumpscaleX_libs/issues/95
 
     def _init(self, **kwargs):
         self.__imports__ = "libvirt-python"

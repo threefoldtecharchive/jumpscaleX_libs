@@ -9,7 +9,6 @@ j.sal.ubuntu._test(name='ubuntu')
 j.sal.process.execute("apt update -y")
 j.sal.process.execute("apt-get install -y python3-distutils-extra python3-dbus python3-apt")
 
-
 skip = j.baseclasses.testtools._skip
 
 
@@ -601,9 +600,7 @@ def test024_service_disable_start_boot():
     info("enable cron service to create service file to return as origin state")
     j.sal.ubuntu.service_enable_start_boot("cron")
     if not cron_file_exist:
-        info(
-            "disable cron service as cron service does not exist before testing to return back to origin state"
-        )
+        info("disable cron service as cron service does not exist before testing to return back to origin state")
         j.sal.ubuntu.service_disable_start_boot("cron")
 
 
