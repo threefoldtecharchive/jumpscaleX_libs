@@ -1,7 +1,6 @@
-import time, uuid, subprocess
+import os, time, uuid, subprocess
 from Jumpscale import j
 from random import randint
-from testconfig import config
 
 
 def info(message):
@@ -15,8 +14,12 @@ def os_command(command):
 
 
 project_name = ""
-token = config["digital_ocean"]["token"]
-ssh_key = config["digital_ocean"]["sshkey"]
+try:
+    token = os.environ['DO_TOKEN']
+    ssh_key = os.environ['DO_SSHKEY']
+except KeyError:
+    raise Exception('You need to set Digital ocean token and ssh_key name as an environmental variables')
+
 RAND = randint(1, 1000)
 NAME = "DigitalOcean_{}".format(RAND)
 DO_CLIENT = j.clients.digitalocean.get(name=NAME, token_=token)
@@ -42,8 +45,9 @@ def after_all():
     DELETEME_DO_TEST_PRO = [project for project in pro_list if "DELETEME_DO_TEST" in project]
     info("delete all droplets in DELETEME_DO_TEST project")
     for project in DELETEME_DO_TEST_PRO:
+        time.sleep(30)
         info("delete all droplets in {} project".format(project))
-        DO_CLIENT.doplets_all_delete(project=project, interactive=False)
+        DO_CLIENT.droplets_all_delete(project=project, interactive=False)
         info("delete project {}".format(project))
         DO_CLIENT.project_delete(project)
     info("deleting DigitalOcean client")
