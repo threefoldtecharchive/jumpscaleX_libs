@@ -6,5 +6,5 @@ JSConfigFactoryBase = j.baseclasses.object_config_collection
 
 
 class WebdavFactory(JSConfigFactoryBase):
-    __jslocation__ = "j.clients.webdav"
+    # check https://github.com/threefoldtech/jumpscaleX_libs/issues/94
     _CHILDCLASS = WebdavClient
