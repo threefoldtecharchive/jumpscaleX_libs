@@ -9,7 +9,7 @@ class Row(j.baseclasses.object):
         name="",
         ttype="float",
         nrcols=72,
-        aggregate="T",
+        aggregate="SUM",
         description="",
         groupname="",
         groupdescr="",
@@ -19,7 +19,7 @@ class Row(j.baseclasses.object):
     ):
         """
         @param ttype int,perc,float,empty,str,unknown
-        @param aggregate= T,MIN,MAX,LAST,FIRST,AVG
+        @param aggregate= MIN,MAX,LAST,FIRST,AVG,SUM
         @format bold (if empty then normal)
         """
         self.name = name
@@ -39,7 +39,7 @@ class Row(j.baseclasses.object):
         self.groupdescr = groupdescr
         self.aggregateAction = aggregate
         self.nrfloat = nrfloat
-        if aggregate not in ["T", "MAX", "MIN", "LAST", "FIRST", "AVG"]:
+        if aggregate not in ["MAX", "MIN", "LAST", "FIRST", "AVG", "SUM"]:
             raise j.exceptions.RuntimeError("Cannot find action:%s for agreggate" % self.aggregateAction)
         if ttype not in ["int", "perc", "float", "empty", "str", "unknown"]:
             raise j.exceptions.RuntimeError("only support format: int,perc,float,empty,str,unknown")
@@ -79,10 +79,10 @@ class Row(j.baseclasses.object):
                 self.cells[colid] = prev
             prev = self.cells[colid]
 
-    def aggregate(self, period="Y", aggregateAction="T", roundnr=2):
+    def aggregate(self, period="Y", aggregateAction=None, roundnr=2):
         """
         @param period is Q or Y (Quarter/Year)
-        @param aggregateAction LAST,FIRST,MIN,MAX,AVG,SUM
+        @param aggregateAction LAST,FIRST,MIN,MAX,AVG,SUM(T)
         """
         if aggregateAction:
             self.aggregateAction = aggregateAction
@@ -105,7 +105,7 @@ class Row(j.baseclasses.object):
                     raise j.exceptions.RuntimeError(
                         "Cannot aggregrate row %s from group %s,\n%s" % (self.name, self.groupname, self.cells)
                     )
-                if self.aggregateAction == "T" or self.aggregateAction == "AVG":
+                if self.aggregateAction == "T" or self.aggregateAction == "SUM" or self.aggregateAction == "AVG":
                     result += val
                 if self.aggregateAction == "MIN":
                     if (val < 0 and val < result) or (val > 0 and val > result):
