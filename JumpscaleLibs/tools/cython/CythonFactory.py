@@ -40,10 +40,3 @@ class CythonFactory(j.baseclasses.object):
     def addCodePath(self, path):
         if path not in sys.path:
             sys.path.append(path)
-
-    def test(self):
-        import helloworld
-
-        helloworld.echo()
-        # helloworld.spam(10, bytearray("this is a test: int:\n".encode()))
-        # helloworld.spam(10, b"this is a test: int:\n")
