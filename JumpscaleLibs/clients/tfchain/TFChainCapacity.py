@@ -396,8 +396,8 @@ def _validate_reservation_namespace(reservation):
         if not getattr(reservation, field):
             raise j.exceptions.Value("field '%s' cannot be empty" % field)
 
-    if not reservation.mode or reservation.mode not in ["seq", "user", "direct"]:
-        raise j.exceptions.Value("mode can only be 'seq', 'user' or 'direct'")
+    if not reservation.mode or reservation.mode not in ["seq", "user"]:
+        raise j.exceptions.Value("mode can only be 'seq' or 'user'")
     if not reservation.disk_type or reservation.disk_type not in ["hdd", "ssd"]:
         raise j.exceptions.Value("disk_type can only be 'ssd' or 'hdd'")
 

@@ -34,10 +34,10 @@ class NBHClient(JSConfigBase):
 
     def _init(self, **kwargs):
         if not self.username or not self.password_:
-            raise j.exceptions.Input("Need to specify both username and passwd to use the client")
+            raise j.exceptions.Input("Need to specify both username and password_ to use the client")
 
         if not self.service_url:
-            raise j.exceptions.Input("Need to url to use the client")
+            raise j.exceptions.Input("Need to specify the url to use the client")
 
         self._session = requests.session()
 
