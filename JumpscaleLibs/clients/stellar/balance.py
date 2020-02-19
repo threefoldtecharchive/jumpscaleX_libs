@@ -1,5 +1,6 @@
 from stellar_sdk import TransactionEnvelope
 import datetime, time
+from Jumpscale import j
 
 
 class Balance(object):
@@ -33,22 +34,28 @@ class Balance(object):
 
 
 class EscrowAccount(object):
-    def __init__(self, address, unlockhashes, balances, network_passphrase, known_unlock_Transactions={}):
+    def __init__(self, address, unlockhashes, balances, network_passphrase):
         self.address = address
         self.unlockhashes = unlockhashes
         self.balances = balances
         self.network_passphrase = network_passphrase
         self.unlock_time = None
-        self._set_unlock_conditions(known_unlock_Transactions)
+        self._set_unlock_conditions()
 
-    def _set_unlock_conditions(self, known_unlock_Transactions={}):
-        for unlock_hash in self.unlockhashes:
-            if unlock_hash in known_unlock_Transactions:
-                unlockTransaction_xdr = known_unlock_Transactions[unlock_hash]
-                txe = TransactionEnvelope.from_xdr(unlockTransaction_xdr, self.network_passphrase)
-                tx = txe.transaction
-                if tx.time_bounds is not None:
-                    self.unlock_time = tx.time_bounds.min_time
+    def _set_unlock_conditions(self):
+        unlockhash_tx_model = j.threebot.packages.threefoldfoundation.tft_stellar.bcdb.model_get(
+            url="threefoldfoundation.tft_stellar.unlockhash_transaction"
+        )
+        for unlockhash in self.unlockhashes:
+            unlockhash_tx = unlockhash_tx_model.find(unlockhash=unlockhash)
+            if len(unlockhash_tx) is 0:
+                return
+
+            unlockhash_tx = unlockhash_tx[0]
+            txe = TransactionEnvelope.from_xdr(unlockhash_tx.transaction_xdr, self.network_passphrase)
+            tx = txe.transaction
+            if tx.time_bounds is not None:
+                self.unlock_time = tx.time_bounds.min_time
 
     def can_be_unlocked(self):
         if len(self.unlockhashes) == 0:

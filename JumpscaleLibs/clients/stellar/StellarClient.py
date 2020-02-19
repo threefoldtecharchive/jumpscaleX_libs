@@ -33,7 +33,7 @@ from .transaction import TransactionSummary, Effect
 
 JSConfigClient = j.baseclasses.object_config
 
-_UNLOCKHASH_TRANSACTIONS_SERVICES = { "TEST": "localhost" }
+_UNLOCKHASH_TRANSACTIONS_SERVICES = {"TEST": "localhost"}
 _HORIZON_NETWORKS = {"TEST": "https://horizon-testnet.stellar.org", "STD": "https://horizon.stellar.org"}
 _NETWORK_PASSPHRASES = {"TEST": Network.TESTNET_NETWORK_PASSPHRASE, "STD": Network.PUBLIC_NETWORK_PASSPHRASE}
 
@@ -70,7 +70,12 @@ class StellarClient(JSConfigClient):
 
         if self._unlock_service_client_ is None:
             try:
-                c = j.clients.gedis.new("unlock_service", host=_UNLOCKHASH_TRANSACTIONS_SERVICES[str(self.network)], port=8901, package_name="threefoldfoundation.tft_stellar")
+                c = j.clients.gedis.new(
+                    "unlock_service",
+                    host=_UNLOCKHASH_TRANSACTIONS_SERVICES[str(self.network)],
+                    port=8901,
+                    package_name="threefoldfoundation.tft_stellar",
+                )
             except Exception:
                 c = j.clients.gedis.get("unlock_service")
 
@@ -87,9 +92,9 @@ class StellarClient(JSConfigClient):
         tx_hash = txe.hash()
         unlock_hash = strkey.StrKey.encode_pre_auth_tx(tx_hash)
 
-        self._unlock_service_client.create_unlockhash_transaction(unlock_hash=escrow_kp.public_key, transaction_xdr=preauth_tx.to_xdr())
-
-        # self.preauth_txs[unlock_hash] = unlock_transaction
+        self._unlock_service_client.create_unlockhash_transaction(
+            unlock_hash=escrow_kp.public_key, transaction_xdr=preauth_tx.to_xdr()
+        )
 
     def _get_horizon_server(self):
         return Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
@@ -136,8 +141,9 @@ class StellarClient(JSConfigClient):
                 balances = []
                 for response_balance in account["balances"]:
                     balances.append(Balance.from_horizon_response(response_balance))
+
                 escrow_account = EscrowAccount(
-                    account_id, preauth_signers, balances, _NETWORK_PASSPHRASES[str(self.network)], self.preauth_txs
+                    account_id, preauth_signers, balances, _NETWORK_PASSPHRASES[str(self.network)]
                 )
                 escrow_accounts.append(escrow_account)
         return escrow_accounts
@@ -151,22 +157,21 @@ class StellarClient(JSConfigClient):
     def _unlock_account(self, escrow_account):
         submitted_unlock_transactions = 0
         for unlockhash in escrow_account.unlockhashes:
-            try:
-                unlockhash_transation = self._unlock_service_client.get_unlockhash_transaction(unlockhash=unlockhash)
-                self._log_info(unlockhash_transation.transaction_xdr)
-                self._get_horizon_server().submit_transaction(unlockhash_transation.transaction_xdr)
-                submitted_unlock_transactions += 1
-            except Exception as e:
-                raise e
+            unlockhash_transation = self._unlock_service_client.get_unlockhash_transaction(unlockhash=unlockhash)
+            if unlockhash_transation is None:
+                return
+            self._log_info(unlockhash_transation.transaction_xdr)
+            self._get_horizon_server().submit_transaction(unlockhash_transation.transaction_xdr)
+            submitted_unlock_transactions += 1
 
         if submitted_unlock_transactions == len(escrow_account.unlockhashes):
-                self._merge_account(escrow_account.address)
+            self._merge_account(escrow_account.address)
 
     def _merge_account(self, address):
         server = self._get_horizon_server()
         account = server.load_account(address)
         # Increment the sequence number in case the unlock transaction was not processed before the load_account call
-        account.increment_sequence_number()
+        # account.increment_sequence_number()
         balances = self._get_free_balances(address)
         base_fee = server.fetch_base_fee()
         transaction_builder = TransactionBuilder(
@@ -311,7 +316,7 @@ class StellarClient(JSConfigClient):
         :type asset: str
         :param locked_until: optional epoch timestamp indicating until when the tokens  should be locked.
         :type locked_until: float
-        :param text_memo: optional memo text to add to the transaction, a string encoded using either ASCII or UTF-8, up to 28-bytes long 
+        :param text_memo: optional memo text to add to the transaction, a string encoded using either ASCII or UTF-8, up to 28-bytes long
         :type: Union[str, bytes]
         """
         self._log_info("Sending {} {} to {}".format(amount, asset, destination_address))
@@ -413,7 +418,7 @@ class StellarClient(JSConfigClient):
         :type destination_address: str
         :param amount: amount, can be a floating point number with 7 numbers after the decimal point expressed as a string.
         :type amount: str
-        :param asset_code: asset to transfer 
+        :param asset_code: asset to transfer
         :type asset_code: str
         :param asset_issuer: if the asset_code is different from 'XlM', the issuer address
         :type asset_issuer: str
@@ -453,13 +458,9 @@ class StellarClient(JSConfigClient):
         preauth_tx = self._create_unlock_transaction(escrow_kp, unlock_time)
         preauth_tx_hash = preauth_tx.hash()
 
-        # save the preauth transaction
-        # self.preauth_txs[escrow_kp.public_key] = preauth_tx.to_xdr()
-
-        self._unlock_service_client.create_unlockhash_transaction(escrow_kp.public_key, preauth_tx.to_xdr())
-
-        # self._unlock_service_client.create_unlockhash_transaction(transaction_hash)
-
+        # save the preauth transaction in our unlock service
+        unlock_hash = strkey.StrKey.encode_pre_auth_tx(preauth_tx_hash)
+        self._unlock_service_client.create_unlockhash_transaction(unlock_hash, preauth_tx.to_xdr())
 
         self._set_account_signers(escrow_kp.public_key, destination_address, preauth_tx_hash, escrow_kp)
         self._log_info("Unlock Transaction:")
