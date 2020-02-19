@@ -33,6 +33,7 @@ from .transaction import TransactionSummary, Effect
 
 JSConfigClient = j.baseclasses.object_config
 
+_UNLOCKHASH_TRANSACTIONS_SERVICES = { "TEST": "localhost" }
 _HORIZON_NETWORKS = {"TEST": "https://horizon-testnet.stellar.org", "STD": "https://horizon.stellar.org"}
 _NETWORK_PASSPHRASES = {"TEST": Network.TESTNET_NETWORK_PASSPHRASE, "STD": Network.PUBLIC_NETWORK_PASSPHRASE}
 
@@ -59,6 +60,22 @@ class StellarClient(JSConfigClient):
             kp = Keypair.from_secret(self.secret)
         self.address = kp.public_key
         self.preauth_txs = {}
+        self._unlock_service_client_ = None
+
+    @property
+    def _unlock_service_client(self):
+        """
+        lazy loading of the unlock service client
+        """
+
+        if self._unlock_service_client_ is None:
+            try:
+                c = j.clients.gedis.new("unlock_service", host=_UNLOCKHASH_TRANSACTIONS_SERVICES[str(self.network)], port=8901, package_name="threefoldfoundation.tft_stellar")
+            except Exception:
+                c = j.clients.gedis.get("unlock_service")
+
+            self._unlock_service_client_ = c.actors.unlock_service
+        return self._unlock_service_client_
 
     def set_unlock_transaction(self, unlock_transaction):
         """
@@ -70,7 +87,9 @@ class StellarClient(JSConfigClient):
         tx_hash = txe.hash()
         unlock_hash = strkey.StrKey.encode_pre_auth_tx(tx_hash)
 
-        self.preauth_txs[unlock_hash] = unlock_transaction
+        self._unlock_service_client.create_unlockhash_transaction(unlock_hash=escrow_kp.public_key, transaction_xdr=preauth_tx.to_xdr())
+
+        # self.preauth_txs[unlock_hash] = unlock_transaction
 
     def _get_horizon_server(self):
         return Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
@@ -132,11 +151,16 @@ class StellarClient(JSConfigClient):
     def _unlock_account(self, escrow_account):
         submitted_unlock_transactions = 0
         for unlockhash in escrow_account.unlockhashes:
-            if unlockhash in self.preauth_txs:
-                self._get_horizon_server().submit_transaction(self.preauth_txs[unlockhash])
+            try:
+                unlockhash_transation = self._unlock_service_client.get_unlockhash_transaction(unlockhash=unlockhash)
+                self._log_info(unlockhash_transation.transaction_xdr)
+                self._get_horizon_server().submit_transaction(unlockhash_transation.transaction_xdr)
                 submitted_unlock_transactions += 1
+            except Exception as e:
+                raise e
+
         if submitted_unlock_transactions == len(escrow_account.unlockhashes):
-            self._merge_account(escrow_account.address)
+                self._merge_account(escrow_account.address)
 
     def _merge_account(self, address):
         server = self._get_horizon_server()
@@ -430,7 +454,12 @@ class StellarClient(JSConfigClient):
         preauth_tx_hash = preauth_tx.hash()
 
         # save the preauth transaction
-        self.preauth_txs[escrow_kp.public_key] = preauth_tx.to_xdr()
+        # self.preauth_txs[escrow_kp.public_key] = preauth_tx.to_xdr()
+
+        self._unlock_service_client.create_unlockhash_transaction(escrow_kp.public_key, preauth_tx.to_xdr())
+
+        # self._unlock_service_client.create_unlockhash_transaction(transaction_hash)
+
 
         self._set_account_signers(escrow_kp.public_key, destination_address, preauth_tx_hash, escrow_kp)
         self._log_info("Unlock Transaction:")
