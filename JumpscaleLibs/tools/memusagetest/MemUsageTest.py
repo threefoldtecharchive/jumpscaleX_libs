@@ -10,7 +10,7 @@ JSBASE = j.baseclasses.object
 
 class MemUsageTest(j.baseclasses.object):
 
-    __jslocation__ = "j.tools.memusagetest"
+    # check https://github.com/threefoldtech/jumpscaleX_libs/issues/97
 
     def __init__(self):
 
