@@ -43,8 +43,8 @@ class EscrowAccount(object):
         self._set_unlock_conditions()
 
     def _set_unlock_conditions(self):
-        unlockhash_tx_model = j.threebot.packages.threefoldfoundation.tft_stellar.bcdb.model_get(
-            url="threefoldfoundation.tft_stellar.unlockhash_transaction"
+        unlockhash_tx_model = j.threebot.packages.threefoldfoundation.unlock_service.bcdb.model_get(
+            url="threefoldfoundation.unlock_service.unlockhash_transaction"
         )
         for unlockhash in self.unlockhashes:
             unlockhash_tx = unlockhash_tx_model.find(unlockhash=unlockhash)

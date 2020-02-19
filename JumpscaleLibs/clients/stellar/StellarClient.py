@@ -74,7 +74,7 @@ class StellarClient(JSConfigClient):
                     "unlock_service",
                     host=_UNLOCKHASH_TRANSACTIONS_SERVICES[str(self.network)],
                     port=8901,
-                    package_name="threefoldfoundation.tft_stellar",
+                    package_name="threefoldfoundation.unlock_service",
                 )
             except Exception:
                 c = j.clients.gedis.get("unlock_service")
