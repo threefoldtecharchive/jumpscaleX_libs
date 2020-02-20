@@ -26,6 +26,7 @@ class NotebookServerFactory(j.baseclasses.object):
         path="{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks/threefold_simulator.ipynb",
         background=False,
         voila=False,
+        base_url=None,
     ):
         """
         kosmos 'j.servers.notebook.start()'
@@ -39,22 +40,27 @@ class NotebookServerFactory(j.baseclasses.object):
         if not background:
             if not voila:
                 cmd_start = "cd %s;jupyter lab --ip=0.0.0.0 --allow-root %s" % (dirpath, basepath)
+                if base_url:
+                    cmd_start += f" --NotebookApp.base_url={base_url}"
                 j.sal.process.executeInteractive(cmd_start)
             else:
                 cmd_start = "cd %s;voila %s" % (dirpath, basepath)
+                if base_url:
+                    cmd_start += f" --NotebookApp.base_url={base_url}"
                 j.sal.process.executeInteractive(cmd_start)
         else:
             if not voila:
                 cmd_start = "jupyter lab --ip=0.0.0.0 --allow-root %s" % path
+                if base_url:
+                    cmd_start += f" --NotebookApp.base_url={base_url}"
                 cmd = j.servers.startupcmd.get("notebook", cmd_start=cmd_start)
                 cmd.start()
             else:
                 cmd_start = "voila %s" % (path)
+                if base_url:
+                    cmd_start += f" --NotebookApp.base_url={base_url}"
                 cmd = j.servers.startupcmd.get("voila", cmd_start=cmd_start)
                 cmd.start()
-
-            url = "http://172.17.0.2:8888/?token=6a2d48493cf72c098135dc5fa0ea4f318d9e7185ca30b1fb"
-            # TODO: need to show url where to go to
 
     def test(self):
         """
