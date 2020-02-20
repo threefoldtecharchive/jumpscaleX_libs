@@ -510,11 +510,19 @@ class UnlockHash(BaseDataTypeClass):
     json = __str__
 
     def __eq__(self, other):
+        try:
+            other = UnlockHash._op_other_as_unlockhash(other)
+        except :
+            return False
         other = UnlockHash._op_other_as_unlockhash(other)
         return self.type == other.type and self.hash == other.hash
 
     def __ne__(self, other):
-        other = UnlockHash._op_other_as_unlockhash(other)
+        try:
+            other = UnlockHash._op_other_as_unlockhash(other)
+        except :
+            return True
+        
         return self.type != other.type or self.hash != other.hash
 
     def __hash__(self):
