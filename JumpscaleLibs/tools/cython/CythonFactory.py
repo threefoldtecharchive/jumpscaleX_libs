@@ -42,8 +42,8 @@ class CythonFactory(j.baseclasses.object):
             sys.path.append(path)
 
     def test(self):
-        import helloworld
+        from .helloworld import echo
 
-        helloworld.echo()
+        echo()
         # helloworld.spam(10, bytearray("this is a test: int:\n".encode()))
         # helloworld.spam(10, b"this is a test: int:\n")

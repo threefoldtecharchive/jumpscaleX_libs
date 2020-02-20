@@ -4,8 +4,7 @@ JSBASE = j.baseclasses.object
 
 
 class LegalContractsFactory(j.baseclasses.object):
-    __jslocation__ = "j.tools.legal_contracts"
-
+    # check https://github.com/threefoldtech/jumpscaleX_libs/issues/new
     def install(self):
         # p = j.tools.prefab.local
         j.tools.reportlab.install()
