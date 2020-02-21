@@ -1,6 +1,9 @@
 from Jumpscale import j
 
 
+skip = j.baseclasses.testtools._skip
+
+
 class NotebookServerFactory(j.baseclasses.object):
 
     __jslocation__ = "j.servers.notebook"
@@ -73,6 +76,7 @@ class NotebookServerFactory(j.baseclasses.object):
         # url = "http://172.17.0.2:8888/?token=6a2d48493cf72c098135dc5fa0ea4f318d9e7185ca30b1fb"
         # TODO: need to show url where to go to
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/105")
     def test(self):
         """
         kosmos 'j.servers.notebook.test()'
