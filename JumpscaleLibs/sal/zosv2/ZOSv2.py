@@ -19,7 +19,7 @@ class Zosv2(j.baseclasses.object):
         self._network = NetworkGenerator(self._explorer)
         self._container = ContainerGenerator()
         self._volume = VolumesGenerator()
-        self._zdb = ZDBGenerator()
+        self._zdb = ZDBGenerator(self._explorer)
         self._kubernetes = K8sGenerator()
 
     @property
