@@ -1,5 +1,7 @@
 from .crypto import encrypt_for_node
 
+from Jumpscale import j
+from .id import _next_workload_id
 
 class ZDBGenerator:
     def __init__(self, explorer):

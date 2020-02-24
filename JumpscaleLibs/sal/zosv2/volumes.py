@@ -1,3 +1,4 @@
+from .id import _next_workload_id
 class VolumesGenerator:
     def create(self, reservation, node_id, volume_size=5, volume_type="SSD"):
         """
@@ -25,7 +26,7 @@ class VolumesGenerator:
         volume.node_id = node_id
         return volume
 
-    def attach(self, container, volume, mount_point):
+    def attach(self, reservation, container, volume, mount_point):
         """
         container : container object from create_container function
         volume: Volume object that get from add_volume function

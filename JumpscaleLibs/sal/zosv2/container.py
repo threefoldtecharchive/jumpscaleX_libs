@@ -1,3 +1,7 @@
+import netaddr
+from Jumpscale import j
+
+from .id import _next_workload_id
 class ContainerGenerator:
     def create(
         self,
@@ -55,7 +59,7 @@ class ContainerGenerator:
 
         nw = None
         for nw in reservation.data_reservation.networks:
-            if nw.network_name == network_name:
+            if nw.name == network_name:
                 ip = netaddr.IPAddress(ip_address)
                 subnet = netaddr.IPNetwork(nw.iprange)
                 if ip not in subnet:
@@ -67,7 +71,7 @@ class ContainerGenerator:
         net.network_id = network_name
         net.ipaddress = ip_address
 
-        cap = cont.capacity.new()
+        cap = cont.capacity
         cap.cpu = cpu
         cap.memory = memory
 
