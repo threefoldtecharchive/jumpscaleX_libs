@@ -20,7 +20,7 @@ class Zosv2(j.baseclasses.object):
         self._container = ContainerGenerator()
         self._volume = VolumesGenerator()
         self._zdb = ZDBGenerator()
-        self._kuberntes = K8sGenerator()
+        self._kubernetes = K8sGenerator()
 
     @property
     def network(self):

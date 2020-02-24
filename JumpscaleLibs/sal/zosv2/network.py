@@ -7,7 +7,7 @@ from Jumpscale import j
 from .id import _next_workload_id
 
 
-class NetworkBuilder:
+class NetworkGenerator:
     def __init__(self, explorer):
         self._actor_nodes = explorer.actors_all.nodes
 
@@ -25,7 +25,7 @@ class NetworkBuilder:
         if hasattr(network, "access_points"):
             delattr(network, "access_points")
 
-    def network_create(self, reservation, ip_range, network_name=None):
+    def create(self, reservation, ip_range, network_name=None):
         """
         add a network into the reservation
         
@@ -50,7 +50,7 @@ class NetworkBuilder:
         network.iprange = ip_range
         return network
 
-    def network_add_node(self, network, node_id, ip_range, wg_port=None):
+    def add_node(self, network, node_id, ip_range, wg_port=None):
         """
         add a 0-OS node into the network
         
@@ -90,7 +90,7 @@ class NetworkBuilder:
         finally:
             self._cleanup_network(network)
 
-    def network_add_access(self, network, node_id, ip_range, wg_public_key=None, ipv4=False):
+    def add_access(self, network, node_id, ip_range, wg_public_key=None, ipv4=False):
         """
         add an external access to the network. use this function is you want to allow
         a member to your network that is not a 0-OS node. User laptop, external server,...
