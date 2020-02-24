@@ -105,3 +105,34 @@ result = zos.reservation_result(rid)
 print("provisioning result")
 print(result)
 ```
+
+## reserve 0-DB storage namespaces
+
+```python
+zos = j.sal.zosv2
+
+# find some node that have 10 GiB of SSD disks
+nodes = zos.nodes_finder.nodes_search(sru=10)
+
+# create a reservation
+r = zos.reservation_create()
+# add container reservation into the reservation
+zos.zdb.create(
+    reservation=r,
+    node_id=nodes[0].node_id,
+    size=10,
+    mode='seq',
+    password='supersecret',
+    disk_type="SSD",
+    public=False)
+
+expiration = j.data.time.epoch + (3600 * 24)
+# register the reservation
+rid = zos.reservation_register(r, expiration)
+time.sleep(5)
+# inspect the result of the reservation provisioning
+result = zos.reservation_result(rid)
+
+print("provisioning result")
+print(result)
+```
