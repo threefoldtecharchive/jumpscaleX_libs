@@ -92,7 +92,6 @@ class MarkDownDocs(j.baseclasses.object, TESTTOOLS):
     __jslocation__ = "j.tools.markdowndocs"
 
     def _init(self, **kwargs):
-        j.clients.redis.core_get()
 
         self.__imports__ = "toml"
         self._macroPathsDone = []
