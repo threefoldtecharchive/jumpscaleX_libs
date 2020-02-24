@@ -20,7 +20,7 @@ class Zosv2(j.baseclasses.object):
         self._container = ContainerGenerator()
         self._volume = VolumesGenerator()
         self._zdb = ZDBGenerator(self._explorer)
-        self._kubernetes = K8sGenerator()
+        self._kubernetes = K8sGenerator(self._explorer)
 
     @property
     def network(self):
@@ -74,3 +74,28 @@ class Zosv2(j.baseclasses.object):
 
     def reservation_result(self, reservation_id):
         return self._explorer.actors_all.workload_manager.reservation_get(reservation_id).results
+
+    def reservation_store(self, reservation, path):
+        """
+        write the reservation on disk.
+        use reservation_load() to load it back
+        
+        :param reservation: reservation object
+        :type reservation: tfgrid.workloads.reservation.1
+        :param path: destination file
+        :type path: str
+        """
+        j.data.serializers.json.dump(reservation._ddict, path)
+
+    def reservation_load(self, path):
+        """
+        load a reservation stored on disk by reservation_store
+        
+        :param path: source file
+        :type path: str        
+        :return: reservation object
+        :rtype: tfgrid.workloads.reservation.1
+        """
+        r = j.data.serializers.json.load(path)
+        reservation_model = j.data.schema.get_from_url("tfgrid.workloads.reservation.1")
+        return reservation_model.new(datadict=r)

@@ -1,7 +1,9 @@
 from nacl import public
-from nacl.signing import VerifyKey, SigningKey
 from nacl.encoding import Base64Encoder
 from nacl.public import SealedBox
+from nacl.signing import SigningKey, VerifyKey
+
+from Jumpscale import j
 
 
 def encrypt_for_node(public_key, payload):
@@ -21,6 +23,9 @@ def encrypt_for_node(public_key, payload):
     node_public_bin = j.data.hash.hex2bin(public_key)
     node_public = VerifyKey(node_public_bin)
     box = SealedBox(node_public.to_curve25519_public_key())
+
+    if isinstance(payload, str):
+        payload = payload.encode()
 
     encrypted = box.encrypt(payload)
     return j.data.hash.bin2hex(encrypted)
