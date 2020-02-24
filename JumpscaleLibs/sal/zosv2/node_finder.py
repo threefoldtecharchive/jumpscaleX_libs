@@ -1,6 +1,8 @@
 from Jumpscale import j
 import netaddr
 
+from .network import is_private
+
 
 class NodeFinder:
     def __init__(self, explorer):
@@ -26,10 +28,7 @@ class NodeFinder:
         :return: list of nodes
         :rtype: list
         """
-        if resource_units is not None and not isinstance(resource_units, ResourceUnits):
-            raise j.exceptions.Input("resource_units must be a instance of ResourceUnits namedtuple")
-
-        return self.explorer.actors_all.nodes.list(
+        return self._explorer.actors_all.nodes.list(
             farm_id=farm_id, country=country, city=city, cru=cru, sru=sru, mru=mru, hru=hru
         ).nodes
 
@@ -41,7 +40,7 @@ def filter_public_ip(node, version):
     ips = []
 
     # gather all the public ip of the requried version in ips
-    if node.public_config is not None:
+    if node.public_config and node.public_config.master:
         if version == 4:
             ips = [node.public_config.ipv4]
         else:
@@ -49,7 +48,7 @@ def filter_public_ip(node, version):
     else:
         for iface in node.ifaces:
             for addr in iface.addrs:
-                ip = netaddr.IPaddress(addr)
+                ip = netaddr.IPNetwork(addr)
                 if ip.version != version:
                     continue
                 ips.append(ip)
