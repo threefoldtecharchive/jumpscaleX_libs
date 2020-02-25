@@ -217,6 +217,165 @@ class TFGateway(j.baseclasses.object):
             name, domain, "srv", records=[{"host": host, "port": port, "priority": priority, "weight": weight}]
         )
 
+    def domain_unregister(self, name, domain="bots.grid.tf.", record_type="a", prefix="", records=[]):
+        """unregisters domain from coredns
+        :param name: name
+        :type name: str
+        :param domain: str, defaults to "bots.grid.tf."
+        :type domain: str, optional
+        :param record_type: valid dns record (a, aaaa, txt, srv..), defaults to "a"
+        :type record_type: str, optional
+        :param records: records list, defaults to []
+        :type records: [type], optional is [ {"ip":machine ip}] in case of a/aaaa records
+        """
+
+        if not domain.endswith("."):
+            domain += "."
+        domain_key = prefix + domain
+
+        record_data = j.data.serializers.json.loads(self.redisclient.hget(domain_key, name))
+        if not record_data:
+            return
+
+        type_records = record_data.get(record_type, [])
+        if len(type_records) == 0:
+            return
+
+        for rec_to_delete in records:
+            for i in range(0, len(type_records)):
+                if rec_to_delete == type_records[i]:
+                    break
+            if i < len(type_records):
+                type_records.pop(i)
+
+        if len(type_records) == 0:
+            record_data.pop(record_type, None)
+        else:
+            record_data[record_type] = type_records
+
+        if not record_data:
+            self.redisclient.hdel(domain_key, name)
+        else:
+            self.redisclient.hset(domain_key, name, j.data.serializers.json.dumps(record_data))
+
+    def domain_unregister_a(self, name, domain, record_ip):
+        """unregisters A domain from coredns
+
+        e.g: ahmed.bots.grid.tf
+
+        - ahmed is name
+        - domain is bots.grid.tf
+
+        :param name: myhost
+        :type name: str
+        :param domain: str, defaults to "grid.tf."
+        :type domain: str, optional
+        :param record_ip: machine ip in ipv4 format
+        :type record_ip: str or list of str
+        """
+
+        records = self._records_get(record_ip)
+        self.domain_unregister(name, domain, record_type="a", records=records)
+
+    def domain_unregister_aaaa(self, name, domain, record_ip):
+        """unregisters A domain from coredns
+
+        e.g: ahmed.bots.grid.tf
+
+        - ahmed is name
+        - domain is bots.grid.tf
+
+        :param name: name
+        :type name: str
+        :param domain: str, defaults to "bots.grid.tf."
+        :type domain: str, optional
+        :param record_ip: machine ips in ipv6 format
+        :type record_ip: list of str
+        """
+
+        records = self._records_get(record_ip)
+        self.domain_unregister(name, domain, record_type="aaaa", records=records)
+
+    def domain_unregister_cname(self, name, domain, host):
+        """unregister CNAME record
+
+        :param name: name
+        :type name: str
+        :param domain: str, defaults to "bots.grid.tf."
+        :type domain: str, optional
+        :param host: cname
+        :type host: str
+        """
+
+        if not host.endswith("."):
+            host += "."
+        self.domain_unregister(name, domain, record_type="cname", records=[{"host": host}])
+
+    def domain_unregister_ns(self, name, domain, host):
+        """unregister NS record
+
+        :param name: name
+        :type name: str
+        :param domain: str, defaults to "bots.grid.tf."
+        :type domain: str, optional
+        :param host: host
+        :type host: str
+
+        """
+
+        self.domain_unregister(name, domain, record_type="ns", records=[{"host": host}])
+
+    def domain_unregister_txt(self, name, domain, text):
+        """unregister TXT record
+
+        :param name: name
+        :type name: str
+        :param domain: str, defaults to "bots.grid.tf."
+        :type domain: str, optional
+        :param text: text
+        :type text: text
+        """
+
+        self.domain_unregister(name, domain, record_type="txt", records=[{"text": text}])
+
+    def domain_unregister_mx(self, name, domain, host, priority=10):
+        """unregister MX record
+
+        :param name: name
+        :type name: str
+        :param domain: str, defaults to "bots.grid.tf."
+        :type domain: str, optional
+        :param host: host for mx e.g mx1.example.com
+        :type host: str
+        :param priority: priority defaults to 10
+        :type priority: int
+
+        """
+
+        self.domain_unregister(name, domain, record_type="mx", records=[{"host": host, "priority": priority}])
+
+    def domain_unregister_srv(self, name, domain, host, port, priority=10, weight=100):
+        """unregister SRV record
+
+        :param name: name
+        :type name: str
+        :param domain: str, defaults to "bots.grid.tf."
+        :type domain: str, optional
+        :param host: host for mx e.g mx1.example.com
+        :type host: str
+        :param port: port for srv record
+        :type port: int
+        :param priority: priority defaults to 10
+        :type priority: int
+        :param weight: weight defaults to 100
+        :type weight: int
+
+        """
+
+        self.domain_unregister(
+            name, domain, "srv", records=[{"host": host, "port": port, "priority": priority, "weight": weight}]
+        )
+
     ## TCP Router redis backend
     def tcpservice_register(self, domain, service_addr="", service_port=443, service_http_port=80, client_secret=""):
         """
