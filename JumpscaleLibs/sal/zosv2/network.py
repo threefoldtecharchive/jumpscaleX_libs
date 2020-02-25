@@ -9,11 +9,11 @@ from .id import _next_workload_id
 
 class NetworkGenerator:
     def __init__(self, explorer):
-        self._actor_nodes = explorer.actors_all.nodes
+        self._actor_directory = explorer.actors_get("tfgrid.directory")
 
     def _load_network(self, network):
         for nr in network.network_resources:
-            nr.public_endpoints = get_endpoints(self._actor_nodes.get(nr.node_id))
+            nr.public_endpoints = get_endpoints(self._actor_directory.nodes.get(nr.node_id))
 
         network.access_points = extract_access_points(network)
 
@@ -66,7 +66,7 @@ class NetworkGenerator:
         if not node_id:
             raise j.exceptions.Input("node_id cannot be none or empty")
 
-        node = self._actor_nodes.get(node_id)
+        node = self._actor_directory.nodes.get(node_id)
 
         if netaddr.IPNetwork(ip_range).prefixlen != 24:
             raise j.exceptions.Input("ip_range should have a netmask of /24, not /%d", ip_range.prefixlen)
