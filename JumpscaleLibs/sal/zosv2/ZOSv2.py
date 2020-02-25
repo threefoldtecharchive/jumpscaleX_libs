@@ -15,6 +15,7 @@ class Zosv2(j.baseclasses.object):
 
     def _init(self, **kwargs):
         self._explorer = j.clients.threebot.explorer
+        self._actor_workloads = self._explorer.actors_get("tfgrid.workloads")
         self._nodes_finder = NodeFinder(self._explorer)
         self._network = NetworkGenerator(self._explorer)
         self._container = ContainerGenerator()
@@ -69,11 +70,11 @@ class Zosv2(j.baseclasses.object):
         reservation.json = reservation.data_reservation._json
         reservation.customer_signature = me.nacl.sign_hex(reservation.json.encode())
 
-        resp = self._explorer.actors_all.workload_manager.reservation_register(reservation)
+        resp = self._actor_workloads.workload_manager.reservation_register(reservation)
         return resp.id
 
     def reservation_result(self, reservation_id):
-        return self._explorer.actors_all.workload_manager.reservation_get(reservation_id).results
+        return self._actor_workloads.workload_manager.reservation_get(reservation_id).results
 
     def reservation_store(self, reservation, path):
         """
