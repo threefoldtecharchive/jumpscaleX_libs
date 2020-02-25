@@ -15,10 +15,10 @@ def os_command(command):
 
 project_name = ""
 try:
-    token = os.environ['DO_TOKEN']
-    ssh_key = os.environ['DO_SSHKEY']
+    token = os.environ["DO_TOKEN"]
+    ssh_key = os.environ["DO_SSHKEY"]
 except KeyError:
-    raise Exception('You need to set Digital ocean token and ssh_key name as an environmental variables')
+    raise Exception("You need to set Digital ocean token and ssh_key name as an environmental variables")
 
 RAND = randint(1, 1000)
 NAME = "DigitalOcean_{}".format(RAND)
@@ -588,4 +588,3 @@ def test020_region_get_with_exist_name():
     assert region
     info("the region name equal to 'Amsterdam 3'")
     assert "Amsterdam 3" == region.name
-
