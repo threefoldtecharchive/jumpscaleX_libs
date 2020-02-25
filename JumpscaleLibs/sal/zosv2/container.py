@@ -2,6 +2,8 @@ import netaddr
 from Jumpscale import j
 
 from .id import _next_workload_id
+
+
 class ContainerGenerator:
     def create(
         self,
@@ -15,6 +17,7 @@ class ContainerGenerator:
         memory=1024,
         entrypoint="",
         interactive=False,
+        public_ipv6=False,
         storage_url="zdb://hub.grid.tf:9900",
     ):
         """
@@ -71,8 +74,7 @@ class ContainerGenerator:
         net.network_id = network_name
         net.ipaddress = ip_address
 
-        cap = cont.capacity
-        cap.cpu = cpu
-        cap.memory = memory
+        cap = cont.capacity.cpu = cpu
+        cap = cont.capacity.memory = memory
 
         return cont
