@@ -4,6 +4,7 @@ from Jumpscale import j
 
 
 JSBASE = j.baseclasses.object
+DNS_PREFIX = j.core.myenv.config.get("DNS_PREFIX", "")
 
 """
 This module assume having tcprouter and coredns installed.
@@ -45,7 +46,7 @@ class TFGateway(j.baseclasses.object):
         j.builders.network.coredns.start()
 
     ## COREDNS redis backend
-    def domain_register(self, name, domain="bots.grid.tf.", record_type="a", records=None):
+    def domain_register(self, name, domain="bots.grid.tf.", record_type="a", records=None, prefix=DNS_PREFIX):
         """registers domain in coredns (needs to be authoritative)
 
         e.g: ahmed.bots.grid.tf
@@ -63,43 +64,45 @@ class TFGateway(j.baseclasses.object):
         :param records: records list, defaults to None
         :type records: [type], optional is [ {"ip":machine ip}] in case of a/aaaa records
         """
+
         if not domain.endswith("."):
             domain += "."
         data = {}
         records = records or []
-        if self.redisclient.hexists(domain, name):
-            data = j.data.serializers.json.loads(self.redisclient.hget(domain, name))
+        if self.redisclient.hexists(prefix + domain, name):
+            data = j.data.serializers.json.loads(self.redisclient.hget(prefix + domain, name))
 
         if record_type in data:
             for record in data[record_type]:
                 if record not in records:
                     records.append(record)
         data[record_type] = records
-        self.redisclient.hset(domain, name, j.data.serializers.json.dumps(data))
+        self.redisclient.hset(prefix + domain, name, j.data.serializers.json.dumps(data))
 
-    def domain_list(self):
-        return self.redisclient.keys("*.")
+    def domain_list(self, prefix=DNS_PREFIX):
+        domains = [domain_name[len(prefix):] for domain_name in self.redisclient.keys(DNS_PREFIX + "*.")]
+        return domains
 
-    def domain_exists(self, domain):
+    def domain_exists(self, domain, prefix=DNS_PREFIX):
         if not domain.endswith("."):
             domain += "."
-        if self.redisclient.exists(domain):
+        if self.redisclient.exists(prefix + domain):
             return True
         subdomain, domain = domain.split(".", 1)
-        return self.redisclient.hexists(domain, subdomain)
+        return self.redisclient.hexists(prefix + domain, subdomain)
 
-    def domain_dump(self, domain):
+    def domain_dump(self, domain, prefix=DNS_PREFIX):
         if not domain.endswith("."):
             domain += "."
         resulset = {}
-        for key, value in self.redisclient.hgetall(domain).items():
+        for key, value in self.redisclient.hgetall(prefix + domain).items():
             resulset[key.decode()] = j.data.serializers.json.loads(value)
         return resulset
 
-    def subdomain_get(self, domain, subdomain):
+    def subdomain_get(self, domain, subdomain, prefix=DNS_PREFIX):
         if not domain.endswith("."):
             domain += "."
-        subdomain_info = self.redisclient.hget(domain, subdomain)
+        subdomain_info = self.redisclient.hget(prefix + domain, subdomain)
         return j.data.serializers.json.loads(subdomain_info)
 
     def domain_register_a(self, name, domain, record_ip):
@@ -217,7 +220,7 @@ class TFGateway(j.baseclasses.object):
             name, domain, "srv", records=[{"host": host, "port": port, "priority": priority, "weight": weight}]
         )
 
-    def domain_unregister(self, name, domain="bots.grid.tf.", record_type="a", prefix="", records=[]):
+    def domain_unregister(self, name, domain="bots.grid.tf.", record_type="a", prefix=DNS_PREFIX, records=[]):
         """unregisters domain from coredns
         :param name: name
         :type name: str
