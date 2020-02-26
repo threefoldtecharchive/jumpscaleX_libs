@@ -51,7 +51,7 @@ class Zosv2(j.baseclasses.object):
     def reservation_resources(self, reservation):
         """
         compute how much resource units is reserved in the reservation
-        
+
         :param reservation: reservation object
         :type reservation: tfgrid.workloads.reservation.1
         :return: list of ResourceUnitsNode object
@@ -60,10 +60,38 @@ class Zosv2(j.baseclasses.object):
         rp = ResourceParser(self._explorer, reservation)
         return rp.calculate_used_resources()
 
+    def reservation_resources_cost(self, reservation):
+        """
+        compute how much resource units is reserved in the reservation
+
+        :param reservation: reservation object
+        :type reservation: tfgrid.workloads.reservation.1
+        :return: list of ResourceUnitsNode object with costs filled in
+        :rtype: list
+        """
+        rp = ResourceParser(self._explorer, reservation)
+        return rp.calculate_used_resources_cost()
+
+    def payout_farmers(self, resource_units_per_node, reservation, reservation_id):
+        """
+        payout farmer based on the resources per node used
+
+        :param resource_units_per_node: list of resource units per node retrieved from reservation_resources_cost
+        :type resource_units_per_node: list of ResourceUnitsNode
+        :param reservation: reservation object
+        :type reservation: tfgrid.workloads.reservation.1
+        :param reservation_id: registered reservation id
+        :type int
+        :return: list of transactions
+        :rtype: list
+        """
+        rp = ResourceParser(self._explorer, reservation)
+        return rp.payout_farmers(resource_units_per_node, reservation_id)
+
     def reservation_create(self):
         """
         creates a new empty reservation schema
-        
+
         :return: reservation (tfgrid.workloads.reservation.1)
         :rtype: BCDBModel
         """
@@ -93,7 +121,7 @@ class Zosv2(j.baseclasses.object):
         """
         write the reservation on disk.
         use reservation_load() to load it back
-        
+
         :param reservation: reservation object
         :type reservation: tfgrid.workloads.reservation.1
         :param path: destination file
@@ -104,9 +132,9 @@ class Zosv2(j.baseclasses.object):
     def reservation_load(self, path):
         """
         load a reservation stored on disk by reservation_store
-        
+
         :param path: source file
-        :type path: str        
+        :type path: str
         :return: reservation object
         :rtype: tfgrid.workloads.reservation.1
         """

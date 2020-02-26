@@ -13,38 +13,74 @@ class ResourceParser:
         for node_id, workloads in workloads_per_nodes.items():
             resource_units = ResourceUnitsNode(node_id=node_id)
             for _type, workload in workloads.items():
+                print(workload)
                 if _type == "container":
                     for container in workload:
                         resource_units + self._process_container(container)
+                        resource_units.set_workload_id(container.workload_id)
                 elif _type == "zdb":
                     for zdb in workload:
                         resource_units + self._process_zdb(zdb)
+                        resource_units.set_workload_id(zdb.workload_id)
                 elif _type == "kubernetes":
                     for k8s in workload:
                         resource_units + self._process_kubernetes(k8s)
+                        resource_units.set_workload_id(k8s.workload_id)
                 elif _type == "volume":
                     for volume in workload:
                         resource_units + self._process_volume(volume)
+                        resource_units.set_workload_id(volume.workload_id)
 
             resource_units_per_node.append(resource_units)
 
         return resource_units_per_node
 
-    def _workload_per_farm(self):
-        """
-        Separate individual workloads in a reservation based on the farm they are going to be deployed on
-        """
-        farmid_workload_map = {}
-        wpn = self.workloads_per_node()
-        for node_id in wpn:
-            node = self._actor_directory.nodes.get(node_id, False)
-            if node.farm_id not in farmid_workload_map:
-                farmid_workload_map[node.farm_id] = self._workloads_dict()
-            wl = farmid_workload_map[node.farm_id]
-            for _typ in ["network", "zdb", "container", "volume", "kubernetes"]:
-                wl[_typ] = [*wl[_typ], *self.workloads_per_node()[_typ]]
+    def calculate_used_resources_cost(self):
+        resource_units_per_node = self.calculate_used_resources()
+        for resource_unit_node in resource_units_per_node:
+            node = self._actor_directory.nodes.get(resource_unit_node.node_id, False)
+            farm = self._actor_directory.farms.get(node.farm_id, False)
 
-        return farmid_workload_map
+            wallet_address = farm.wallet_addresses[0]
+
+            total_cru_cost = resource_unit_node.CRU * farm.resource_prices[0].cru
+            total_sru_cost = resource_unit_node.SRU * farm.resource_prices[0].sru
+            total_hru_cost = resource_unit_node.HRU * farm.resource_prices[0].hru
+            total_mru_cost = resource_unit_node.MRU * farm.resource_prices[0].mru
+            total_cost = total_cru_cost + total_sru_cost + total_hru_cost + total_mru_cost
+
+            print(f"To pay to farmer: with id {node.farm_id}\n")
+            print(f"CRU: resources used: {resource_unit_node.CRU}, Total amount to pay for CRU: {total_cru_cost}")
+            print(f"SRU: resources used: {resource_unit_node.SRU}, Total amount to pay for SRU: {total_sru_cost}")
+            print(f"HRU: resources used: {resource_unit_node.HRU}, Total amount to pay for HRU: {total_hru_cost}")
+            print(f"MRU: resources used: {resource_unit_node.MRU}, Total amount to pay for MRU: {total_mru_cost} \n")
+            print(f"Total to pay: {total_cost} in TFT to wallet address: {wallet_address}\n")
+
+            resource_unit_node.set_cru_cost(total_cru_cost)
+            resource_unit_node.set_sru_cost(total_sru_cost)
+            resource_unit_node.set_hru_cost(total_hru_cost)
+            resource_unit_node.set_mru_cost(total_mru_cost)
+            resource_unit_node.set_total_cost(total_cost)
+
+            resource_unit_node.set_farm_wallet(wallet_address)
+            resource_unit_node.set_farm_id(node.farm_id)
+
+        return resource_units_per_node
+
+    def payout_farmers(self, resource_units_per_node, reservation_id):
+        tfchain_client = j.clients.tfchain.get("tfchain")
+        tfchain_wallet = tfchain_client.wallets.get("main")
+        transactions = []
+        for resource_unit_node in resource_units_per_node:
+            (txn, submitted) = tfchain_wallet.coins_send(
+                recipient=resource_unit_node.farm_wallet,
+                amount=str(resource_unit_node.TOTAL_COST),
+                data=f"{resource_unit_node.workload_id}-{reservation_id}",
+            )
+            if submitted:
+                transactions.append(txn)
+                continue
+        return transactions
 
     def _iterate_over_workloads(self):
         for _type in ["zdbs", "volumes", "containers", "networks"]:
@@ -101,10 +137,18 @@ class ResourceParser:
 class ResourceUnitsNode:
     def __init__(self, node_id=None, SRU=0, HRU=0, MRU=0, CRU=0):
         self.node_id = node_id
+        self.farm_id = None
+        self.farm_wallet = None
+        self.workload_id = None
         self.SRU = SRU
         self.HRU = HRU
         self.MRU = MRU
         self.CRU = CRU
+        self.SRU_COST = 0
+        self.HRU_COST = 0
+        self.MRU_COST = 0
+        self.CRU_COST = 0
+        self.TOTAL_COST = 0
 
     def __add__(self, other):
         self.CRU += other.CRU
@@ -112,9 +156,43 @@ class ResourceUnitsNode:
         self.MRU += other.MRU
         self.SRU += other.SRU
 
+    def set_farm_wallet(self, farm_wallet):
+        self.farm_wallet = farm_wallet
+
+    def set_farm_id(self, farm_id):
+        self.farm_id = farm_id
+
+    def set_workload_id(self, workload_id):
+        self.workload_id = workload_id
+
+    def set_cru_cost(self, CRU_COST):
+        self.CRU_COST = CRU_COST
+
+    def set_sru_cost(self, SRU_COST):
+        self.SRU_COST = SRU_COST
+
+    def set_hru_cost(self, HRU_COST):
+        self.HRU_COST = HRU_COST
+
+    def set_mru_cost(self, MRU_COST):
+        self.MRU_COST = MRU_COST
+
+    def set_total_cost(self, TOTAL_COST):
+        self.TOTAL_COST = TOTAL_COST
+
     def __str__(self):
-        return f"Total of resourceunits for node: {self.node_id} \n SRU: {self.SRU} \n CRU: {self.CRU} \n MRU: {self.MRU} \n HRU: {self.HRU}"
+        representation = f"Total of resourceunits for node: {self.node_id} \n SRU: {self.SRU} \n CRU: {self.CRU} \n MRU: {self.MRU} \n HRU: {self.HRU} \n"
+
+        if self.SRU_COST > 0:
+            representation += f"Total SRU cost: {self.SRU_COST} \n"
+        if self.CRU_COST > 0:
+            representation += f"Total CRU cost: {self.CRU_COST} \n"
+        if self.HRU_COST > 0:
+            representation += f"Total HRU cost: {self.HRU_COST} \n"
+        if self.MRU_COST > 0:
+            representation += f"Total MRU cost: {self.MRU_COST} \n"
+
+        return representation
 
     def __repr__(self):
         return str(self)
-
