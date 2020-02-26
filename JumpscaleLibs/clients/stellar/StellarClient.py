@@ -92,9 +92,7 @@ class StellarClient(JSConfigClient):
         tx_hash = txe.hash()
         unlock_hash = strkey.StrKey.encode_pre_auth_tx(tx_hash)
 
-        self._unlock_service_client.create_unlockhash_transaction(
-            unlock_hash=unlock_hash, transaction_xdr=txe.to_xdr()
-        )
+        self._unlock_service_client.create_unlockhash_transaction(unlock_hash=unlock_hash, transaction_xdr=txe.to_xdr())
 
     def _get_horizon_server(self):
         return Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
@@ -319,6 +317,7 @@ class StellarClient(JSConfigClient):
         :param text_memo: optional memo text to add to the transaction, a string encoded using either ASCII or UTF-8, up to 28-bytes long
         :type: Union[str, bytes]
         """
+        issuer = None
         self._log_info("Sending {} {} to {}".format(amount, asset, destination_address))
         if asset != "XLM":
             assetStr = asset.split(":")
@@ -357,7 +356,6 @@ class StellarClient(JSConfigClient):
             self._log_info("Transaction hash: {}".format(tx_hash))
             return tx_hash
         except BadRequestError as e:
-            self._log_debug(e)
             raise e
 
     def list_transactions(self, address=None):
@@ -500,4 +498,132 @@ class StellarClient(JSConfigClient):
             "Set the signers of {address} to {pk_signer} and {preauth_hash_signer}".format(
                 address=address, pk_signer=public_key_signer, preauth_hash_signer=preauth_tx_hash
             )
+        )
+
+    def set_signature_count(self, public_keys_signers, signature_count, low_treshold=1, high_treshold=2):
+        """set_signature_count sets to amount of signatures required for the creation of multisig account. It also adds
+        the public keys of the signer to this account
+        :param public_keys_signers: list of public keys of signers.
+        :type public_keys_signers: list
+        :param signature_count: amount of signatures requires to transfer funds.
+        :type signature_count: str
+        :param low_treshold: amount of signatures required for low security operations (transaction processing, allow trust, bump sequence)
+        :type low_treshold: str
+        :param high_treshold: amount of signatures required for high security operations (set options, account merge)
+        :type: str
+        """
+        if len(public_keys_signers) != signature_count - 1:
+            raise Exception(
+                "Number of public_keys must be 1 less than the signature count in order to set the signature count"
+            )
+
+        # For every public key given, add it as a signer to this account
+        for public_key_signer in public_keys_signers:
+            self._add_signer(public_key_signer)
+
+        server = self._get_horizon_server()
+        account = server.load_account(self.address)
+        tx = (
+            TransactionBuilder(account)
+            .append_set_options_op(
+                low_threshold=low_treshold, med_threshold=signature_count, high_threshold=high_treshold
+            )
+            .set_timeout(30)
+            .build()
+        )
+
+        source_keypair = Keypair.from_secret(self.secret)
+
+        tx.sign(source_keypair)
+        response = server.submit_transaction(tx)
+        self._log_info(response)
+        self._log_info(
+            "Set the signers of {address} to require {signature_count} signers".format(
+                address=self.address, signature_count=signature_count
+            )
+        )
+
+    def create_multisig_transaction(self, destination_address, amount, asset="XLM", memo_text=None):
+        """create_multisig_transaction creates a multisig transaction and signs it with the source keypair
+        :param destination_address: address of the destination.
+        :type destination_address: str
+        :param amount: amount, can be a floating point number with 7 numbers after the decimal point expressed as a string.
+        :type amount: str
+        :param asset: asset to transfer (if none is specified the default 'XLM' is used),
+        if you wish to specify an asset it should be in format 'assetcode:issuer'. Where issuer is the address of the
+        issuer of the asset.
+        :type asset: str
+        :param text_memo: optional memo text to add to the transaction, a string encoded using either ASCII or UTF-8, up to 28-bytes long
+        :type: Union[str, bytes]
+        """
+        issuer = None
+        self._log_info("Sending {} {} to {}".format(amount, asset, destination_address))
+        if asset != "XLM":
+            assetStr = asset.split(":")
+            if len(assetStr) != 2:
+                raise Exception("Wrong asset format")
+            asset = assetStr[0]
+            issuer = assetStr[1]
+
+        server = self._get_horizon_server()
+        source_keypair = Keypair.from_secret(self.secret)
+        source_public_key = source_keypair.public_key
+        source_account = server.load_account(source_public_key)
+
+        base_fee = server.fetch_base_fee()
+
+        transaction_builder = TransactionBuilder(
+            source_account=source_account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee
+        )
+        transaction_builder.append_payment_op(
+            destination=destination_address, amount=str(amount), asset_code=asset, asset_issuer=issuer
+        )
+        transaction_builder.set_timeout(30)
+        if memo_text is not None:
+            transaction_builder.add_text_memo(memo_text)
+
+        transaction = transaction_builder.build()
+
+        transaction.sign(source_keypair)
+
+        return transaction.to_xdr()
+
+    def sign_multisig_transaction(self, tx_xdr):
+        """sign_multisig_transaction signs a transaction xdr and tries to submit it to the network
+        if it fails it returns the signed transaction xdr
+
+        :param tx_xdr: transaction to sign in xdr format.
+        :type tx_xdr: str
+        """
+        server = self._get_horizon_server()
+        source_keypair = Keypair.from_secret(self.secret)
+        tx = TransactionEnvelope.from_xdr(tx_xdr, _NETWORK_PASSPHRASES[str(self.network)])
+        tx.sign(source_keypair)
+
+        try:
+            response = server.submit_transaction(tx)
+            self._log_info(response)
+            self._log_info("Multisig tx signed and sent")
+        except BadRequestError as e:
+            raise e
+            self._log_info("Transaction need additional signatures in order to send")
+            return tx.to_xdr()
+
+    def _add_signer(self, public_key_signer):
+        """_add_signer adds a public key as a signer to the source account
+
+        :param public_key_signer: public key of an account
+        :type public_key_signer: str
+        """
+        server = self._get_horizon_server()
+        account = server.load_account(self.address)
+        tx = TransactionBuilder(account).append_ed25519_public_key_signer(public_key_signer, 1).build()
+
+        source_keypair = Keypair.from_secret(self.secret)
+
+        tx.sign(source_keypair)
+        response = server.submit_transaction(tx)
+        self._log_info(response)
+        self._log_info(
+            "Added {pk_signer} as signer to address {address}".format(address=self.address, pk_signer=public_key_signer)
         )
