@@ -407,6 +407,10 @@ class TFGateway(j.baseclasses.object):
         service["Value"] = b64_record
         self.redisclient.set(service["Key"], j.data.serializers.json.dumps(service))
 
+    def tcpservice_unregister(self, domain):
+        key = "/tcprouter/service/{}".format(domain)
+        self.redisclient.delete(key)
+
     def create_tcprouter_service_client(
         self, name=None, local_ip="127.0.0.1", local_port=80, remote_url=None, remote_port=18000, secret=None
     ):
