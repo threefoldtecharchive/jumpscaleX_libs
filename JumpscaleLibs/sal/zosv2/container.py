@@ -74,7 +74,7 @@ class ContainerGenerator:
         net.network_id = network_name
         net.ipaddress = ip_address
 
-        cap = cont.capacity.cpu = cpu
-        cap = cont.capacity.memory = memory
+        cont.capacity.cpu = cpu
+        cont.capacity.memory = memory
 
         return cont

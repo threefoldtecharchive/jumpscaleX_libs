@@ -26,7 +26,7 @@ class VolumesGenerator:
         volume.node_id = node_id
         return volume
 
-    def attach(self, reservation, container, volume, mount_point):
+    def attach(self, reservation, container, volume, volume_id, mount_point):
         """
         container : container object from create_container function
         volume: Volume object that get from add_volume function
@@ -36,5 +36,5 @@ class VolumesGenerator:
         # here we reference the volume created in the same reservation
         vol.workload_id = _next_workload_id(reservation)
         # TODO: need to check if it's a volume in this reservation or an already existing one
-        vol.volume_id = f"-{volume.workload_id}"
+        vol.volume_id = f"{volume_id}-{volume.workload_id}"
         vol.mountpoint = mount_point
