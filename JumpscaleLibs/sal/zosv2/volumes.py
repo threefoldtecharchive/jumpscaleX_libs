@@ -1,4 +1,6 @@
 from .id import _next_workload_id
+
+
 class VolumesGenerator:
     def create(self, reservation, node_id, volume_size=5, volume_type="SSD"):
         """
