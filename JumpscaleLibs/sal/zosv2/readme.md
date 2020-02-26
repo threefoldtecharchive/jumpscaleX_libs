@@ -82,7 +82,7 @@ master = zos.kubernetes.add_master(
     cluster_secret=cluster_secret,
     ip_address='172.24.1.20',
     size=size,
-    sshkeys=sshkeys)
+    ssh_keys=sshkeys)
 
 
 worker = zos.kubernetes.add_worker(
@@ -93,7 +93,7 @@ worker = zos.kubernetes.add_worker(
     ip_address='172.24.2.20',
     size=size,
     master_ip=master.ipaddress,
-    sshkeys=sshkeys)
+    ssh_keys=sshkeys)
 
 expiration = j.data.time.epoch + (3600 * 24 * 365)
 # register the reservation

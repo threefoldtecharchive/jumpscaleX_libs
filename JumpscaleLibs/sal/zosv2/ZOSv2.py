@@ -8,6 +8,7 @@ from .network import NetworkGenerator
 from .node_finder import NodeFinder
 from .volumes import VolumesGenerator
 from .zdb import ZDBGenerator
+from .resource import ResourceParser
 
 
 class Zosv2(j.baseclasses.object):
@@ -46,6 +47,18 @@ class Zosv2(j.baseclasses.object):
     @property
     def nodes_finder(self):
         return self._nodes_finder
+
+    def reservation_resources(self, reservation):
+        """
+        compute how much resource units is reserved in the reservation
+        
+        :param reservation: reservation object
+        :type reservation: tfgrid.workloads.reservation.1
+        :return: list of ResourceUnitsNode object
+        :rtype: list
+        """
+        rp = ResourceParser(self._explorer, reservation)
+        return rp.calculate_used_resources()
 
     def reservation_create(self):
         """
