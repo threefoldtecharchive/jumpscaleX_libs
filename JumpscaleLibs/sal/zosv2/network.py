@@ -111,7 +111,7 @@ class NetworkGenerator:
         if not node_id:
             raise j.exceptions.Input("node_id cannot be none or empty")
 
-        node = self._actor_nodes.get(node_id)
+        node = self._actor_directory.nodes.get(node_id)
 
         if netaddr.IPNetwork(ip_range).prefixlen != 24:
             raise j.exceptions.Input("ip_range should have a netmask of /24, not /%d", ip_range.prefixlen)
