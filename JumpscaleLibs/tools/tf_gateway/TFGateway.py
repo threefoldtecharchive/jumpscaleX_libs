@@ -80,7 +80,7 @@ class TFGateway(j.baseclasses.object):
         self.redisclient.hset(prefix + domain, name, j.data.serializers.json.dumps(data))
 
     def domain_list(self, prefix=DNS_PREFIX):
-        domains = [domain_name[len(prefix):] for domain_name in self.redisclient.keys(DNS_PREFIX + "*.")]
+        domains = [domain_name[len(prefix):] for domain_name in self.redisclient.keys(prefix + "*.")]
         return domains
 
     def domain_exists(self, domain, prefix=DNS_PREFIX):
@@ -419,6 +419,11 @@ class TFGateway(j.baseclasses.object):
         service_record_dict = j.data.serializers.json.loads(service_record)
         service_data_decoded_str = j.data.serializers.base64.decode(service_record_dict["Value"].encode()).decode()
         return j.data.serializers.json.loads(service_data_decoded_str)
+
+    def tcpservice_list(self):
+        prefix = "/tcprouter/service/"
+        services = [domain_name[len(prefix):] for domain_name in self.redisclient.keys(prefix + "*")]
+        return services
 
     def tcpservice_unregister(self, domain):
         key = "/tcprouter/service/{}".format(domain)
