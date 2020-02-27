@@ -104,7 +104,8 @@ class Zosv2(j.baseclasses.object):
         reservation.customer_tid = me.tid
 
         if expiration_provisioning is None:
-            expiration_provisioning = j.data.time.epoch + (60 * 10)  # 10 minutes
+            expiration_provisioning = j.data.time.epoch + (3600 * 24 * 365)
+            
         reservation.data_reservation.expiration_provisioning = expiration_provisioning
         reservation.data_reservation.expiration_reservation = expiration_date
 

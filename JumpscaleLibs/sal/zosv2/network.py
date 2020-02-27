@@ -338,7 +338,7 @@ def wg_routing_ip(ip_range):
 
 
 def _find_free_wg_port(node):
-    ports = set(list(range(6000, 9000)))
+    ports = set(list(range(1000, 9000)))
     used = set(node.wg_ports)
     free = ports - used
     return free.pop()
