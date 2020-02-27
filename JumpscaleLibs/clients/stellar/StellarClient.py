@@ -535,13 +535,17 @@ class StellarClient(JSConfigClient):
         source_keypair = Keypair.from_secret(self.secret)
 
         tx.sign(source_keypair)
-        response = server.submit_transaction(tx)
-        self._log_info(response)
-        self._log_info(
-            "Set the signers of {address} to require {signature_count} signers".format(
-                address=self.address, signature_count=signature_count
+        try:
+            response = server.submit_transaction(tx)
+            self._log_info(response)
+            self._log_info(
+                "Set the signers of {address} to require {signature_count} signers".format(
+                    address=self.address, signature_count=signature_count
+                )
             )
-        )
+        except BadRequestError:
+            self._log_info("Transaction need additional signatures in order to send")
+            return tx.to_xdr()
 
     def create_multisig_transaction(self, destination_address, amount, asset="XLM", memo_text=None):
         """create_multisig_transaction creates a multisig transaction and signs it with the source keypair
@@ -604,8 +608,7 @@ class StellarClient(JSConfigClient):
             response = server.submit_transaction(tx)
             self._log_info(response)
             self._log_info("Multisig tx signed and sent")
-        except BadRequestError as e:
-            raise e
+        except BadRequestError:
             self._log_info("Transaction need additional signatures in order to send")
             return tx.to_xdr()
 
@@ -627,3 +630,24 @@ class StellarClient(JSConfigClient):
         self._log_info(
             "Added {pk_signer} as signer to address {address}".format(address=self.address, pk_signer=public_key_signer)
         )
+
+    def remove_signer(self, public_key_signer):
+        """remove_signer removes a public key as a signer from the source account
+
+        :param public_key_signer: public key of an account
+        :type public_key_signer: str
+        """
+        server = self._get_horizon_server()
+        account = server.load_account(self.address)
+        tx = TransactionBuilder(account).append_ed25519_public_key_signer(public_key_signer, 0).build()
+
+        source_keypair = Keypair.from_secret(self.secret)
+
+        tx.sign(source_keypair)
+        try:
+            response = server.submit_transaction(tx)
+            self._log_info(response)
+            self._log_info("Multisig tx signed and sent")
+        except BadRequestError:
+            self._log_info("Transaction need additional signatures in order to send")
+            return tx.to_xdr()

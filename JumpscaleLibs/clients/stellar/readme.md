@@ -118,3 +118,35 @@ j.clients.stellar.testwallet.get_transaction_effects('9c6888ea3d461aff4605246e9e
 ```
 
 As with `list_transactions`, an optional address can be supllied if the wanted transaction effects are not for the current wallet address.
+
+## Multisignature Transactions
+
+First convert your account to a multisignature account:
+
+In this example we create a multisignature account with 1 other wallet with 2 signatures that are needed in order to transfer funds.
+
+```python
+
+JSX> j.clients.stellar.my_wallet.set_signature_count([otherwallet.address], 2)
+
+# create a multisig transaction to transfer funds to a destination.
+JSX> tx_xdr = j.clients.stellar.my_wallet.create_multisig_transaction(destination_address, "5")
+
+# second signer to the multisig account needs to sign this transaction xdr in order to submit the transaction to the Stellar network.
+# in case there are more than 2 signers the ouput of this function also needs to be signed by the other signers of the multisignature account.
+JSX> j.clients.stellar.other_wallet.sign_multisig_transaction(tx_xdr)
+```
+
+If you need to remove a signer from a multisignature account:
+
+```python
+
+JSX> tx = j.clients.stellar.my_wallet.set_signature_count([], 1)
+
+# second signer to the multisig account needs to sign this transaction xdr in order to submit the transaction to the Stellar network.
+# in case there are more than 2 signers the ouput of this function also needs to be signed by the other signers of the multisignature account.
+JSX> j.clients.stellar.other_wallet.sign_multisig_transaction(tx_xdr)
+
+# last step is to remove the signer from the account
+JSX> j.clients.stellar.my_wallet.remove_signer(other_wallet.address)
+```
