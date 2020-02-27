@@ -410,6 +410,16 @@ class TFGateway(j.baseclasses.object):
         service["Value"] = b64_record
         self.redisclient.set(service["Key"], j.data.serializers.json.dumps(service))
 
+    def tcpservice_dump(self, domain):
+        service_key = "/tcprouter/service/{}".format(domain)
+        service_record = self.redisclient.get(service_key)
+        if not service_record:
+            # service doesn't exist
+            return {}
+        service_record_dict = j.data.serializers.json.loads(service_record)
+        service_data_decoded_str = j.data.serializers.base64.decode(service_record_dict["Value"].encode()).decode()
+        return j.data.serializers.json.loads(service_data_decoded_str)
+
     def tcpservice_unregister(self, domain):
         key = "/tcprouter/service/{}".format(domain)
         self.redisclient.delete(key)
