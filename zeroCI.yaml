@@ -3,7 +3,7 @@ prequisties:
 
 install:
   - apt-get update
-  - pip3 install click loguru parameterized xmltodict imbox logbook
+  - pip3 install click loguru parameterized xmltodict imbox logbook nltk imapclient
   - eval `ssh-agent -s`; ssh-add
   - rm -rf /sandbox/code/github/threefoldtech/*
   - cd /sandbox/code/github/threefoldtech/
