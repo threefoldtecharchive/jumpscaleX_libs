@@ -24,7 +24,10 @@ RAND = randint(1, 1000)
 NAME = "DigitalOcean_{}".format(RAND)
 DO_CLIENT = j.clients.digitalocean.get(name=NAME, token_=token)
 
+skip = j.baseclasses.testtools._skip
 
+
+@skip("https://github.com/threefoldtech/zeroCI/issues/30, This test can be run manually")
 def before_all():
     info("setUp!")
     info("create DigitalOcean client")
