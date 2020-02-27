@@ -1,9 +1,11 @@
 from Jumpscale import j
+from decimal import Decimal
 
 
 class ResourceParser:
     def __init__(self, explorer, reservation):
         self._actor_directory = explorer.actors_get("tfgrid.directory")
+        self._actor_workloads = explorer.actors_get("tfgrid.workloads")
         self._reservation = reservation
 
     def calculate_used_resources(self):
@@ -16,20 +18,24 @@ class ResourceParser:
                 print(workload)
                 if _type == "container":
                     for container in workload:
-                        resource_units + self._process_container(container)
-                        resource_units.set_workload_id(container.workload_id)
+                        ru = self._process_container(container)
+                        ru.set_workload_id(container.workload_id)
+                        resource_units + ru
                 elif _type == "zdb":
                     for zdb in workload:
-                        resource_units + self._process_zdb(zdb)
-                        resource_units.set_workload_id(zdb.workload_id)
+                        ru = self._process_zdb(zdb)
+                        ru.set_workload_id(zdb.workload_id)
+                        resource_units + ru
                 elif _type == "kubernetes":
                     for k8s in workload:
-                        resource_units + self._process_kubernetes(k8s)
-                        resource_units.set_workload_id(k8s.workload_id)
+                        ru = self._process_kubernetes(k8s)
+                        ru.set_workload_id(k8s.workload_id)
+                        resource_units + ru
                 elif _type == "volume":
                     for volume in workload:
-                        resource_units + self._process_volume(volume)
-                        resource_units.set_workload_id(volume.workload_id)
+                        ru = self._process_volume(volume)
+                        ru.set_workload_id(volume.workload_id)
+                        resource_units + ru
 
             resource_units_per_node.append(resource_units)
 
@@ -72,15 +78,55 @@ class ResourceParser:
         tfchain_wallet = tfchain_client.wallets.get("main")
         transactions = []
         for resource_unit_node in resource_units_per_node:
+            resource_unit_node.workload_id.sort()
+            workload_ids = [str(wid) for wid in resource_unit_node.workload_id()]
+            msg = "-".join(workloads_ids)
+            msg = "{}-{}".format(reservation_id, msg)
             (txn, submitted) = tfchain_wallet.coins_send(
-                recipient=resource_unit_node.farm_wallet,
-                amount=str(resource_unit_node.TOTAL_COST),
-                data=f"{resource_unit_node.workload_id}-{reservation_id}",
+                recipient=resource_unit_node.farm_wallet, amount=str(resource_unit_node.TOTAL_COST), data=msg,
             )
             if submitted:
                 transactions.append(txn)
                 continue
         return transactions
+
+    def validate_reservation_payment(self, reservation_id):
+        me_tid = j.tools.threebot.me.default.tid
+        # load all farms belonging to our threebot id
+        farms = self._actor_directory.farms.owned_by(me_tid).farms
+        farm_ids = set()
+        for farm in farms:
+            farm_ids.add(farm.id)
+        # load reservation and parse resource units
+        resource_units_per_node = self.calculate_used_resources_cost()
+        # tuple of the message and amount expected in a tx
+        expected_txes = set()
+        for resource_unit_node in resource_units_per_node:
+            if resource_unit_node.farm_id in farm_ids:
+                resource_unit_node.workload_id.sort()
+                workload_ids = [str(wid) for wid in resource_unit_node.workload_id()]
+                msg = "-".join(workloads_ids)
+                msg = "{}-{}".format(reservation_id, msg)
+                amount = str(resource_unit_node.TOTAL_COST)
+                expected_txes.add((msg, amount))
+        # load the transactions in our wallet, for every workload in one of the owned farms, whe need a trandaction
+        # with the right amount of tft
+        tfchain_client = j.clients.tfchain.get("tfchain")
+        tfchain_wallet = tfchain_client.wallets.get("main")
+        for tx in tfchain_wallet.transactions:
+            value = 0
+            for co in tx.coin_outputs:
+                if co.condition.unlockhash in tfchain_wallet.addresses:
+                    value += int(co.value.str())
+            for (msg, amount) in expected_txes:
+                if msg == tx.data.value.decode():
+                    # verify amount
+                    if amount == str(value):
+                        # good tx, remove from expected set
+                        expected_txes.remove((msg, amount))
+        # verification is now done, if teh expected tx set is empty, it means
+        # all required txes have been created and processed.
+        return len(c) == 0
 
     def _iterate_over_workloads(self):
         for _type in ["zdbs", "volumes", "containers", "networks"]:
@@ -139,7 +185,7 @@ class ResourceUnitsNode:
         self.node_id = node_id
         self.farm_id = None
         self.farm_wallet = None
-        self.workload_id = None
+        self.workload_id = []
         self.SRU = SRU
         self.HRU = HRU
         self.MRU = MRU
@@ -155,6 +201,8 @@ class ResourceUnitsNode:
         self.HRU += other.HRU
         self.MRU += other.MRU
         self.SRU += other.SRU
+        if other.workload_id is not None and other.workload_id not in self.workload_id:
+            self.workload_id.append(other.workload_id)
 
     def set_farm_wallet(self, farm_wallet):
         self.farm_wallet = farm_wallet
@@ -163,7 +211,7 @@ class ResourceUnitsNode:
         self.farm_id = farm_id
 
     def set_workload_id(self, workload_id):
-        self.workload_id = workload_id
+        self.workload_id = [workload_id]
 
     def set_cru_cost(self, CRU_COST):
         self.CRU_COST = CRU_COST

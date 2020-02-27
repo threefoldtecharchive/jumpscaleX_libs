@@ -88,6 +88,19 @@ class Zosv2(j.baseclasses.object):
         rp = ResourceParser(self._explorer, reservation)
         return rp.payout_farmers(resource_units_per_node, reservation_id)
 
+    def verify_payments(self, reservation_id):
+        """
+        verify that a reservation with a given ID has been paid for, for all farms belonging to the current user 3bot
+
+        :param reservation_id: the id of the reservation to verify
+        :type reservation_id: int
+        :return: if the reservation has been fully funded for the farms owned by the current user 3bot
+        :rtype: bool
+        """
+        reservation = self._actor_workloads.workload_manager.reservation_get(reservation_id)
+        rp = ResourceParser(self._explorer, reservation)
+        return rp.validate_reservation_payment(reservation_id)
+
     def reservation_create(self):
         """
         creates a new empty reservation schema
@@ -105,7 +118,7 @@ class Zosv2(j.baseclasses.object):
 
         if expiration_provisioning is None:
             expiration_provisioning = j.data.time.epoch + (3600 * 24 * 365)
-            
+
         reservation.data_reservation.expiration_provisioning = expiration_provisioning
         reservation.data_reservation.expiration_reservation = expiration_date
 
