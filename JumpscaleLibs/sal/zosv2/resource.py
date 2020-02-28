@@ -1,5 +1,5 @@
 from Jumpscale import j
-from decimal import Decimal
+from decimal import Decimal, getcontext
 
 
 class ResourceParser:
@@ -15,7 +15,6 @@ class ResourceParser:
         for node_id, workloads in workloads_per_nodes.items():
             resource_units = ResourceUnitsNode(node_id=node_id)
             for _type, workload in workloads.items():
-                print(workload)
                 if _type == "container":
                     for container in workload:
                         ru = self._process_container(container)
@@ -79,8 +78,8 @@ class ResourceParser:
         transactions = []
         for resource_unit_node in resource_units_per_node:
             resource_unit_node.workload_id.sort()
-            workload_ids = [str(wid) for wid in resource_unit_node.workload_id()]
-            msg = "-".join(workloads_ids)
+            workload_ids = [str(wid) for wid in resource_unit_node.workload_id]
+            msg = "-".join(workload_ids)
             msg = "{}-{}".format(reservation_id, msg)
             (txn, submitted) = tfchain_wallet.coins_send(
                 recipient=resource_unit_node.farm_wallet, amount=str(resource_unit_node.TOTAL_COST), data=msg,
@@ -91,6 +90,7 @@ class ResourceParser:
         return transactions
 
     def validate_reservation_payment(self, reservation_id):
+        getcontext().prec = 9
         me_tid = j.tools.threebot.me.default.tid
         # load all farms belonging to our threebot id
         farms = self._actor_directory.farms.owned_by(me_tid).farms
@@ -104,20 +104,20 @@ class ResourceParser:
         for resource_unit_node in resource_units_per_node:
             if resource_unit_node.farm_id in farm_ids:
                 resource_unit_node.workload_id.sort()
-                workload_ids = [str(wid) for wid in resource_unit_node.workload_id()]
-                msg = "-".join(workloads_ids)
+                workload_ids = [str(wid) for wid in resource_unit_node.workload_id]
+                msg = "-".join(workload_ids)
                 msg = "{}-{}".format(reservation_id, msg)
-                amount = str(resource_unit_node.TOTAL_COST)
+                amount = Decimal(resource_unit_node.TOTAL_COST)
                 expected_txes.add((msg, amount))
         # load the transactions in our wallet, for every workload in one of the owned farms, whe need a trandaction
         # with the right amount of tft
         tfchain_client = j.clients.tfchain.get("tfchain")
         tfchain_wallet = tfchain_client.wallets.get("main")
         for tx in tfchain_wallet.transactions:
-            value = 0
+            value = Decimal(0)
             for co in tx.coin_outputs:
                 if co.condition.unlockhash in tfchain_wallet.addresses:
-                    value += int(co.value.str())
+                    value += co.value.value
             for (msg, amount) in expected_txes:
                 if msg == tx.data.value.decode():
                     # verify amount
@@ -126,7 +126,7 @@ class ResourceParser:
                         expected_txes.remove((msg, amount))
         # verification is now done, if teh expected tx set is empty, it means
         # all required txes have been created and processed.
-        return len(c) == 0
+        return len(expected_txes) == 0
 
     def _iterate_over_workloads(self):
         for _type in ["zdbs", "volumes", "containers", "networks"]:
@@ -202,7 +202,7 @@ class ResourceUnitsNode:
         self.MRU += other.MRU
         self.SRU += other.SRU
         if other.workload_id is not None and other.workload_id not in self.workload_id:
-            self.workload_id.append(other.workload_id)
+            self.workload_id.extend(other.workload_id)
 
     def set_farm_wallet(self, farm_wallet):
         self.farm_wallet = farm_wallet
