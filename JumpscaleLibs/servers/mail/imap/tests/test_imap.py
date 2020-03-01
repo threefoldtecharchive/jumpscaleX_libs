@@ -1,8 +1,16 @@
 from Jumpscale import j
 from smtplib import SMTP
-from imbox import Imbox
+try:
+    from imbox import Imbox
+except ImportError:
+    j.builders.runtimes.python3.pip_package_install("imbox", reset=True)
+    from imbox import Imbox
 import unittest
-from imapclient import IMAPClient
+try:
+    from imapclient import IMAPClient
+except ImportError:
+    j.builders.runtimes.python3.pip_package_install("imapclient", reset=True)
+    from imbox import Imbox
 from time import sleep
 
 skip = j.baseclasses.testtools._skip
