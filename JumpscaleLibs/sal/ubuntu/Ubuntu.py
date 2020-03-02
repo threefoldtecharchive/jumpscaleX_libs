@@ -3,6 +3,8 @@ from Jumpscale import j
 JSBASE = j.baseclasses.object
 TESTTOOLS = j.baseclasses.testtools
 
+skip = j.baseclasses.testtools._skip
+
 
 class Ubuntu(JSBASE, j.baseclasses.testtools):
     __jslocation__ = "j.sal.ubuntu"
@@ -493,6 +495,7 @@ exec {demonpath} {args} >> {logdir}/{servicename}.log 2>&1
             cmd = "ssh-keygen -t %s -b 4096 -P '%s' -f %s" % (ssh_type, passphrase, path)
             j.sal.process.execute(cmd)
 
+    @skip("https://github.com/threefoldtech/0-hub/issues/34")
     def test(self, name=""):
         """Run tests under tests
 

@@ -14,18 +14,24 @@ def os_command(command):
 
 
 project_name = ""
-try:
-    token = os.environ['DO_TOKEN']
-    ssh_key = os.environ['DO_SSHKEY']
-except KeyError:
-    raise Exception('You need to set Digital ocean token and ssh_key name as an environmental variables')
+token = ""
+ssh_key = ""
 
 RAND = randint(1, 1000)
 NAME = "DigitalOcean_{}".format(RAND)
 DO_CLIENT = j.clients.digitalocean.get(name=NAME, token_=token)
 
+skip = j.baseclasses.testtools._skip
 
+
+@skip("https://github.com/threefoldtech/zeroCI/issues/30, This test can be run manually")
 def before_all():
+    try:
+        global token, ssh_key
+        token = os.environ["DO_TOKEN"]
+        ssh_key = os.environ["DO_SSHKEY"]
+    except KeyError:
+        raise Exception("You need to set Digital ocean token and ssh_key name as an environmental variables")
     info("setUp!")
     info("create DigitalOcean client")
     info("create a DigitalOcean project")
@@ -588,4 +594,3 @@ def test020_region_get_with_exist_name():
     assert region
     info("the region name equal to 'Amsterdam 3'")
     assert "Amsterdam 3" == region.name
-
