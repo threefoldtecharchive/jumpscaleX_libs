@@ -22,7 +22,7 @@ class Sheet(j.baseclasses.object):
             self.headers = headers
             self.nrcols = len(self.headers)
 
-        self.rows = {}
+        self.rows = j.baseclasses.dict()
         self.rowNames = []
 
     # def _obj2dict(self):
@@ -43,11 +43,34 @@ class Sheet(j.baseclasses.object):
             row = j.tools.code.dict2object(Row(), item)
             self.rows[row.name] = row
 
+    def copy(self, name, row, ttype=None, aggregate=None, description="", defval=None, empty=False):
+        if not ttype:
+            ttype = row.ttype
+
+        if not aggregate:
+            aggregate = row.aggregate_type
+
+        row = self.addRow(
+            name=name,
+            ttype=ttype,
+            aggregate=aggregate,
+            groupname=row.groupname,
+            description=description,
+            groupdescr=row.groupdescr,
+            nrcols=row.nrcols,
+            values=row.cells,
+        )
+
+        if empty:
+            row.empty()
+
+        return row
+
     def addRow(
         self,
         name,
         ttype="float",
-        aggregate="T",
+        aggregate="SUM",
         description="",
         groupname="",
         groupdescr="",
@@ -56,6 +79,7 @@ class Sheet(j.baseclasses.object):
         values=[],
         defval=None,
         nrfloat=None,
+        empty=False,
     ):
         """
         @param ttype int,perc,float,empty,str
@@ -66,7 +90,7 @@ class Sheet(j.baseclasses.object):
         """
         if nrcols is None:
             nrcols = self.nrcols
-        if ttype == "float" and nrfloat is None:
+        if (ttype == "float" or isinstance(ttype, j.data.types._float)) and nrfloat is None:
             nrfloat = 2
         row = Row(
             name=name,
@@ -78,12 +102,16 @@ class Sheet(j.baseclasses.object):
             groupdescr=groupdescr,
             defval=defval,
             nrfloat=nrfloat,
+            sheet=self,
         )
         self.rows[name] = row
         self.rowNames.append(name)
         if values != []:
             for x in range(nrcols):
                 self.setCell(name, x, values[x])
+            row.clean()
+        if empty:
+            row.empty()
         return self.rows[name]
 
     # def renting(self,row,interest,nrmonths):

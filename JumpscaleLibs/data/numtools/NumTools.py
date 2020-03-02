@@ -317,4 +317,4 @@ class NumTools(j.baseclasses.object, TESTTOOLS):
         assert len(bbin2) == 21
         llist3 = self.bin_to_listint(bbin2)
         assert llist3 == llist2
-        self._tests_run(name=name)
+        self._tests_run(name=name, die=True)

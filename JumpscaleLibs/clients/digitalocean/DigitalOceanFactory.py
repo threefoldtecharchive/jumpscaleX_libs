@@ -87,4 +87,4 @@ class DigitalOceanFactory(j.baseclasses.object_config_collection_testtools, j.ba
         self._log_info(droplet.ip_address)
 
     def test_DO_client(self, name=""):
-        self._tests_run(name=name)
+        self._tests_run(name=name, die=True)

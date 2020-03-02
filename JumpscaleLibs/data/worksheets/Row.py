@@ -14,6 +14,7 @@ class Row(j.baseclasses.object):
         groupdescr="",
         defval=None,
         nrfloat=None,
+        sheet=None,
         **kwargs,
     ):
         """
@@ -25,12 +26,14 @@ class Row(j.baseclasses.object):
             ttype = "float"
         self.ttype = j.data.types.get(ttype, default=defval)
 
-        if defval:
-            self.defval = self.clean_val(defval)
+        if defval != None:
+            self.defval = self._clean_val(defval)
         else:
             self.defval = None
 
         self.nrcols = nrcols
+        self.sheet = sheet
+        assert sheet
 
         self.empty()
 
@@ -41,6 +44,8 @@ class Row(j.baseclasses.object):
         self.nrfloat = nrfloat
         if aggregate not in ["MAX", "MIN", "LAST", "FIRST", "AVG", "SUM"]:
             raise j.exceptions.RuntimeError("Cannot find action:%s for agreggate" % self.aggregate_type)
+        self.window_month_start = 0
+        self.window_month_period = 60
 
     def default_values_set(self, defval=None, stop=None):
         if defval is None:
@@ -86,19 +91,14 @@ class Row(j.baseclasses.object):
             self.cells[colid] = self._clean_val(self.cells[colid])
         return self
 
-    def copy(self, name, empty=False, ttype=None, defval=None):
-        row = copy.copy(self)
-        row.name = name
-        row.description = ""
-        if ttype:
-            row.ttype = j.data.types.get(ttype, default=defval)
-            row.clean()
-        if empty:
-            row.empty()
+    def copy(self, name, empty=False, ttype=None, defval=None, aggregate=None, description=""):
+        row = self.sheet.copy(
+            name, row=self, ttype=ttype, aggregate=aggregate, description=description, empty=empty, defval=None
+        )
         return row
 
     def empty(self):
-        if self.defval:
+        if self.defval != None:
             self.cells = [self.defval for item in range(self.nrcols)]
         else:
             self.cells = [None for item in range(self.nrcols)]
@@ -143,8 +143,9 @@ class Row(j.baseclasses.object):
 
         # monthAttributes=[item.name for item in self.months[1].JSModel_MODEL_INFO.attributes]
         if period == "Y":
-            result = [0.0 for item in range(6)]
-            for year in range(1, 7):
+            result = [0.0 for item in range(7)]
+            # j.debug()
+            for year in range(1, 8):
                 months = [12 * (year - 1) + i for i in range(12)]
                 # name=self._getYearStringFromYearNr(year)
                 result[year - 1] = calc(months)
@@ -504,6 +505,33 @@ class Row(j.baseclasses.object):
             if self.cells[colid] > 0:
                 self.cells[colid] = -self.cells[colid]
 
+    @property
+    def values(self):
+        start = self.window_month_start
+        nr = self.window_month_period
+        self.clean()
+        i = self.cells[start : start + nr]
+        return self._clean(i)
+
+    def _clean(self, i):
+        # remove 0 values
+        res = []
+        for val in i:
+            if val == 0:
+                res.append(None)
+            else:
+                res.append(val)
+        return res
+
+    @property
+    def values_all(self):
+        self.clean()
+        return self._clean(self.cells)
+
+    @property
+    def values_inverted(self):
+        return [-i for i in self.values]
+
     def modify_invert(self):
         """
         invert + becomes - and reverse
@@ -565,7 +593,8 @@ class Row(j.baseclasses.object):
             raise j.exceptions.Input("nr cols of 2 rows need to be the same\n%s\n%s"(self, other))
         other.clean()
         self.clean()
-        r = self.copy(name="changme", empty=True)
+        r = self.copy(name="changeme", empty=True)
+        self.sheet.rows.pop("changeme")  # should not be remembered on sheet level
         return r
 
     def accumulate(self, name):
