@@ -13,7 +13,10 @@ j.sal.ubuntu._test(name='ubuntu')
 """
 
 j.sal.process.execute("apt update -y")
-j.sal.process.execute("apt-get install -y python3-distutils-extra python3-dbus python3-apt")
+try:
+    j.sal.process.execute("apt-get install -y python3-distutils-extra python3-dbus python3-apt")
+except:
+    j.sal.process.execute("apt-get install -y python3-dbus python3-apt")
 
 LOGGER = logger
 LOGGER.add("Config_manager_{time}.log")
