@@ -10,6 +10,7 @@ class NodePacketNet(NodeBaseClass):
         state = "init,running,error,ok"
         packetnetkey = ""
         packetnetproject = ""
+        mother_id** = 0 (I)
         """
 
     def _init(self, **kwargs):
