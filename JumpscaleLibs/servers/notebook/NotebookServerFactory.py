@@ -48,6 +48,7 @@ class NotebookServerFactory(j.baseclasses.object):
         if not background:
             if not voila:
                 cmd_start = "cd %s;jupyter lab --ip=0.0.0.0 --allow-root %s" % (dirpath, basepath)
+                cmd_start = "cd %s;jupyter notebook --ip=0.0.0.0 --allow-root %s" % (dirpath, basepath)
                 if base_url:
                     cmd_start += f" --NotebookApp.base_url={base_url}"
                 j.sal.process.executeInteractive(cmd_start)
@@ -58,7 +59,8 @@ class NotebookServerFactory(j.baseclasses.object):
                 j.sal.process.executeInteractive(cmd_start)
         else:
             if not voila:
-                cmd_start = "jupyter lab --ip=0.0.0.0 --allow-root %s" % path
+                # cmd_start = "jupyter lab --ip=0.0.0.0 --allow-root %s" % path
+                cmd_start = "jupyter notebook --ip=0.0.0.0 --allow-root %s" % path
                 if base_url:
                     cmd_start += f" --NotebookApp.base_url={base_url}"
                 cmd = j.servers.startupcmd.get("notebook", cmd_start=cmd_start)
