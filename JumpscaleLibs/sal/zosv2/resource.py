@@ -72,9 +72,7 @@ class ResourceParser:
 
         return resource_units_per_node
 
-    def payout_farmers(self, resource_units_per_node, reservation_id):
-        tfchain_client = j.clients.tfchain.get("tfchain")
-        tfchain_wallet = tfchain_client.wallets.get("main")
+    def payout_farmers(self, tfchain_wallet, resource_units_per_node, reservation_id):
         transactions = []
         for resource_unit_node in resource_units_per_node:
             resource_unit_node.workload_id.sort()
@@ -89,7 +87,7 @@ class ResourceParser:
                 continue
         return transactions
 
-    def validate_reservation_payment(self, reservation_id):
+    def validate_reservation_payment(self, tfchain_wallet, reservation_id):
         getcontext().prec = 9
         me_tid = j.tools.threebot.me.default.tid
         # load all farms belonging to our threebot id
@@ -111,8 +109,6 @@ class ResourceParser:
                 expected_txes.add((msg, amount))
         # load the transactions in our wallet, for every workload in one of the owned farms, whe need a trandaction
         # with the right amount of tft
-        tfchain_client = j.clients.tfchain.get("tfchain")
-        tfchain_wallet = tfchain_client.wallets.get("main")
         for tx in tfchain_wallet.transactions:
             value = Decimal(0)
             for co in tx.coin_outputs:

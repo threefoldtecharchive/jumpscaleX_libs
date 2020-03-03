@@ -72,10 +72,12 @@ class Zosv2(j.baseclasses.object):
         rp = ResourceParser(self._explorer, reservation)
         return rp.calculate_used_resources_cost()
 
-    def payout_farmers(self, resource_units_per_node, reservation, reservation_id):
+    def payout_farmers(self, tfchain_wallet, resource_units_per_node, reservation, reservation_id):
         """
         payout farmer based on the resources per node used
 
+        :param tfchain_wallet: tfchain wallet
+        :type tfchain_wallet: a wallet of j.clients.tfchain
         :param resource_units_per_node: list of resource units per node retrieved from reservation_resources_cost
         :type resource_units_per_node: list of ResourceUnitsNode
         :param reservation: reservation object
@@ -86,12 +88,14 @@ class Zosv2(j.baseclasses.object):
         :rtype: list
         """
         rp = ResourceParser(self._explorer, reservation)
-        return rp.payout_farmers(resource_units_per_node, reservation_id)
+        return rp.payout_farmers(tfchain_wallet, resource_units_per_node, reservation_id)
 
-    def verify_payments(self, reservation_id):
+    def verify_payments(self, tfchain_wallet, reservation_id):
         """
         verify that a reservation with a given ID has been paid for, for all farms belonging to the current user 3bot
 
+        :param tfchain_wallet: tfchain wallet
+        :type tfchain_wallet: a wallet of j.clients.tfchain
         :param reservation_id: the id of the reservation to verify
         :type reservation_id: int
         :return: if the reservation has been fully funded for the farms owned by the current user 3bot
@@ -99,7 +103,7 @@ class Zosv2(j.baseclasses.object):
         """
         reservation = self._actor_workloads.workload_manager.reservation_get(reservation_id)
         rp = ResourceParser(self._explorer, reservation)
-        return rp.validate_reservation_payment(reservation_id)
+        return rp.validate_reservation_payment(tfchain_wallet, reservation_id)
 
     def reservation_create(self):
         """
