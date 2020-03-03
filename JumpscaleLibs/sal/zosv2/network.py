@@ -240,7 +240,7 @@ def generate_peers(network):
                         allowed_ips.append(subnet)
                         allowed_ips.append(wg_routing_ip(subnet))
 
-                    for subnet in ipv6_only_subnets:
+                    for subnet in ipv6_only_subnets.values():
                         allowed_ips.append(subnet)
                         allowed_ips.append(wg_routing_ip(subnet))
 
@@ -269,7 +269,7 @@ def generate_peers(network):
 
                 # if this is the selected public_nr - also need to add allowedIPs for the hidden nodes
                 if public_nr and onr.node_id == public_nr.node_id:
-                    for subnet in hidden_subnets:
+                    for subnet in hidden_subnets.values():
                         allowed_ips.append(subnet)
                         allowed_ips.append(wg_routing_ip(subnet))
 
