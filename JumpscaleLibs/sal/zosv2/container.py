@@ -78,3 +78,16 @@ class ContainerGenerator:
         cont.capacity.memory = memory
 
         return cont
+
+    def corex_connect(self, ip, port=7681):
+        """
+        return a coreX client
+        
+        :param ip: ip address of the container
+        :type ip: str
+        :param port: listening port of corex process, defaults to 7681
+        :type port: int, optional
+        :return: j.clients.corex
+        """
+        return j.clients.corex.new(name=j.data.idgenerator.generateGUID(), addr=ip, port=port, autosave=False)
+
