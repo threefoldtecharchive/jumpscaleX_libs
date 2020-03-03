@@ -497,16 +497,13 @@ class PacketNet(JSConfigBase):
         sshinstance = ""
         if zerotierId == "":
             j.sal.nettools.waitConnectionTest(ipaddr, 22, 60)
-
             if not sshkey:
-                sshclient = j.clients.ssh.new(instance=hostname, addr=ipaddr)
+                sshclient = j.clients.ssh.new(name=hostname, addr=ipaddr)
             else:
                 self.addSSHKey(sshkey, hostname)
-                sshclient = j.clients.ssh.get(
-                    instance=sshkey.instance, data={"addr": ipaddr, "login": "root", "sshkey": sshkey.instance}
-                )
-            sshclient.connect()
-            sshinstance = sshclient.instance
+                sshclient = j.clients.ssh.get(name=sshkey.name, addr= ipaddr, login="root")
+
+            assert sshclient.isconnected
 
         conf = {}
         conf["facility"] = facility
@@ -517,9 +514,7 @@ class PacketNet(JSConfigBase):
         conf["os"] = os
         conf["ipxeUrl"] = ipxeUrl
 
-        j.shell()
-
-        return node
+        return device
 
     def addSSHKey(self, sshkey, label):
         if j.data.types.string.check(sshkey):
