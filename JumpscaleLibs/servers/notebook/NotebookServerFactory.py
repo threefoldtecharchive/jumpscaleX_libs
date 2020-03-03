@@ -27,6 +27,7 @@ class NotebookServerFactory(j.baseclasses.object):
         background=False,
         voila=False,
         base_url=None,
+        ip="0.0.0.0",
     ):
         """
         kosmos 'j.servers.notebook.start()'
@@ -39,26 +40,32 @@ class NotebookServerFactory(j.baseclasses.object):
         self._log_info(path)
         if not background:
             if not voila:
-                cmd_start = "cd %s;jupyter lab --ip=0.0.0.0 --allow-root %s" % (dirpath, basepath)
+                cmd_start = (
+                    "cd %s;jupyter lab --NotebookApp.token='' --NotebookApp.password='' --ip=%s --allow-root %s"
+                    % (dirpath, ip, basepath)
+                )
                 if base_url:
                     cmd_start += f" --NotebookApp.base_url={base_url}"
                 j.sal.process.executeInteractive(cmd_start)
             else:
-                cmd_start = "cd %s;voila %s" % (dirpath, basepath)
+                cmd_start = "cd %s;voila --Voila.ip=%s %s" % (dirpath, ip, basepath)
                 if base_url:
-                    cmd_start += f" --NotebookApp.base_url={base_url}"
+                    cmd_start += f" --Voila.base_url={base_url}"
                 j.sal.process.executeInteractive(cmd_start)
         else:
             if not voila:
-                cmd_start = "jupyter lab --ip=0.0.0.0 --allow-root %s" % path
+                cmd_start = "jupyter lab --NotebookApp.token='' --NotebookApp.password='' --ip=%s --allow-root %s" % (
+                    ip,
+                    path,
+                )
                 if base_url:
                     cmd_start += f" --NotebookApp.base_url={base_url}"
                 cmd = j.servers.startupcmd.get("notebook", cmd_start=cmd_start)
                 cmd.start()
             else:
-                cmd_start = "voila %s" % (path)
+                cmd_start = "voila --Voila.ip=%s %s" % (ip, path)
                 if base_url:
-                    cmd_start += f" --NotebookApp.base_url={base_url}"
+                    cmd_start += f" --Voila.base_url={base_url}"
                 cmd = j.servers.startupcmd.get("voila", cmd_start=cmd_start)
                 cmd.start()
 
