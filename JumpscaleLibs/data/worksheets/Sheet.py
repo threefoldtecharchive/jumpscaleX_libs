@@ -59,7 +59,7 @@ class Sheet(j.baseclasses.object):
     ):
         """
         @param ttype int,perc,float,empty,str
-        @param aggregate= T,A,MIN,MAX
+        @param aggregate= MIN,MAX,LAST,FIRST,AVG,SUM
         @param values is array of values to insert
         @param defval is default value for each col
         @param round is only valid for float e.g. 2 after comma
@@ -69,14 +69,13 @@ class Sheet(j.baseclasses.object):
         if ttype == "float" and nrfloat is None:
             nrfloat = 2
         row = Row(
-            name,
-            ttype,
-            nrcols,
-            aggregate,
+            name=name,
+            ttype=ttype,
+            nrcols=nrcols,
+            aggregate=aggregate,
             description=description,
             groupname=groupname,
             groupdescr=groupdescr,
-            format=format,
             defval=defval,
             nrfloat=nrfloat,
         )
@@ -346,7 +345,7 @@ class Sheet(j.baseclasses.object):
                 if rowname in aggregation:
                     aggr = aggregation[rowname]
                 else:
-                    aggr = "T"
+                    aggr = "SUM"
                 rowx = self.addRow(rowname, description="", nrfloat=1, aggregate=aggr)
                 rowx.groupname = group
 

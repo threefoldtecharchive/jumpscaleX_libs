@@ -29,6 +29,7 @@ def info(message):
     j.tools.logger._log_info(message)
 
 
+@skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/103")
 def test001_imapclient_can_create_folder_in_imap():
     """
     Client can create folders in his mail.
