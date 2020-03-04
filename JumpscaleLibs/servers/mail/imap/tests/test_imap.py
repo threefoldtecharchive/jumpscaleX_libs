@@ -3,13 +3,13 @@ from smtplib import SMTP
 try:
     from imbox import Imbox
 except ImportError:
-    j.builders.runtimes.python3.pip_package_install("imbox", reset=True)
+    j.builders.runtimes.python3.pip_package_install("imbox")
     from imbox import Imbox
 import unittest
 try:
     from imapclient import IMAPClient
 except ImportError:
-    j.builders.runtimes.python3.pip_package_install("imapclient", reset=True)
+    j.builders.runtimes.python3.pip_package_install("imapclient")
     from imapclient import IMAPClient
 from time import sleep
 

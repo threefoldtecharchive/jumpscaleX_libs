@@ -555,39 +555,6 @@ def test022_deb_download_install():
         info("install nano to return to origin state as we remove it before testing ")
         j.sal.process.execute("apt install -y nano")
 
-# def test022_deb_download_install():
-#     """TC418
-#     check download and install the package
-#
-#     **Test Scenario**
-#     #. Check status of vim-gtk is installed or not
-#     #. If vim-gtk installed remove it by apt remove before install it
-#     #. Installed it again by tested method
-#     #. Get vim-gtk status should be installed successfully
-#     #. Verify that vim-gtk installed successfully
-#     #. Remove vim-gtk to return to origin state
-#     #. Install vim-gtk to return to origin state as we remove it before testing
-#     """
-#     info("Check status of vim-gtk: is installed or not")
-#     vim_gtk_installed = j.sal.ubuntu.is_pkg_installed("vim-gtk")
-#     if vim_gtk_installed:
-#         info("vim-gtk is installed, removing it")
-#         j.sal.process.execute("apt remove -y vim-gtk")
-#     info("installed vim-gtk again by tested method")
-#     j.sal.ubuntu.deb_download_install(
-#         "http://security.ubuntu.com/ubuntu/pool/universe/v/vim/vim-gtk_8.0.1453-1ubuntu1.1_amd64.deb",
-#         remove_downloaded=True,
-#     )
-#     info("Get vim-gtk status should be installed successfully ")
-#     rc2, out2, err2 = j.sal.process.execute("dpkg -s vim-gtk|grep Status")
-#     info("verify that vim-gtk installed successfully")
-#     assert "install ok" in out2
-#     info("remove vim-gtk to return to origin state")
-#     j.sal.process.execute("apt remove -y vim-gtk")
-#     if vim_gtk_installed:
-#         info("install vim-gtk to return to origin state as we remove it before testing ")
-#         j.sal.process.execute("apt install -y vim-gtk")
-
 
 def test023_pkg_remove():
     """TC419
