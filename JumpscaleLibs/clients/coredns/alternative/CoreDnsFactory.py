@@ -3,6 +3,7 @@ from Jumpscale import j
 from .CoreDnsClient import CoreDnsClient
 
 JSConfigs = j.baseclasses.object_config_collection_testtools
+skip = j.baseclasses.testtools._skip
 
 
 class CoreDnsFactory(JSConfigs):
@@ -53,6 +54,7 @@ class CoreDnsFactory(JSConfigs):
             self, name=name, id=id, die=die, create_new=create_new, childclass_name=childclass_name, **kwargs
         )
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/96")
     def test(self):
         # create etcd client
         cl = j.sal.coredns.get(name="main", host="127.0.0.1", password="1234")

@@ -10,6 +10,8 @@ import pyximport
 
 JSBASE = j.baseclasses.object
 
+skip = j.baseclasses.testtools._skip
+
 
 class CythonFactory(j.baseclasses.object):
     """
@@ -41,9 +43,10 @@ class CythonFactory(j.baseclasses.object):
         if path not in sys.path:
             sys.path.append(path)
 
+    @skip("https://github.com/threefoldtech/0-hub/issues/34")
     def test(self):
-        import helloworld
+        from .helloworld import echo
 
-        helloworld.echo()
+        echo()
         # helloworld.spam(10, bytearray("this is a test: int:\n".encode()))
         # helloworld.spam(10, b"this is a test: int:\n")

@@ -4,7 +4,10 @@ from .DigitalOcean import DigitalOcean
 skip = j.baseclasses.testtools._skip
 
 
-class DigitalOceanFactory(j.baseclasses.object_config_collection_testtools):
+skip = j.baseclasses.testtools._skip
+
+
+class DigitalOceanFactory(j.baseclasses.object_config_collection_testtools, j.baseclasses.testtools):
 
     __jslocation__ = "j.clients.digitalocean"
     _CHILDCLASS = DigitalOcean
@@ -39,7 +42,7 @@ class DigitalOceanFactory(j.baseclasses.object_config_collection_testtools):
             droplet, sshclient = c.droplet_create(delete=delete)
         return sshclient
 
-    @skip("https://github.com/threefoldtech/jumpscaleX_core/issues/525")
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/74")
     def test(self, reset=False):
         """
         do:
@@ -82,3 +85,7 @@ class DigitalOceanFactory(j.baseclasses.object_config_collection_testtools):
         self._log_info(c.digitalocean_images)
         self._log_info(c.digitalocean_regions)
         self._log_info(droplet.ip_address)
+
+    @skip("https://github.com/threefoldtech/zeroCI/issues/30")
+    def test_DO_client(self, name=""):
+        self._tests_run(name=name)
