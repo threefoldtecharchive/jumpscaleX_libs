@@ -81,7 +81,7 @@ class Zosv2(j.baseclasses.object):
         return resp.id
 
     def reservation_result(self, reservation_id):
-        return reservation_get(reservation_id).results
+        return self.reservation_get(reservation_id).results
 
     def reservation_get(self, reservation_id):
         """
