@@ -1,6 +1,7 @@
 from .id import _next_workload_id
 from Jumpscale import j
 
+
 class VolumesGenerator:
     def create(self, reservation, node_id, size=5, type="SSD"):
         """
