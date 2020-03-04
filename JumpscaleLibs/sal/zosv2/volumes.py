@@ -1,5 +1,5 @@
 from .id import _next_workload_id
-
+from Jumpscale import j
 
 class VolumesGenerator:
     def create(self, reservation, node_id, size=5, type="SSD"):
@@ -18,7 +18,7 @@ class VolumesGenerator:
         :rtype: tfgrid.workloads.reservation.volume.1
         """
 
-        if type not in ["SSD", "HHD"]:
+        if type not in ["SSD", "HDD"]:
             raise j.excpetions.Input("volume type can only be SSD or HDD")
 
         volume = reservation.data_reservation.volumes.new()
