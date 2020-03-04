@@ -1,11 +1,6 @@
 import os
 from math import isclose
 from Jumpscale import j
-try:
-    from loguru import logger
-except ImportError:
-    j.builders.runtimes.python3.pip_package_install("loguru", reset=True)
-    from loguru import logger
 
 
 """
@@ -18,15 +13,14 @@ try:
 except:
     j.sal.process.execute("apt-get install -y python3-dbus python3-apt")
 
-LOGGER = logger
-LOGGER.add("Config_manager_{time}.log")
+
 
 
 skip = j.baseclasses.testtools._skip
 
 
 def info(message):
-    LOGGER.info(message)
+    j.tools.logger._log_info(message)
 
 
 def _check_init_process():
