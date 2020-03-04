@@ -29,21 +29,20 @@ class Billing:
         rp = ResourceParser(self._explorer, reservation)
         return rp.calculate_used_resources_cost()
 
-    def payout_farmers(self, tfchain_wallet, resource_units_per_node, reservation):
+    def payout_farmers(self, tfchain_wallet, reservation):
         """
         payout farmer based on the resources per node used
 
         :param tfchain_wallet: tfchain wallet
         :type tfchain_wallet: a wallet of j.clients.tfchain
-        :param resource_units_per_node: list of resource units per node retrieved from reservation_resources_cost
-        :type resource_units_per_node: list of ResourceUnitsNode
         :param reservation: reservation object
-        :type int
+        :type reservation: tfgrid.workloads.reservation.1
         :return: list of transactions
         :rtype: list
         """
         rp = ResourceParser(self._explorer, reservation)
-        return rp.payout_farmers(tfchain_wallet, resource_units_per_node, reservation.id)
+        costs = rp.calculate_used_resources_cost()
+        return rp.payout_farmers(tfchain_wallet, costs, reservation.id)
 
     def verify_payments(self, tfchain_wallet, reservation):
         """
@@ -51,8 +50,8 @@ class Billing:
 
         :param tfchain_wallet: tfchain wallet
         :type tfchain_wallet: a wallet of j.clients.tfchain
-        :param reservation_id: the id of the reservation to verify
-        :type reservation_id: int
+        :param reservation: reservation object
+        :type reservation: tfgrid.workloads.reservation.1
         :return: if the reservation has been fully funded for the farms owned by the current user 3bot
         :rtype: bool
         """
