@@ -8,7 +8,7 @@ from .network import NetworkGenerator
 from .node_finder import NodeFinder
 from .volumes import VolumesGenerator
 from .zdb import ZDBGenerator
-from .resource import ResourceParser
+from .billing import Billing
 
 
 class Zosv2(j.baseclasses.object):
@@ -23,6 +23,7 @@ class Zosv2(j.baseclasses.object):
         self._volume = VolumesGenerator()
         self._zdb = ZDBGenerator(self._explorer)
         self._kubernetes = K8sGenerator(self._explorer)
+        self._billing = Billing(self._explorer)
 
     @property
     def network(self):
@@ -48,62 +49,9 @@ class Zosv2(j.baseclasses.object):
     def nodes_finder(self):
         return self._nodes_finder
 
-    def reservation_resources(self, reservation):
-        """
-        compute how much resource units is reserved in the reservation
-
-        :param reservation: reservation object
-        :type reservation: tfgrid.workloads.reservation.1
-        :return: list of ResourceUnitsNode object
-        :rtype: list
-        """
-        rp = ResourceParser(self._explorer, reservation)
-        return rp.calculate_used_resources()
-
-    def reservation_resources_cost(self, reservation):
-        """
-        compute how much resource units is reserved in the reservation
-
-        :param reservation: reservation object
-        :type reservation: tfgrid.workloads.reservation.1
-        :return: list of ResourceUnitsNode object with costs filled in
-        :rtype: list
-        """
-        rp = ResourceParser(self._explorer, reservation)
-        return rp.calculate_used_resources_cost()
-
-    def payout_farmers(self, tfchain_wallet, resource_units_per_node, reservation, reservation_id):
-        """
-        payout farmer based on the resources per node used
-
-        :param tfchain_wallet: tfchain wallet
-        :type tfchain_wallet: a wallet of j.clients.tfchain
-        :param resource_units_per_node: list of resource units per node retrieved from reservation_resources_cost
-        :type resource_units_per_node: list of ResourceUnitsNode
-        :param reservation: reservation object
-        :type reservation: tfgrid.workloads.reservation.1
-        :param reservation_id: registered reservation id
-        :type int
-        :return: list of transactions
-        :rtype: list
-        """
-        rp = ResourceParser(self._explorer, reservation)
-        return rp.payout_farmers(tfchain_wallet, resource_units_per_node, reservation_id)
-
-    def verify_payments(self, tfchain_wallet, reservation_id):
-        """
-        verify that a reservation with a given ID has been paid for, for all farms belonging to the current user 3bot
-
-        :param tfchain_wallet: tfchain wallet
-        :type tfchain_wallet: a wallet of j.clients.tfchain
-        :param reservation_id: the id of the reservation to verify
-        :type reservation_id: int
-        :return: if the reservation has been fully funded for the farms owned by the current user 3bot
-        :rtype: bool
-        """
-        reservation = self._actor_workloads.workload_manager.reservation_get(reservation_id)
-        rp = ResourceParser(self._explorer, reservation)
-        return rp.validate_reservation_payment(tfchain_wallet, reservation_id)
+    @property
+    def billing(self):
+        return self._billing
 
     def reservation_create(self):
         """
@@ -133,6 +81,17 @@ class Zosv2(j.baseclasses.object):
         return resp.id
 
     def reservation_result(self, reservation_id):
+        return reservation_get(reservation_id).results
+
+    def reservation_get(self, reservation_id):
+        """
+        fetch a specific reservation from BCDB
+        
+        :param reservation_id: reservation ID
+        :type reservation_id: int
+        :return: reservation object
+        :rtype: "tfgrid.workloads.reservation.1
+        """
         return self._actor_workloads.workload_manager.reservation_get(reservation_id).results
 
     def reservation_store(self, reservation, path):
@@ -145,7 +104,7 @@ class Zosv2(j.baseclasses.object):
         :param path: destination file
         :type path: str
         """
-        j.data.serializers.json.dump(reservation._ddict, path)
+        j.data.serializers.json.dump(path, reservation._ddict)
 
     def reservation_load(self, path):
         """

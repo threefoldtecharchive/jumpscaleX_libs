@@ -54,13 +54,6 @@ class ResourceParser:
             total_mru_cost = resource_unit_node.MRU * farm.resource_prices[0].mru
             total_cost = total_cru_cost + total_sru_cost + total_hru_cost + total_mru_cost
 
-            print(f"To pay to farmer: with id {node.farm_id}\n")
-            print(f"CRU: resources used: {resource_unit_node.CRU}, Total amount to pay for CRU: {total_cru_cost}")
-            print(f"SRU: resources used: {resource_unit_node.SRU}, Total amount to pay for SRU: {total_sru_cost}")
-            print(f"HRU: resources used: {resource_unit_node.HRU}, Total amount to pay for HRU: {total_hru_cost}")
-            print(f"MRU: resources used: {resource_unit_node.MRU}, Total amount to pay for MRU: {total_mru_cost} \n")
-            print(f"Total to pay: {total_cost} in TFT to wallet address: {wallet_address}\n")
-
             resource_unit_node.set_cru_cost(total_cru_cost)
             resource_unit_node.set_sru_cost(total_sru_cost)
             resource_unit_node.set_hru_cost(total_hru_cost)
@@ -73,6 +66,12 @@ class ResourceParser:
         return resource_units_per_node
 
     def payout_farmers(self, tfchain_wallet, resource_units_per_node, reservation_id):
+        total = Decimal(sum([c.TOTAL_COST for c in resource_units_per_node]))
+        available = tfchain_wallet.balance.available.value
+        if available < total:
+            err_msg = f"not enough found in the wallet to pay the reservation\nHave {available}, needs {total}"
+            raise j.exceptions.Value(err_msg)
+
         transactions = []
         for resource_unit_node in resource_units_per_node:
             resource_unit_node.workload_id.sort()
