@@ -836,6 +836,9 @@ class TfChainAuthcoin:
         # create empty Auth Condition Update Txn, with a newly generated Nonce set already
         txn = j.clients.tfchain.types.transactions.auth_condition_update_new()
 
+        # add the minimum miner fee
+        txn.miner_fee_add(self._minium_miner_fee)
+
         # set the new mint condition
         txn.auth_condition = j.clients.tfchain.types.conditions.from_recipient(authorizer)
         # minter definition must be of unlock type 1 or 3
@@ -905,6 +908,9 @@ class TfChainAuthcoin:
         # create empty Auth Address Update Txn, with a newly generated Nonce set already
         txn = j.clients.tfchain.types.transactions.auth_address_update_new()
 
+        # add the minimum miner fee
+        txn.miner_fee_add(self._minium_miner_fee)
+
         # define recipient
         recipient = j.clients.tfchain.types.conditions.from_recipient(recipient, lock=lock)
         # and add it as authorize or unauthorize address in the tx
@@ -921,7 +927,6 @@ class TfChainAuthcoin:
         txn.parent_auth_condition = self._current_auth_condition_get()
         # create a raw fulfillment based on the current auth condition
         txn.auth_fulfillment = j.clients.tfchain.types.fulfillments.from_condition(txn.parent_auth_condition)
-
         # get all signature requests
         sig_requests = txn.signature_requests_new()
         if len(sig_requests) == 0:
@@ -940,6 +945,7 @@ class TfChainAuthcoin:
                 pass  # this is acceptable due to how we directly try the key_pair_get method
 
         submit = txn.is_fulfilled()
+
         if submit:
             txn.id = self._transaction_put(transaction=txn)
 

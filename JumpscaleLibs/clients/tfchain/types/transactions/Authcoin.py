@@ -17,6 +17,7 @@ class TransactionV176(TransactionBaseClass):
         self._auth_addresses = []
         self._deauth_addresses = []
         self._data = None
+        self._miner_fees = []
 
         # current mint condition
         self._parent_auth_condition = None
@@ -145,6 +146,17 @@ class TransactionV176(TransactionBaseClass):
             )
         self._parent_auth_condition = value
 
+    def miner_fee_add(self, value):
+        self._miner_fees.append(Currency(value=value))
+
+    @property
+    def miner_fees(self):
+        """
+        Miner fees, paid to the block creator of this Transaction,
+        funded by this Transaction's coin inputs.
+        """
+        return self._miner_fees
+
     def _signature_hash_input_get(self, *extra_objects):
         e = j.data.rivine.encoder_sia_get()
 
@@ -168,6 +180,9 @@ class TransactionV176(TransactionBaseClass):
         # encode deauth addresses
         e.add_slice(self.deauth_addresses)
 
+        # encode miner fees
+        e.add_slice(self.miner_fees)
+
         # encode custom data
         e.add(self.data)
 
@@ -180,7 +195,7 @@ class TransactionV176(TransactionBaseClass):
     def _binary_encode_data(self):
         encoder = j.data.rivine.encoder_rivine_get()
         encoder.add_array(self._nonce.value)
-        encoder.add_all(self.auth_addresses, self.deauth_addresses, self.data, self.auth_fulfillment)
+        encoder.add_all(self.auth_addresses, self.deauth_addresses, self.data, self.auth_fulfillment, self.miner_fees)
         return encoder.data
 
     def _from_json_data_object(self, data):
@@ -188,6 +203,7 @@ class TransactionV176(TransactionBaseClass):
         self._auth_addresses = [UnlockHash.from_json(uh) for uh in data.get("authaddresses", []) or []]
         self._deauth_addresses = [UnlockHash.from_json(uh) for uh in data.get("deauthaddresses", []) or []]
         self._auth_fulfillment = j.clients.tfchain.types.fulfillments.from_json(data.get("authfulfillment", {}))
+        self._miner_fees = [Currency.from_json(fee) for fee in data.get("minerfees", []) or []]
         self._data = BinaryData.from_json(data.get("arbitrarydata", None) or "", strencoding="base64")
 
     def _json_data_object(self):
@@ -197,6 +213,7 @@ class TransactionV176(TransactionBaseClass):
             "deauthaddresses": [uh.json() for uh in self.deauth_addresses],
             "arbitrarydata": self.data.json(),
             "authfulfillment": self.auth_fulfillment.json(),
+            "minerfees": [fee.json() for fee in self._miner_fees],
         }
 
     def _extra_signature_requests_new(self):
@@ -221,6 +238,7 @@ class TransactionV177(TransactionBaseClass):
         self._auth_fulfillment = None
         self._auth_condition = None
         self._data = None
+        self._miner_fees = []
 
         # current auth condition
         self._parent_auth_condition = None
@@ -325,6 +343,17 @@ class TransactionV177(TransactionBaseClass):
             )
         self._auth_fulfillment = value
 
+    def miner_fee_add(self, value):
+        self._miner_fees.append(Currency(value=value))
+
+    @property
+    def miner_fees(self):
+        """
+        Miner fees, paid to the block creator of this Transaction,
+        funded by this Transaction's coin inputs.
+        """
+        return self._miner_fees
+
     def _signature_hash_input_get(self, *extra_objects):
         e = j.data.rivine.encoder_sia_get()
 
@@ -347,6 +376,9 @@ class TransactionV177(TransactionBaseClass):
         # encode custom data
         e.add(self.data)
 
+        # encode miner fees
+        e.add_slice(self.miner_fees)
+
         # return the encoded data
         return e.data
 
@@ -356,13 +388,14 @@ class TransactionV177(TransactionBaseClass):
     def _binary_encode_data(self):
         encoder = j.data.rivine.encoder_rivine_get()
         encoder.add_array(self._nonce.value)
-        encoder.add_all(self.data, self.auth_condition, self.auth_fulfillment)
+        encoder.add_all(self.data, self.auth_condition, self.auth_fulfillment, self.miner_fees)
         return encoder.data
 
     def _from_json_data_object(self, data):
         self._nonce = BinaryData.from_json(data.get("nonce", ""), strencoding="base64")
         self._auth_condition = j.clients.tfchain.types.conditions.from_json(data.get("authcondition", {}))
         self._auth_fulfillment = j.clients.tfchain.types.fulfillments.from_json(data.get("authfulfillment", {}))
+        self._miner_fees = [Currency.from_json(fee) for fee in data.get("minerfees", []) or []]
         self._data = BinaryData.from_json(data.get("arbitrarydata", None) or "", strencoding="base64")
 
     def _json_data_object(self):
@@ -370,6 +403,7 @@ class TransactionV177(TransactionBaseClass):
             "nonce": self._nonce.json(),
             "authfulfillment": self.auth_fulfillment.json(),
             "authcondition": self.auth_condition.json(),
+            "minerfees": [fee.json() for fee in self._miner_fees],
             "arbitrarydata": self.data.json(),
         }
 
