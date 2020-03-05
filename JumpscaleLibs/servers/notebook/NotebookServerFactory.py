@@ -1,5 +1,7 @@
 from Jumpscale import j
 
+skip = j.baseclasses.testtools._skip
+
 
 class NotebookServerFactory(j.baseclasses.object):
 
