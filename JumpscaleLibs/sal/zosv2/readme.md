@@ -53,7 +53,8 @@ zos.container.create(reservation=r,
                     flist='https://hub.grid.tf/zaibon/zaibon-ubuntu-ssh-0.0.2.flist',
                     entrypoint='/sbin/my_init')
 
-expiration = j.data.time.epoch + (3600 * 24 * 365)
+# expiration = j.data.time.epoch + (3600 * 24 * 365)
+expiration = j.data.time.epoch + (10*60)
 # register the reservation
 rid = zos.reservation_register(r, expiration)
 time.sleep(5)
@@ -82,7 +83,7 @@ master = zos.kubernetes.add_master(
     cluster_secret=cluster_secret,
     ip_address='172.24.1.20',
     size=size,
-    sshkeys=sshkeys)
+    ssh_keys=sshkeys)
 
 
 worker = zos.kubernetes.add_worker(
@@ -93,7 +94,7 @@ worker = zos.kubernetes.add_worker(
     ip_address='172.24.2.20',
     size=size,
     master_ip=master.ipaddress,
-    sshkeys=sshkeys)
+    ssh_keys=sshkeys)
 
 expiration = j.data.time.epoch + (3600 * 24 * 365)
 # register the reservation
@@ -135,4 +136,103 @@ result = zos.reservation_result(rid)
 
 print("provisioning result")
 print(result)
+```
+
+## reserve S3 storage servers
+
+```python
+password = "supersecret"
+
+# first find the node where to reserve 0-db namespaces
+nodes = zos.nodes_finder.nodes_search(sru=10)
+nodes = list(filter(zos.nodes_finder.filter_is_up,nodes))
+nodes = nodes[:3]
+
+# create a reservation
+r = zos.reservation_create()
+# reservation some 0-db namespaces
+for node in nodes:
+    zos.zdb.create(
+        reservation=r,
+        node_id=node.node_id,
+        size=10,
+        mode='seq',
+        password='supersecret',
+        disk_type="SSD",
+        public=False)
+
+rid = zos.reservation_register(r, j.data.time.epoch+(60*60))
+results = zos.reservation_result(rid)
+
+# read the IP address of the 0-db namespaces after they are deployed
+# we will need these IPs when creating the minio container
+namespace_config = []
+for result in results:
+    data = j.data.serializers.json.loads(result.data_json)
+    cfg = f"{data['Namespace']}:{password}@[{data['IP']}]:{data['Port']}"
+    namespace_config.append(cfg)
+
+# find a node where to run the minio container itself
+# make sure this node is part of your overlay network
+nodes = zos.nodes_finder.nodes_search(sru=10)
+nodes = list(filter(zos.nodes_finder.filter_is_up,nodes))
+minio_node = nodes[0]
+
+
+zos.container.create(reservation=r,
+    node_id="72CP8QPhMSpF7MbSvNR1TYZFbTnbRiuyvq5xwcoRNAib",
+    network_name='zaibon_testnet_0', # this assume this network is already provisioned on the node
+    ip_address='172.24.2.15',
+    flist='https://hub.grid.tf/azmy.3bot/minio.flist',
+    entrypoint='/bin/entrypoint',
+    cpu=2,
+    memory=2048,
+    env={
+        "SHARDS":','.join(namespace_config),
+        "DATA":"2",
+        "PARITY":"1",
+        "ACCESS_KEY":"minio",
+        "SECRET_KEY":"passwordpassword",
+    })
+
+rid = zos.reservation_register(r, j.data.time.epoch+(60*60))
+results = zos.reservation_result(rid)
+```
+
+## Pay reservation to farmer
+
+Once the reservation has been registered, the user needs to pay for it to the farmer
+```python
+zos = j.sal.zosv2
+
+# ... we assume the user already created and registered and reservation
+
+# fist needs to compute how much is needed to be payed
+costs = zos.billing.reservation_resources_cost(reservation)
+for cost in costs:
+    print(cost)
+
+# to be able to send tokens to the farmers, a TFChain wallet needs to be available on the system
+client = j.clients.tfchain.get('myclient')
+wallet = client.wallets.get("default")
+
+# once we have verified everything is in order, we create the transaction
+# to send the token to the farms
+transactions = zos.billing.payout_farmers(wallet, costs, reservation)
+# if everything went ok, at this point your transaction are now sent to the blockchain
+```
+
+## As a farmer verify that a payment as been made for a reservation
+
+```python
+zos = j.sal.zosv2
+
+
+client = j.clients.tfchain.get('myclient')
+wallet = client.wallets.get("default")
+
+# the farmer needs to know the reservation ID to be able to check if the payment has arrived for it
+reservation = zos.reservation_get(reservation_id)
+# verify_payments will return true if everything has been paid or false if not
+zos.billing.verify_payments(wallet, reservation)
 ```

@@ -9,12 +9,12 @@ from .id import _next_workload_id
 
 class NetworkGenerator:
     def __init__(self, explorer):
-        # self._actor_nodes = explorer.actors_all.nodes
-        self._actor_nodes = explorer.actors_get("tfgrid.directory").nodes
+        self._actor_directory = explorer.actors_get("tfgrid.directory")
+        # self._actor_nodes = self._actor_directory.nodes
 
     def _load_network(self, network):
         for nr in network.network_resources:
-            nr.public_endpoints = get_endpoints(self._actor_nodes.get(nr.node_id))
+            nr.public_endpoints = get_endpoints(self._actor_directory.nodes.get(nr.node_id))
 
         network.access_points = extract_access_points(network)
 
@@ -67,7 +67,7 @@ class NetworkGenerator:
         if not node_id:
             raise j.exceptions.Input("node_id cannot be none or empty")
 
-        node = self._actor_nodes.get(node_id)
+        node = self._actor_directory.nodes.get(node_id)
 
         if netaddr.IPNetwork(ip_range).prefixlen != 24:
             raise j.exceptions.Input("ip_range should have a netmask of /24, not /%d", ip_range.prefixlen)
@@ -112,7 +112,7 @@ class NetworkGenerator:
         if not node_id:
             raise j.exceptions.Input("node_id cannot be none or empty")
 
-        node = self._actor_nodes.get(node_id)
+        node = self._actor_directory.nodes.get(node_id)
 
         if netaddr.IPNetwork(ip_range).prefixlen != 24:
             raise j.exceptions.Input("ip_range should have a netmask of /24, not /%d", ip_range.prefixlen)
@@ -241,7 +241,7 @@ def generate_peers(network):
                         allowed_ips.append(subnet)
                         allowed_ips.append(wg_routing_ip(subnet))
 
-                    for subnet in ipv6_only_subnets:
+                    for subnet in ipv6_only_subnets.values():
                         allowed_ips.append(subnet)
                         allowed_ips.append(wg_routing_ip(subnet))
 
@@ -270,7 +270,7 @@ def generate_peers(network):
 
                 # if this is the selected public_nr - also need to add allowedIPs for the hidden nodes
                 if public_nr and onr.node_id == public_nr.node_id:
-                    for subnet in hidden_subnets:
+                    for subnet in hidden_subnets.values():
                         allowed_ips.append(subnet)
                         allowed_ips.append(wg_routing_ip(subnet))
 
@@ -339,7 +339,7 @@ def wg_routing_ip(ip_range):
 
 
 def _find_free_wg_port(node):
-    ports = set(list(range(6000, 9000)))
+    ports = set(list(range(1000, 9000)))
     used = set(node.wg_ports)
     free = ports - used
     return free.pop()

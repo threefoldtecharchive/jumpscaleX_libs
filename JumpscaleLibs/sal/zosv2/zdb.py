@@ -3,9 +3,10 @@ from .crypto import encrypt_for_node
 from Jumpscale import j
 from .id import _next_workload_id
 
+
 class ZDBGenerator:
     def __init__(self, explorer):
-        self._explorer = explorer
+        self._actor_directory = explorer.actors_get("tfgrid.directory")
 
     def create(self, reservation, node_id, size, mode, password, disk_type="SSD", public=False):
         """
@@ -39,7 +40,7 @@ class ZDBGenerator:
         zdb.size = size
         zdb.mode = mode
         if password:
-            node = self._explorer.actors_all.nodes.get(node_id)
+            node = self._actor_directory.nodes.get(node_id)
             zdb.password = encrypt_for_node(node.public_key_hex, password)
         zdb.type = disk_type
         return zdb
