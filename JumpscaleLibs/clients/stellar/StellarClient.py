@@ -304,7 +304,7 @@ class StellarClient(JSConfigClient):
             self.log_debug(e)
             raise e
 
-    def transfer(self, destination_address, amount, asset="XLM", locked_until=None, memo_text=None):
+    def transfer(self, destination_address, amount, asset="XLM", locked_until=None, memo_text=None, memo_hash=None):
         """Transfer assets to another address
         :param destination_address: address of the destination.
         :type destination_address: str
@@ -318,7 +318,10 @@ class StellarClient(JSConfigClient):
         :type locked_until: float
         :param text_memo: optional memo text to add to the transaction, a string encoded using either ASCII or UTF-8, up to 28-bytes long
         :type: Union[str, bytes]
+        :param memo_hash: optional memo hash to add to the transaction, A 32 byte hash
+        :type: Union[str, bytes]
         """
+        issuer = None
         self._log_info("Sending {} {} to {}".format(amount, asset, destination_address))
         if asset != "XLM":
             assetStr = asset.split(":")
@@ -346,6 +349,8 @@ class StellarClient(JSConfigClient):
         transaction_builder.set_timeout(30)
         if memo_text is not None:
             transaction_builder.add_text_memo(memo_text)
+        if memo_hash is not None:
+            transaction_builder.add_hash_memo(memo_hash)
 
         transaction = transaction_builder.build()
 
