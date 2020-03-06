@@ -317,7 +317,6 @@ class StellarClient(JSConfigClient):
         :param text_memo: optional memo text to add to the transaction, a string encoded using either ASCII or UTF-8, up to 28-bytes long
         :type: Union[str, bytes]
         """
-        issuer = None
         self._log_info("Sending {} {} to {}".format(amount, asset, destination_address))
         if asset != "XLM":
             assetStr = asset.split(":")
