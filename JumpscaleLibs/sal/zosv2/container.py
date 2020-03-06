@@ -1,7 +1,12 @@
 import netaddr
 from Jumpscale import j
-
+import base58
+from nacl import signing
 from .id import _next_workload_id
+from nacl import public
+import binascii
+
+
 class ContainerGenerator:
     def create(
         self,
@@ -15,6 +20,8 @@ class ContainerGenerator:
         memory=1024,
         entrypoint="",
         interactive=False,
+        secret_env={},
+        public_ipv6=False,
         storage_url="zdb://hub.grid.tf:9900",
     ):
         """
@@ -54,6 +61,7 @@ class ContainerGenerator:
         cont.flist = flist
         cont.storage_url = storage_url
         cont.environment = env
+        cont.secret_environment = secret_env
         cont.entrypoint = entrypoint
         cont.interactive = interactive
 
@@ -71,8 +79,29 @@ class ContainerGenerator:
         net.network_id = network_name
         net.ipaddress = ip_address
 
-        cap = cont.capacity
-        cap.cpu = cpu
-        cap.memory = memory
+        cont.capacity.cpu = cpu
+        cont.capacity.memory = memory
 
         return cont
+
+    def corex_connect(self, ip, port=7681):
+        """
+        return a coreX client
+        
+        :param ip: ip address of the container
+        :type ip: str
+        :param port: listening port of corex process, defaults to 7681
+        :type port: int, optional
+        :return: j.clients.corex
+        """
+        return j.clients.corex.new(name=j.data.idgenerator.generateGUID(), addr=ip, port=port, autosave=False)
+
+    def encrypt_secret(self, node_id, value):
+        key = base58.b58decode(node_id)
+        pk = signing.VerifyKey(key)
+        encryption_key = pk.to_curve25519_public_key()
+
+        box = public.SealedBox(encryption_key)
+        result = box.encrypt(value.encode())
+
+        return binascii.hexlify(result)

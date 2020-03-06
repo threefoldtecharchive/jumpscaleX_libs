@@ -6,7 +6,7 @@ from .network import is_private
 
 class NodeFinder:
     def __init__(self, explorer):
-        self._explorer = explorer
+        self._actor_directory = explorer.actors_get("tfgrid.directory")
 
     def filter_is_up(self, node):
         """
@@ -28,7 +28,7 @@ class NodeFinder:
         :return: list of nodes
         :rtype: list
         """
-        return self._explorer.actors_all.nodes.list(
+        return self._actor_directory.nodes.list(
             farm_id=farm_id, country=country, city=city, cru=cru, sru=sru, mru=mru, hru=hru
         ).nodes
 

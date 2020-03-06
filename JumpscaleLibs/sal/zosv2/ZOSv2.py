@@ -8,6 +8,7 @@ from .network import NetworkGenerator
 from .node_finder import NodeFinder
 from .volumes import VolumesGenerator
 from .zdb import ZDBGenerator
+from .billing import Billing
 
 
 class Zosv2(j.baseclasses.object):
@@ -15,12 +16,14 @@ class Zosv2(j.baseclasses.object):
 
     def _init(self, **kwargs):
         self._explorer = j.clients.threebot.explorer
+        self._actor_workloads = self._explorer.actors_get("tfgrid.workloads")
         self._nodes_finder = NodeFinder(self._explorer)
         self._network = NetworkGenerator(self._explorer)
         self._container = ContainerGenerator()
         self._volume = VolumesGenerator()
         self._zdb = ZDBGenerator(self._explorer)
         self._kubernetes = K8sGenerator(self._explorer)
+        self._billing = Billing(self._explorer)
 
     @property
     def network(self):
@@ -46,10 +49,14 @@ class Zosv2(j.baseclasses.object):
     def nodes_finder(self):
         return self._nodes_finder
 
+    @property
+    def billing(self):
+        return self._billing
+
     def reservation_create(self):
         """
         creates a new empty reservation schema
-        
+
         :return: reservation (tfgrid.workloads.reservation.1)
         :rtype: BCDBModel
         """
@@ -62,37 +69,49 @@ class Zosv2(j.baseclasses.object):
         reservation.customer_tid = me.tid
 
         if expiration_provisioning is None:
-            expiration_provisioning = j.data.time.epoch + (60 * 10)  # 10 minutes
+            expiration_provisioning = j.data.time.epoch + (3600 * 24 * 365)
+
         reservation.data_reservation.expiration_provisioning = expiration_provisioning
         reservation.data_reservation.expiration_reservation = expiration_date
 
         reservation.json = reservation.data_reservation._json
         reservation.customer_signature = me.nacl.sign_hex(reservation.json.encode())
 
-        resp = self._explorer.actors_all.workload_manager.reservation_register(reservation)
+        resp = self._actor_workloads.workload_manager.reservation_register(reservation)
         return resp.id
 
     def reservation_result(self, reservation_id):
-        return self._explorer.actors_all.workload_manager.reservation_get(reservation_id).results
+        return self.reservation_get(reservation_id).results
+
+    def reservation_get(self, reservation_id):
+        """
+        fetch a specific reservation from BCDB
+        
+        :param reservation_id: reservation ID
+        :type reservation_id: int
+        :return: reservation object
+        :rtype: "tfgrid.workloads.reservation.1
+        """
+        return self._actor_workloads.workload_manager.reservation_get(reservation_id)
 
     def reservation_store(self, reservation, path):
         """
         write the reservation on disk.
         use reservation_load() to load it back
-        
+
         :param reservation: reservation object
         :type reservation: tfgrid.workloads.reservation.1
         :param path: destination file
         :type path: str
         """
-        j.data.serializers.json.dump(reservation._ddict, path)
+        j.data.serializers.json.dump(path, reservation._ddict)
 
     def reservation_load(self, path):
         """
         load a reservation stored on disk by reservation_store
-        
+
         :param path: source file
-        :type path: str        
+        :type path: str
         :return: reservation object
         :rtype: tfgrid.workloads.reservation.1
         """
