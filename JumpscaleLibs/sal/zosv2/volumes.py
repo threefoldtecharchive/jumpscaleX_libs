@@ -2,7 +2,7 @@ from .id import _next_workload_id
 from Jumpscale import j
 
 class VolumesGenerator:
-    def create(self, reservation, node_id, size=5, type="SSD"):
+    def create(self, reservation, node_id, size=5, type="HDD"):
         """
         add a volume to the reservation
         
@@ -42,7 +42,7 @@ class VolumesGenerator:
         vol.volume_id = f"-{volume.workload_id}"
         vol.mountpoint = mount_point
 
-    def attach_existing(self, container, volume_id, mount_point):
+    def attach_existing(self, container, volume, volume_id, mount_point):
         """
         attach an existing volume to a container
 
@@ -53,5 +53,5 @@ class VolumesGenerator:
         mount_point : path where to mount the volume in the container
         """
         vol = container.volumes.new()
-        vol.volume_id = volume_id
+        vol.volume_id = f"{volume_id}-{volume.workload_id}"
         vol.mountpoint = mount_point
