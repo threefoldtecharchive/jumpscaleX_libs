@@ -65,6 +65,21 @@ class Zosv2(j.baseclasses.object):
         return reservation
 
     def reservation_register(self, reservation, expiration_date, identity=None, expiration_provisioning=None):
+        """
+        register a reservation in BCDB
+        
+        :param reservation: reservation object
+        :type reservation:  tfgrid.workloads.reservation.1
+        :param expiration_date: timestamp of the date when to expiration should expire
+        :type expiration_date: int
+        :param identity: identity to use
+        :type identity: Jumpscale.tools.threebot.ThreebotMe.ThreebotMe
+        :param expiration_provisioning: timestamp of the date when to reservation should be provisionned
+                                        if the reservation is not provisioning before this time, it will never be provionned
+        :type expiration_provisioning: int, optional
+        :return: reservation ID
+        :rtype: int
+        """
         me = identity if identity else j.tools.threebot.me.default
         reservation.customer_tid = me.tid
 
@@ -81,6 +96,14 @@ class Zosv2(j.baseclasses.object):
         return resp.id
 
     def reservation_result(self, reservation_id):
+        """
+        returns the list of workload provisioning results of a reservation
+        
+        :param reservation_id: reservation ID
+        :type reservation_id: int
+        :return: list of tfgrid.workloads.reservation.result.1
+        :rtype: list
+        """
         return self.reservation_get(reservation_id).results
 
     def reservation_get(self, reservation_id):
@@ -93,6 +116,30 @@ class Zosv2(j.baseclasses.object):
         :rtype: "tfgrid.workloads.reservation.1
         """
         return self._actor_workloads.workload_manager.reservation_get(reservation_id)
+
+    def reservation_cancel(self, reservation_id, identity=None):
+        """
+        Cancel a reservation
+
+        you can only cancel your own reservation
+        Once a reservation is cancelled, it is marked as to be deleted in BCDB
+        the 0-OS node then detects it an will decomission the workloads from the reservation
+        
+        :param reservation_id: reservation id
+        :type reservation_id: int
+        :param identity: identity to use
+        :type identity: Jumpscale.tools.threebot.ThreebotMe.ThreebotMe
+        :return: true if the reservation has been cancelled successfully
+        :rtype: bool
+        """
+        me = identity if identity else j.tools.threebot.me.default
+
+        reservation = self.reservation_get(reservation_id)
+        signature = me.nacl.sign_hex(reservation.json.encode())
+
+        return self._actor_workloads.workload_manager.sign_delete(
+            reservation_id=reservation_id, tid=me.tid, signature=signature
+        )
 
     def reservation_store(self, reservation, path):
         """
