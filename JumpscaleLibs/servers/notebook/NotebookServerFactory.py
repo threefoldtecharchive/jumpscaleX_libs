@@ -33,7 +33,6 @@ class NotebookServerFactory(j.baseclasses.object):
         kosmos 'j.servers.notebook.start()'
         kosmos 'j.servers.notebook.start(voila=True)'
         """
-        self.install()
         path = j.core.tools.text_replace(path)
         dirpath = j.sal.fs.getDirName(path)
         basepath = j.sal.fs.getBaseName(path)
