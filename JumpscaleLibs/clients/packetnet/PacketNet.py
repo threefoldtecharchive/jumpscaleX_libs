@@ -501,7 +501,7 @@ class PacketNet(JSConfigBase):
                 sshclient = j.clients.ssh.new(name=hostname, addr=ipaddr)
             else:
                 self.addSSHKey(sshkey, hostname)
-                sshclient = j.clients.ssh.get(name=sshkey.name, addr= ipaddr, login="root")
+                sshclient = j.clients.ssh.get(name=sshkey.name, addr=ipaddr, login="root")
 
             assert sshclient.isconnected
 

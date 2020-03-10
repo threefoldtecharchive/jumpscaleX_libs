@@ -22,6 +22,6 @@ class PacketNetFactory(JSConfigBaseFactory):
         client = self.get()
         self._log_debug(client.servers_list())
 
-        # TODO:*1 connect to packet.net * boot zero-os
+        # TODO:*1 connect to packet.net
         # connect the client to zero-os
         # do a ping

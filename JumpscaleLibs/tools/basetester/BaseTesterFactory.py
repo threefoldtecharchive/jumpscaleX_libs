@@ -8,9 +8,9 @@ class Nodes(j.baseclasses.factory_data):
 
     _CHILDCLASSES = [NodesPacketNet]
     _SCHEMATEXT = """
-        @url = jumpscale.example.world2
+        @url = jumpscale.basetester.nodes
         name** = "" (S)
-        color = "red,blue" (E)
+        sshkey = "default"
         """
 
 
@@ -21,23 +21,11 @@ class BaseTesterFactory(j.baseclasses.factory):
     _CHILDCLASSES = [Nodes]
 
     def _init(self, **kwargs):
-        self.core = CoreTest(name="core")
-        self._node_main = None
+        # self.core = CoreTest(name="core")
+        pass
 
-    def node_packetnet_init(self, packetnetkey, packetnetproject):
-        """
-        will initialize the main node which will be used for our tests
-        """
-        node = self.nodes.nodespacketnet.get(name="main", packetnetkey=packetnetkey, packetnetproject=packetnetproject)
-
-    @property
-    def node_main(self):
-        if not self._node_main:
-            if self.nodespacketnet.find() > 0:
-                self._node_main = self.nodespacketnet.get("main")
-            if not self._node_main:
-                raise j.exceptions.Input("please init packetnet node or digital ocean")
-        return self._node_main
+    def node_get(self, name="basetest", plan="c2.medium.x86", os="ubuntu_18_04"):
+        return self.nodes.packetnet.get(name=name, plan=plan, os=os)
 
     def run(self):
         """
@@ -46,5 +34,6 @@ class BaseTesterFactory(j.baseclasses.factory):
         kosmos 'j.tools.basetester.run()'
 
         """
-        self.core.run()
-        self.node_main.run()
+        # self.core.run()
+        j.debug()
+        n = self.node_get()
