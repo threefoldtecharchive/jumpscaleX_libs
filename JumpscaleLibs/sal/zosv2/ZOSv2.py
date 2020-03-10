@@ -165,3 +165,49 @@ class Zosv2(j.baseclasses.object):
         r = j.data.serializers.json.load(path)
         reservation_model = j.data.schema.get_from_url("tfgrid.workloads.reservation.1")
         return reservation_model.new(datadict=r)
+
+    def reservation_live(self, expired=False, cancelled=False, identity=None):
+        me = identity if identity else j.tools.threebot.me.default
+        rs = self._actor_workloads.workload_manager.reservations_list().reservations
+
+        now = j.data.time.epoch
+
+        for r in rs:
+            if r.customer_tid != me.tid:
+                continue
+
+            if not expired and r.data_reservation.expiration_reservation < now:
+                continue
+
+            if not cancelled and str(r.next_action) == "DELETE":
+                continue
+
+            print(f"reservation {r.id}")
+
+            wid_res = {result.workload_id: result for result in r.results}
+
+            for c in r.data_reservation.containers:
+                result = wid_res.get(c.workload_id)
+                if not result:
+                    print("container: no result")
+                    continue
+
+                data = j.data.serializers.json.loads(result.data)
+                print(f"container ip4:{data['ipv4']} ip6{data['ipv6']}")
+
+            for zdb in r.data_reservation.zdbs:
+                result = wid_res.get(zdb.workload_id)
+                if not result:
+                    print("zdb: no result")
+                    continue
+
+                data = j.data.serializers.json.loads(result.data)
+                print(f"zdb namespace:{namespace} ip:{ip} port:{port}")
+
+            for network in r.data_reservation.networks:
+                result = wid_res.get(network.workload_id)
+                if not result:
+                    print(f"network name:{network.name}: no result")
+                    continue
+
+                print(f"network name:{network.name} iprage:{network.iprange}")
