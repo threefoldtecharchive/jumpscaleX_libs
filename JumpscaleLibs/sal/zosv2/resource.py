@@ -165,7 +165,8 @@ class ResourceParser:
             for co in tx.coin_outputs:
                 if co.condition.unlockhash in tfchain_wallet.addresses:
                     value += co.value.value
-            for (msg, amount) in expected_txes:
+            expected_txes_copy = expected_txes.copy()
+            for (msg, amount) in expected_txes_copy:
                 if msg == tx.data.value.decode():
                     # verify amount
                     if amount == str(value):
