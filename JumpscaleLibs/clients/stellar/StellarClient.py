@@ -499,8 +499,8 @@ class StellarClient(JSConfigClient):
             )
         )
 
-    def set_signature_count(self, public_keys_signers, signature_count, low_treshold=1, high_treshold=2):
-        """set_signature_count sets to amount of signatures required for the creation of multisig account. It also adds
+    def modify_signing_requirements(self, public_keys_signers, signature_count, low_treshold=1, high_treshold=2):
+        """modify_signing_requirements sets to amount of signatures required for the creation of multisig account. It also adds
         the public keys of the signer to this account
         :param public_keys_signers: list of public keys of signers.
         :type public_keys_signers: list
@@ -516,24 +516,24 @@ class StellarClient(JSConfigClient):
                 "Number of public_keys must be 1 less than the signature count in order to set the signature count"
             )
 
-        # For every public key given, add it as a signer to this account
-        for public_key_signer in public_keys_signers:
-            self._add_signer(public_key_signer)
-
         server = self._get_horizon_server()
         account = server.load_account(self.address)
-        tx = (
-            TransactionBuilder(account)
-            .append_set_options_op(
-                low_threshold=low_treshold, med_threshold=signature_count, high_threshold=high_treshold
-            )
-            .set_timeout(30)
-            .build()
-        )
-
         source_keypair = Keypair.from_secret(self.secret)
 
+        transaction_builder = TransactionBuilder(account)
+        # set the signing options
+        transaction_builder.append_set_options_op(
+            low_threshold=low_treshold, med_threshold=signature_count, high_threshold=high_treshold
+        )
+
+        # For every public key given, add it as a signer to this account
+        for public_key_signer in public_keys_signers:
+            transaction_builder.append_ed25519_public_key_signer(public_key_signer, 1)
+
+        transaction_builder.set_timeout(30)
+        tx = transaction_builder.build()
         tx.sign(source_keypair)
+
         try:
             response = server.submit_transaction(tx)
             self._log_info(response)
@@ -610,25 +610,6 @@ class StellarClient(JSConfigClient):
         except BadRequestError:
             self._log_info("Transaction need additional signatures in order to send")
             return tx.to_xdr()
-
-    def _add_signer(self, public_key_signer):
-        """_add_signer adds a public key as a signer to the source account
-
-        :param public_key_signer: public key of an account
-        :type public_key_signer: str
-        """
-        server = self._get_horizon_server()
-        account = server.load_account(self.address)
-        tx = TransactionBuilder(account).append_ed25519_public_key_signer(public_key_signer, 1).build()
-
-        source_keypair = Keypair.from_secret(self.secret)
-
-        tx.sign(source_keypair)
-        response = server.submit_transaction(tx)
-        self._log_info(response)
-        self._log_info(
-            "Added {pk_signer} as signer to address {address}".format(address=self.address, pk_signer=public_key_signer)
-        )
 
     def remove_signer(self, public_key_signer):
         """remove_signer removes a public key as a signer from the source account
