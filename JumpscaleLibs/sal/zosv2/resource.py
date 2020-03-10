@@ -2,7 +2,9 @@ from Jumpscale import j
 from decimal import Decimal, getcontext
 from stellar_sdk.exceptions import BadRequestError
 
-FARMER_STELLAR_ADDRESS = "GDSDHVHBB53Q36ZR4HQVXQAGDQPZXPAGZ5HOQBHDX2IUGXNLU5E4SPCO"
+# TFT_ISSUER on production
+TFT_ISSUER = "GBDO5QKDBHEFTD3VMADBFVZE3CP4Q7BRBOR7PZXSGADVYT6KQHDM746I"
+ASSET_CODE = "tft"
 
 
 class ResourceParser:
@@ -69,9 +71,9 @@ class ResourceParser:
 
     def payout_farmers(self, client, resource_units_per_node, reservation_id):
         if client._classname == "tfchainwallet":
-            _payout_farmers_tfchain(self, client, resource_units_per_node, reservation_id)
+            self._payout_farmers_tfchain(client, resource_units_per_node, reservation_id)
         elif client._classname == "stellarclient":
-            _payout_farmers_stellar(self, client, resource_units_per_node, reservation_id)
+            self._payout_farmers_stellar(client, resource_units_per_node, reservation_id)
         else:
             raise j.exceptions.Value("Provided client or wallet is not supported.")
 
@@ -99,14 +101,15 @@ class ResourceParser:
     def _payout_farmers_stellar(self, client, resource_units_per_node, reservation_id):
         total = Decimal(sum([c.TOTAL_COST for c in resource_units_per_node]))
         available_balance = None
-        for balance in client.get_balance():
+        for balance in client.get_balance().balances:
             if not balance.is_native():
-                available_balance = balance.balance
+                if balance.asset_issuer == TFT_ISSUER and balance.asset_code == ASSET_CODE:
+                    available_balance = balance.balance
 
         if available_balance is None:
             raise j.exceptions.Value("No balance in TFT has been found")
 
-        if available_balance < total:
+        if Decimal(available_balance) < total:
             err_msg = f"not enough found in the wallet to pay the reservation\nHave {available_balance}, needs {total}"
             raise j.exceptions.Value(err_msg)
 
@@ -117,24 +120,25 @@ class ResourceParser:
             msg = "-".join(workload_ids)
             msg = "{}-{}".format(reservation_id, msg)
             try:
-                # txn = client.transfer(resource_unit_node.farm_wallet, str(resource_unit_node.TOTAL_COST), memo_text=msg)
-
-                txn = client.transfer(FARMER_STELLAR_ADDRESS, str(resource_unit_node.TOTAL_COST), memo_text=msg)
+                asset = ASSET_CODE + ":" + TFT_ISSUER
+                txn = client.transfer(
+                    resource_unit_node.farm_wallet, str(resource_unit_node.TOTAL_COST), asset=asset, memo_text=msg
+                )
                 transactions.append(txn)
                 continue
             except BadRequestError as e:
                 raise e
         return transactions
 
-    def validate_reservation_payment(self, wallet, reservation_id):
+    def validate_reservation_payment(self, client, reservation_id):
         if client._classname == "tfchainwallet":
-            _validate_reservation_payment_tfchain(self, client, resource_units_per_node, reservation_id)
+            return self._validate_reservation_payment_tfchain(client, reservation_id)
         elif client._classname == "stellarclient":
-            _validate_reservation_payment_stellar(self, client, resource_units_per_node, reservation_id)
+            return self._validate_reservation_payment_stellar(client, reservation_id)
         else:
             raise j.exceptions.Value("Provided client or wallet is not supported.")
 
-    def _validate_reservation_payment_tfchain(self, wallet, reservation_id):
+    def _validate_reservation_payment_tfchain(self, tfchain_wallet, reservation_id):
         getcontext().prec = 9
         me_tid = j.tools.threebot.me.default.tid
         # load all farms belonging to our threebot id
@@ -154,7 +158,7 @@ class ResourceParser:
                 msg = "{}-{}".format(reservation_id, msg)
                 amount = Decimal(resource_unit_node.TOTAL_COST)
                 expected_txes.add((msg, amount))
-        # load the transactions in our wallet, for every workload in one of the owned farms, whe need a trandaction
+        # load the transactions in our wallet, for every workload in one of the owned farms, we need a transaction
         # with the right amount of tft
         for tx in tfchain_wallet.transactions:
             value = Decimal(0)
@@ -173,8 +177,7 @@ class ResourceParser:
 
     def _validate_reservation_payment_stellar(self, client, reservation_id):
         getcontext().prec = 7
-        # me_tid = j.tools.threebot.me.default.tid
-        me_tid = 1
+        me_tid = j.tools.threebot.me.default.tid
         # load all farms belonging to our threebot id
         farms = self._actor_directory.farms.owned_by(me_tid).farms
         farm_ids = set()
@@ -192,16 +195,19 @@ class ResourceParser:
                 msg = "{}-{}".format(reservation_id, msg)
                 amount = Decimal(resource_unit_node.TOTAL_COST)
                 expected_txes.add((msg, amount))
-        # load the transactions in our wallet, for every workload in one of the owned farms, whe need a trandaction
+        # load the transactions in our wallet, for every workload in one of the owned farms, we need a transaction
         # with the right amount of tft
         for tx in client.list_transactions():
-            for (msg, amount) in expected_txes:
+            expected_txes_copy = expected_txes.copy()
+            for (msg, amount) in expected_txes_copy:
                 if msg == tx.memo_text:
                     # verify amount
                     txe = client.get_transaction_effects(tx.hash)[0]
-                    if txe.amount == value:
-                        # good tx, remove from expected set
-                        expected_txes.remove((msg, amount))
+                    if txe.amount == amount:
+                        # verify that it is the asset that we except
+                        if txe.asset_issuer == TFT_ISSUER and txe.asset_code == ASSET_CODE:
+                            # good tx, remove from expected set
+                            expected_txes.remove((msg, amount))
         # verification is now done, if the expected tx set is empty, it means
         # all required txes have been created and processed.
         return len(expected_txes) == 0
