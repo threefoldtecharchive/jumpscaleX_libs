@@ -9,8 +9,7 @@ class NotebookServerFactory(j.baseclasses.object):
 
     def install(self):
         j.builders.system.package.update()
-        j.builders.system.package.install("nodejs")
-        j.builders.system.package.install("npm")
+        j.builders.runtimes.nodejs.install()
 
         try:
             import jupyterlab
@@ -57,7 +56,7 @@ class NotebookServerFactory(j.baseclasses.object):
             if not voila:
                 cmd_start = (
                     "jupyter lab --NotebookApp.allow_remote_access=True --NotebookApp.token='' --NotebookApp.password='' --ip=%s --allow-root %s"
-                    % (ip, path,)
+                    % (ip, path)
                 )
                 if base_url:
                     cmd_start += f" --NotebookApp.base_url={base_url}"
