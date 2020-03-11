@@ -28,14 +28,7 @@ class S3Client(JSConfigBase):
     bucket_ok = false (B)
     """
 
-    def _init(self, **kwargs):
-        # s3 = boto3.resource('s3',
-        #                     endpoint_url='http://%s:%s' % (c["address"], c["port"]),
-        #                     config=boto3.session.Config(signature_version='s3v4'),
-        #                     aws_access_key_id=c["accesskey_"],
-        #                     aws_secret_access_key=c["secretkey_"]
-        #                     )
-
+    def connect(self):
         # Create the http client to be able to set timeout
         http_client = urllib3.PoolManager(
             timeout=5,
