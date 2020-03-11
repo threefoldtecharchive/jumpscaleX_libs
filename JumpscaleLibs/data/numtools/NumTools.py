@@ -4,11 +4,9 @@ import struct
 import math
 
 JSBASE = j.baseclasses.object
-TESTTOOLS = j.baseclasses.testtools
-skip = j.baseclasses.testtools._skip
 
 
-class NumTools(j.baseclasses.object, TESTTOOLS):
+class NumTools(j.baseclasses.object):
 
     __jslocation__ = "j.tools.numtools"
 
@@ -272,8 +270,7 @@ class NumTools(j.baseclasses.object, TESTTOOLS):
             res.append(item[0])
         return res
 
-    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/100")
-    def test(self, name=""):
+    def test(self):
         """
         kosmos 'j.tools.numtools.test()'
         """
@@ -317,4 +314,3 @@ class NumTools(j.baseclasses.object, TESTTOOLS):
         assert len(bbin2) == 21
         llist3 = self.bin_to_listint(bbin2)
         assert llist3 == llist2
-        self._tests_run(name=name)
