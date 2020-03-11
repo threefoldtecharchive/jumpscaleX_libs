@@ -102,11 +102,8 @@ class Chatflow(j.baseclasses.object):
         """
         network_config = dict()
         network_range = netaddr.IPNetwork(ip_range).ip
-        network_range += 256
-        network_node = str(network_range) + "/24"
 
         ip_addresses = list()
-        wg_configs = list()
 
         for i, node_selected in enumerate(nodes):
             network_range += 256
@@ -127,11 +124,10 @@ class Chatflow(j.baseclasses.object):
             network_node = str(network_range) + "/24"
 
             wg_quick = j.sal.zosv2.network.add_access(network, node_selected.node_id, network_node, ipv4=True)
-            wg_configs.append(wg_quick)
 
         network_config["name"] = network.name
         network_config["ip_addresses"] = ip_addresses
-        network_config["wg"] = wg_configs
+        network_config["wg"] = wg_quick
 
         # register the reservation
         expiration = j.data.time.epoch + (3600 * 24 * 365)
