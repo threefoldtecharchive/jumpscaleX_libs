@@ -131,6 +131,7 @@ class Chatflow(j.baseclasses.object):
 
         # register the reservation
         expiration = j.data.time.epoch + (3600 * 24 * 365)
-        j.sal.zosv2.reservation_register(reservation, expiration)
+        rid = j.sal.zosv2.reservation_register(reservation, expiration)
+        network_config["rid"] = rid
 
         return network_config
