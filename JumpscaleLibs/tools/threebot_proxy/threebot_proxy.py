@@ -50,7 +50,7 @@ class ThreebotProxy(j.baseclasses.object):
 
     def callback(self):
 
-        data = request.args.get("signedAttempt")
+        data = request.query.get("signedAttempt")
 
         if not data:
             return abort(400, "signedAttempt parameter is missing")
@@ -81,7 +81,7 @@ class ThreebotProxy(j.baseclasses.object):
         if "doubleName" not in data:
             return abort(400, "Decrypted data does not contain (doubleName)")
 
-        if "state" not in data:
+        if "signedState" not in data:
             return abort(400, "Decrypted data does not contain (state)")
 
         if data["doubleName"] != username:
@@ -112,7 +112,9 @@ class ThreebotProxy(j.baseclasses.object):
 
         sei = result["email"]["sei"]
         res = requests.post(
-            "https://openkyc.live", headers={"Content-Type": "application/json"}, json={"signedEmailIdentifier": sei}
+            "https://openkyc.live/verification/verify-sei",
+            headers={"Content-Type": "application/json"},
+            json={"signedEmailIdentifier": sei},
         )
 
         if res.status_code != 200:
