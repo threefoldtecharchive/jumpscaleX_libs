@@ -102,7 +102,9 @@ class Link(j.baseclasses.object):
                 self.filename = self._clean(j.sal.fs.getBaseName(link_source))
 
                 if not self.extension in ["png", "jpg", "jpeg", "mov", "mp4", "mp3", "docx", "svg"]:
-                    self.extension = "jpeg"  # to support url's like https://images.unsplash.com/photo-1533157961145-8cb586c448e1?ixlib=rb-0.3.5&ixid=eyJhcHBfaWQiOjEyMDd9&s=4e252bcd55caa8958985866ad15ec954&auto=format&fit=crop&w=1534&q=80
+                    self.extension = (
+                        "jpeg"
+                    )  # to support url's like https://images.unsplash.com/photo-1533157961145-8cb586c448e1?ixlib=rb-0.3.5&ixid=eyJhcHBfaWQiOjEyMDd9&s=4e252bcd55caa8958985866ad15ec954&auto=format&fit=crop&w=1534&q=80
                     self.filename = self.filename + ".jpeg"
 
                 if j.sal.fs.getFileExtension(self.filename) != self.extension:
@@ -178,7 +180,7 @@ class Link(j.baseclasses.object):
     def download(self, dest):
         if not "http" in self.link_source:
             return
-        self._log_info("download:%s\n%s" % (self.link_source_original, dest))
+        self._log_debug("download:%s\n%s" % (self.link_source_original, dest))
         ddir = j.sal.fs.getDirName(dest)
         if not j.sal.fs.exists(dest):
             cmd = "cd %s;rm -f %s;curl '%s' -o '%s'" % (
@@ -193,7 +195,7 @@ class Link(j.baseclasses.object):
         def do():
             if any(link in self.link_source for link in SKIPPED_LINKS):
                 return True
-            self._log_info("check link exists:%s" % self.link_source)
+            self._log_debug("check link exists:%s" % self.link_source)
             if not j.clients.http.ping(self.link_source_original):
                 self.error("link not alive:%s" % self.link_source_original)
                 return False

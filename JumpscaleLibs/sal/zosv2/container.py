@@ -1,10 +1,11 @@
 import netaddr
 from Jumpscale import j
-import  base58
+import base58
 from nacl import signing
 from .id import _next_workload_id
 from nacl import public
 import binascii
+
 
 class ContainerGenerator:
     def create(

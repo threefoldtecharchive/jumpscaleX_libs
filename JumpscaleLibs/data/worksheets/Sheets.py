@@ -3,6 +3,8 @@ from .Sheet import *
 
 JSBASE = j.baseclasses.object
 
+skip = j.baseclasses.testtools._skip
+
 
 class Sheets(j.baseclasses.object):
     __jslocation__ = "j.data.worksheets"
@@ -109,6 +111,7 @@ class Sheets(j.baseclasses.object):
         newRow = self.applyFunction(rows2, mult, newRow)
         return newRow
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/109")
     def test(self):
         """
         kosmos 'j.data.worksheets.test()'

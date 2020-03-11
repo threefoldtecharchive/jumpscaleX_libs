@@ -81,7 +81,7 @@ class Zosv2(j.baseclasses.object):
         return resp.id
 
     def reservation_result(self, reservation_id):
-        return reservation_get(reservation_id).results
+        return self.reservation_get(reservation_id).results
 
     def reservation_get(self, reservation_id):
         """
@@ -92,7 +92,7 @@ class Zosv2(j.baseclasses.object):
         :return: reservation object
         :rtype: "tfgrid.workloads.reservation.1
         """
-        return self._actor_workloads.workload_manager.reservation_get(reservation_id).results
+        return self._actor_workloads.workload_manager.reservation_get(reservation_id)
 
     def reservation_store(self, reservation, path):
         """

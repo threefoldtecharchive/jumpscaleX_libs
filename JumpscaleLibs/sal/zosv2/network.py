@@ -10,6 +10,7 @@ from .id import _next_workload_id
 class NetworkGenerator:
     def __init__(self, explorer):
         self._actor_directory = explorer.actors_get("tfgrid.directory")
+        # self._actor_nodes = self._actor_directory.nodes
 
     def _load_network(self, network):
         for nr in network.network_resources:

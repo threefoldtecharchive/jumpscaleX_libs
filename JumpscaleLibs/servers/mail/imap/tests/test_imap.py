@@ -1,8 +1,16 @@
 from Jumpscale import j
 from smtplib import SMTP
-from imbox import Imbox
+try:
+    from imbox import Imbox
+except ImportError:
+    j.builders.runtimes.python3.pip_package_install("imbox")
+    from imbox import Imbox
 import unittest
-from imapclient import IMAPClient
+try:
+    from imapclient import IMAPClient
+except ImportError:
+    j.builders.runtimes.python3.pip_package_install("imapclient")
+    from imapclient import IMAPClient
 from time import sleep
 
 skip = j.baseclasses.testtools._skip
@@ -45,7 +53,9 @@ def test001_imapclient_can_create_folder_in_imap():
 
     info("List default folder, inbox should be there")
     box = Imbox("0.0.0.0", "random@mail.com", "randomPW", ssl=False, port=7143)
-    assert "INBOX" in str(box.folders()[-1][0])
+    # assert "INBOX" in str(box.folders()[-1][0])
+    # assert the whole string instead of the first element in the tuple as it is ordered alphabetically.
+    assert "INBOX" in str(box.folders()[-1])
 
     info("Connect the client to the IMAP server")
     client = IMAPClient("0.0.0.0", port=7143, ssl=False)
@@ -56,8 +66,9 @@ def test001_imapclient_can_create_folder_in_imap():
     client.create_folder(box_name)
 
     info("Assert that the new box has been created")
-    assert box_name in str(box.folders()[-1][0])
-
+    # assert box_name in str(box.folders()[-1][0])
+    # assert the whole string instead of the first element in the tuple as it is ordered alphabetically.
+    assert box_name in str(box.folders()[-1])
 
 @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/62")
 def test002_imapClient_get_messages_from_database():
