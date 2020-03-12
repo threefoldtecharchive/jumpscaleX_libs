@@ -1,5 +1,14 @@
 from Jumpscale import j
 from decimal import Decimal, getcontext
+from stellar_sdk.exceptions import BadRequestError
+from JumpscaleLibs.clients.stellar.StellarClient import StellarClient
+from JumpscaleLibs.clients.tfchain.TFChainWallet import TFChainWallet
+
+# TFT_ISSUER on production
+TFT_ISSUER_PROD = "GBOVQKJYHXRR3DX6NOX2RRYFRCUMSADGDESTDNBDS6CDVLGVESRTAC47"
+# TFT_ISSUER on testnet
+TFT_ISSUER_TEST = "GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3"
+ASSET_CODE = "TFT"
 
 
 class ResourceParser:
@@ -47,7 +56,6 @@ class ResourceParser:
             farm = self._actor_directory.farms.get(node.farm_id, False)
 
             wallet_address = farm.wallet_addresses[0]
-
             total_cru_cost = resource_unit_node.CRU * farm.resource_prices[0].cru
             total_sru_cost = resource_unit_node.SRU * farm.resource_prices[0].sru
             total_hru_cost = resource_unit_node.HRU * farm.resource_prices[0].hru
@@ -65,7 +73,15 @@ class ResourceParser:
 
         return resource_units_per_node
 
-    def payout_farmers(self, tfchain_wallet, resource_units_per_node, reservation_id):
+    def payout_farmers(self, client, resource_units_per_node, reservation_id):
+        if isinstance(client, TFChainWallet):
+            self._payout_farmers_tfchain(client, resource_units_per_node, reservation_id)
+        if isinstance(client, StellarClient):
+            self._payout_farmers_stellar(client, resource_units_per_node, reservation_id)
+        else:
+            raise j.exceptions.Value("Provided client or wallet is not supported.")
+
+    def _payout_farmers_tfchain(self, tfchain_wallet, resource_units_per_node, reservation_id):
         total = Decimal(sum([c.TOTAL_COST for c in resource_units_per_node]))
         available = tfchain_wallet.balance.available.value
         if available < total:
@@ -86,7 +102,51 @@ class ResourceParser:
                 continue
         return transactions
 
-    def validate_reservation_payment(self, tfchain_wallet, reservation_id):
+    def _payout_farmers_stellar(self, client, resource_units_per_node, reservation_id):
+        total = Decimal(sum([c.TOTAL_COST for c in resource_units_per_node]))
+        available_balance = None
+        for balance in client.get_balance().balances:
+            if not balance.is_native():
+                if balance.asset_issuer == TFT_ISSUER and balance.asset_code == ASSET_CODE:
+                    available_balance = balance.balance
+
+        if available_balance is None:
+            raise j.exceptions.Value("No balance in TFT has been found")
+
+        if Decimal(available_balance) < total:
+            err_msg = f"not enough found in the wallet to pay the reservation\nHave {available_balance}, needs {total}"
+            raise j.exceptions.Value(err_msg)
+
+        transactions = []
+        for resource_unit_node in resource_units_per_node:
+            resource_unit_node.workload_id.sort()
+            workload_ids = [str(wid) for wid in resource_unit_node.workload_id]
+            msg = "-".join(workload_ids)
+            msg = "{}-{}".format(reservation_id, msg)
+            try:
+                asset = None
+                if client.network == "TEST":
+                    asset = ASSET_CODE + ":" + TFT_ISSUER_TEST
+                else:
+                    asset = ASSET_CODE + ":" + TFT_ISSUER_PROD
+                txn = client.transfer(
+                    resource_unit_node.farm_wallet, str(resource_unit_node.TOTAL_COST), asset=asset, memo_text=msg
+                )
+                transactions.append(txn)
+                continue
+            except BadRequestError as e:
+                raise e
+        return transactions
+
+    def validate_reservation_payment(self, client, reservation_id):
+        if isinstance(client, TFChainWallet):
+            return self._validate_reservation_payment_tfchain(client, reservation_id)
+        if isinstance(client, StellarClient):
+            return self._validate_reservation_payment_stellar(client, reservation_id)
+        else:
+            raise j.exceptions.Value("Provided client or wallet is not supported.")
+
+    def _validate_reservation_payment_tfchain(self, tfchain_wallet, reservation_id):
         getcontext().prec = 9
         me_tid = j.tools.threebot.me.default.tid
         # load all farms belonging to our threebot id
@@ -106,20 +166,63 @@ class ResourceParser:
                 msg = "{}-{}".format(reservation_id, msg)
                 amount = Decimal(resource_unit_node.TOTAL_COST)
                 expected_txes.add((msg, amount))
-        # load the transactions in our wallet, for every workload in one of the owned farms, whe need a trandaction
+        # load the transactions in our wallet, for every workload in one of the owned farms, we need a transaction
         # with the right amount of tft
         for tx in tfchain_wallet.transactions:
             value = Decimal(0)
             for co in tx.coin_outputs:
                 if co.condition.unlockhash in tfchain_wallet.addresses:
                     value += co.value.value
-            for (msg, amount) in expected_txes:
+            expected_txes_copy = expected_txes.copy()
+            for (msg, amount) in expected_txes_copy:
                 if msg == tx.data.value.decode():
                     # verify amount
                     if amount == str(value):
                         # good tx, remove from expected set
                         expected_txes.remove((msg, amount))
-        # verification is now done, if teh expected tx set is empty, it means
+        # verification is now done, if the expected tx set is empty, it means
+        # all required txes have been created and processed.
+        return len(expected_txes) == 0
+
+    def _validate_reservation_payment_stellar(self, client, reservation_id):
+        issuer = None
+        if client.network == "TEST":
+            issuer = TFT_ISSUER_TEST
+        else:
+            issuer = TFT_ISSUER_PROD
+        getcontext().prec = 7
+        me_tid = j.tools.threebot.me.default.tid
+        # load all farms belonging to our threebot id
+        farms = self._actor_directory.farms.owned_by(me_tid).farms
+        farm_ids = set()
+        for farm in farms:
+            farm_ids.add(farm.id)
+        # load reservation and parse resource units
+        resource_units_per_node = self.calculate_used_resources_cost()
+        # tuple of the message and amount expected in a tx
+        expected_txes = set()
+        for resource_unit_node in resource_units_per_node:
+            if resource_unit_node.farm_id in farm_ids:
+                resource_unit_node.workload_id.sort()
+                workload_ids = [str(wid) for wid in resource_unit_node.workload_id]
+                msg = "-".join(workload_ids)
+                msg = "{}-{}".format(reservation_id, msg)
+                amount = Decimal(resource_unit_node.TOTAL_COST)
+                expected_txes.add((msg, amount))
+        # load the transactions in our wallet, for every workload in one of the owned farms, we need a transaction
+        # with the right amount of tft
+        for tx in client.list_transactions():
+            expected_txes_copy = expected_txes.copy()
+            for (msg, amount) in expected_txes_copy:
+                if msg == tx.memo_text:
+                    # verify amount
+                    txe = client.get_transaction_effects(tx.hash)[0]
+                    if txe.amount == amount:
+                        # verify that it is the asset that we except
+                        if txe.asset_issuer == issuer and txe.asset_code == ASSET_CODE:
+                            # good tx, remove from expected set
+                            expected_txes.remove((msg, amount))
+        # verification is now done, if the expected tx set is empty, it means
         # all required txes have been created and processed.
         return len(expected_txes) == 0
 
