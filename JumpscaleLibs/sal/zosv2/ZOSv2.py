@@ -64,7 +64,9 @@ class Zosv2(j.baseclasses.object):
         reservation = reservation_model.new()
         return reservation
 
-    def reservation_register(self, reservation, expiration_date, identity=None, expiration_provisioning=None):
+    def reservation_register(
+        self, reservation, expiration_date, identity=None, expiration_provisioning=None, customer_tid=None
+    ):
         me = identity if identity else j.tools.threebot.me.default
         reservation.customer_tid = me.tid
 
@@ -78,6 +80,13 @@ class Zosv2(j.baseclasses.object):
         reservation.customer_signature = me.nacl.sign_hex(reservation.json.encode())
 
         resp = self._actor_workloads.workload_manager.reservation_register(reservation)
+        if j.core.myenv.config.get("DEPLOYER") and customer_tid:
+            # create a new object from deployed_reservation with the reservation and the tid
+            deployed_rsv_model = j.clients.bcdbmodel.get(url="tfgrid.deployed_reservation.1", name="tfgrid_workloads")
+            deployed_reservation = deployed_rsv_model.new()
+            deployed_reservation.reservation_id = resp.id
+            deployed_reservation.customer_tid = customer_tid
+            deployed_reservation.save()
         return resp.id
 
     def reservation_result(self, reservation_id):
@@ -86,7 +95,7 @@ class Zosv2(j.baseclasses.object):
     def reservation_get(self, reservation_id):
         """
         fetch a specific reservation from BCDB
-        
+
         :param reservation_id: reservation ID
         :type reservation_id: int
         :return: reservation object

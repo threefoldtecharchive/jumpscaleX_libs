@@ -34,7 +34,7 @@ class Chatflow(j.baseclasses.object):
 
         return nodes_selected
 
-    def network_configure(self, bot, reservation, nodes):
+    def network_configure(self, bot, reservation, nodes, customer_tid):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -43,7 +43,7 @@ class Chatflow(j.baseclasses.object):
         return reservation (Object) , config of network (dict)
         """
         ip_range = self.ip_range_get(bot)
-        return self.network_get(bot, reservation, ip_range, nodes)
+        return self.network_get(bot, reservation, ip_range, nodes, customer_tid)
 
     def ip_range_get(self, bot):
         """
@@ -65,7 +65,7 @@ class Chatflow(j.baseclasses.object):
             ip_range = str(first_digit) + "." + str(second_digit) + ".0.0/16"
         return ip_range
 
-    def network_get(self, bot, reservation, ip_range, nodes):
+    def network_get(self, bot, reservation, ip_range, nodes, customer_tid):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -82,7 +82,7 @@ class Chatflow(j.baseclasses.object):
                 "Please add a network name. Don't forget to save it. Otherwise leave it empty for using a generated name"
             )
             network = j.sal.zosv2.network.create(reservation, ip_range, network_name)
-            network_config = self._register_network(bot, reservation, ip_range, network, nodes)
+            network_config = self._register_network(bot, reservation, ip_range, network, nodes, customer_tid)
         else:
             res = "# This feature is not available yet."
             res = j.tools.jinja2.template_render(text=res)
@@ -90,7 +90,7 @@ class Chatflow(j.baseclasses.object):
 
         return reservation, network_config
 
-    def _register_network(self, bot, reservation, ip_range, network, nodes):
+    def _register_network(self, bot, reservation, ip_range, network, nodes, customer_tid):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -131,7 +131,7 @@ class Chatflow(j.baseclasses.object):
 
         # register the reservation
         expiration = j.data.time.epoch + (3600 * 24 * 365)
-        rid = j.sal.zosv2.reservation_register(reservation, expiration)
+        rid = j.sal.zosv2.reservation_register(reservation, expiration, customer_tid=customer_tid)
         network_config["rid"] = rid
 
         return network_config
