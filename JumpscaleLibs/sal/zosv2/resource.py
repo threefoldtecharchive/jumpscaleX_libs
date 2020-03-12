@@ -1,6 +1,8 @@
 from Jumpscale import j
 from decimal import Decimal, getcontext
 from stellar_sdk.exceptions import BadRequestError
+from JumpscaleLibs.clients.stellar.StellarClient import StellarClient
+from JumpscaleLibs.clients.tfchain.TFChainWallet import TFChainWallet
 
 # TFT_ISSUER on production
 TFT_ISSUER_PROD = "GBOVQKJYHXRR3DX6NOX2RRYFRCUMSADGDESTDNBDS6CDVLGVESRTAC47"
@@ -72,9 +74,9 @@ class ResourceParser:
         return resource_units_per_node
 
     def payout_farmers(self, client, resource_units_per_node, reservation_id):
-        if client._classname == "tfchainwallet":
+        if isinstance(client, TFChainWallet):
             self._payout_farmers_tfchain(client, resource_units_per_node, reservation_id)
-        elif client._classname == "stellarclient":
+        if isinstance(client, StellarClient):
             self._payout_farmers_stellar(client, resource_units_per_node, reservation_id)
         else:
             raise j.exceptions.Value("Provided client or wallet is not supported.")
@@ -137,9 +139,9 @@ class ResourceParser:
         return transactions
 
     def validate_reservation_payment(self, client, reservation_id):
-        if client._classname == "tfchainwallet":
+        if isinstance(client, TFChainWallet):
             return self._validate_reservation_payment_tfchain(client, reservation_id)
-        elif client._classname == "stellarclient":
+        if isinstance(client, StellarClient):
             return self._validate_reservation_payment_stellar(client, reservation_id)
         else:
             raise j.exceptions.Value("Provided client or wallet is not supported.")
