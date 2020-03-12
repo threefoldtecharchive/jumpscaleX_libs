@@ -3,8 +3,10 @@ from decimal import Decimal, getcontext
 from stellar_sdk.exceptions import BadRequestError
 
 # TFT_ISSUER on production
-TFT_ISSUER = "GBDO5QKDBHEFTD3VMADBFVZE3CP4Q7BRBOR7PZXSGADVYT6KQHDM746I"
-ASSET_CODE = "tft"
+TFT_ISSUER_PROD = "GBOVQKJYHXRR3DX6NOX2RRYFRCUMSADGDESTDNBDS6CDVLGVESRTAC47"
+# TFT_ISSUER on testnet
+TFT_ISSUER_TEST = "GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3"
+ASSET_CODE = "TFT"
 
 
 class ResourceParser:
@@ -120,7 +122,11 @@ class ResourceParser:
             msg = "-".join(workload_ids)
             msg = "{}-{}".format(reservation_id, msg)
             try:
-                asset = ASSET_CODE + ":" + TFT_ISSUER
+                asset = None
+                if client.network == "TEST":
+                    asset = ASSET_CODE + ":" + TFT_ISSUER_TEST
+                else:
+                    asset = ASSET_CODE + ":" + TFT_ISSUER_PROD
                 txn = client.transfer(
                     resource_unit_node.farm_wallet, str(resource_unit_node.TOTAL_COST), asset=asset, memo_text=msg
                 )
@@ -177,6 +183,11 @@ class ResourceParser:
         return len(expected_txes) == 0
 
     def _validate_reservation_payment_stellar(self, client, reservation_id):
+        issuer = None
+        if client.network == "TEST":
+            issuer = TFT_ISSUER_TEST
+        else:
+            issuer = TFT_ISSUER_PROD
         getcontext().prec = 7
         me_tid = j.tools.threebot.me.default.tid
         # load all farms belonging to our threebot id
@@ -206,7 +217,7 @@ class ResourceParser:
                     txe = client.get_transaction_effects(tx.hash)[0]
                     if txe.amount == amount:
                         # verify that it is the asset that we except
-                        if txe.asset_issuer == TFT_ISSUER and txe.asset_code == ASSET_CODE:
+                        if txe.asset_issuer == issuer and txe.asset_code == ASSET_CODE:
                             # good tx, remove from expected set
                             expected_txes.remove((msg, amount))
         # verification is now done, if the expected tx set is empty, it means
