@@ -42,5 +42,5 @@ class ZDBGenerator:
         if password:
             node = self._actor_directory.nodes.get(node_id)
             zdb.password = encrypt_for_node(node.public_key_hex, password)
-        zdb.type = disk_type
+        zdb.disk_type = disk_type.lower()
         return zdb
