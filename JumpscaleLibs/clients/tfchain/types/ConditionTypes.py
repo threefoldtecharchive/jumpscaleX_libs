@@ -512,7 +512,7 @@ class UnlockHash(BaseDataTypeClass):
     def __eq__(self, other):
         try:
             other = UnlockHash._op_other_as_unlockhash(other)
-        except :
+        except:
             return False
         other = UnlockHash._op_other_as_unlockhash(other)
         return self.type == other.type and self.hash == other.hash
@@ -520,9 +520,9 @@ class UnlockHash(BaseDataTypeClass):
     def __ne__(self, other):
         try:
             other = UnlockHash._op_other_as_unlockhash(other)
-        except :
+        except:
             return True
-        
+
         return self.type != other.type or self.hash != other.hash
 
     def __hash__(self):

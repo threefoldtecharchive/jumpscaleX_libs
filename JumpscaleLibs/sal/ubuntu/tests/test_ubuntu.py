@@ -1,24 +1,24 @@
 import os
 from math import isclose
-from loguru import logger
 from Jumpscale import j
+
 
 """
 j.sal.ubuntu._test(name='ubuntu')
 """
 
 j.sal.process.execute("apt update -y")
-j.sal.process.execute("apt-get install -y python3-distutils-extra python3-dbus python3-apt")
-
-LOGGER = logger
-LOGGER.add("Config_manager_{time}.log")
+try:
+    j.sal.process.execute("apt-get install -y python3-distutils-extra python3-dbus python3-apt")
+except:
+    j.sal.process.execute("apt-get install -y python3-dbus python3-apt")
 
 
 skip = j.baseclasses.testtools._skip
 
 
 def info(message):
-    LOGGER.info(message)
+    j.tools.logger._log_info(message)
 
 
 def _check_init_process():
@@ -522,41 +522,38 @@ def test021_check_os():
             assert "Only Ubuntu/Mint supported" in e.exception.args[0]
 
 
-skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/71")
-
-
 def test022_deb_download_install():
     """TC418
-    check download and install the package
+        check download and install the package
 
-    **Test Scenario**
-    #. Check status of vim-gtk is installed or not
-    #. If vim-gtk installed remove it by apt remove before install it
-    #. Installed it again by tested method
-    #. Get vim-gtk status should be installed successfully
-    #. Verify that vim-gtk installed successfully
-    #. Remove vim-gtk to return to origin state
-    #. Install vim-gtk to return to origin state as we remove it before testing
-    """
-    info("Check status of vim-gtk: is installed or not")
-    vim_gtk_installed = j.sal.ubuntu.is_pkg_installed("vim-gtk")
-    if vim_gtk_installed:
-        info("vim-gtk is installed, removing it")
-        j.sal.process.execute("apt remove -y vim-gtk")
-    info("installed vim-gtk again by tested method")
+        **Test Scenario**
+        #. Check status of nano is installed or not
+        #. If nano installed remove it by apt remove before install it
+        #. Installed it again by tested method
+        #. Get nano status should be installed successfully
+        #. Verify that nano installed successfully
+        #. Remove nano to return to origin state
+        #. Install nano to return to origin state as we remove it before testing
+        """
+    info("Check status of nano: is installed or not")
+    nano_installed = j.sal.ubuntu.is_pkg_installed("nano")
+    if nano_installed:
+        info("nano is installed, removing it")
+        j.sal.process.execute("apt remove -y nano")
+    info("installed nano again by tested method")
     j.sal.ubuntu.deb_download_install(
-        "http://security.ubuntu.com/ubuntu/pool/universe/v/vim/vim-gtk_8.0.1453-1ubuntu1.1_amd64.deb",
+        "http://archive.ubuntu.com/ubuntu/pool/main/n/nano/nano_2.9.3-2_amd64.deb",
         remove_downloaded=True,
     )
-    info("Get vim-gtk status should be installed successfully ")
-    rc2, out2, err2 = j.sal.process.execute("dpkg -s vim-gtk|grep Status")
-    info("verify that vim-gtk installed successfully")
+    info("Get nano status should be installed successfully ")
+    rc2, out2, err2 = j.sal.process.execute("dpkg -s nano|grep Status")
+    info("verify that nano installed successfully")
     assert "install ok" in out2
-    info("remove vim-gtk to return to origin state")
-    j.sal.process.execute("apt remove -y vim-gtk")
-    if vim_gtk_installed:
-        info("install vim-gtk to return to origin state as we remove it before testing ")
-        j.sal.process.execute("apt install -y vim-gtk")
+    info("remove nano to return to origin state")
+    j.sal.process.execute("apt remove -y nano")
+    if nano_installed:
+        info("install nano to return to origin state as we remove it before testing ")
+        j.sal.process.execute("apt install -y nano")
 
 
 def test023_pkg_remove():
@@ -608,9 +605,7 @@ def test024_service_disable_start_boot():
     info("enable cron service to create service file to return as origin state")
     j.sal.ubuntu.service_enable_start_boot("cron")
     if not cron_file_exist:
-        info(
-            "disable cron service as cron service does not exist before testing to return back to origin state"
-        )
+        info("disable cron service as cron service does not exist before testing to return back to origin state")
         j.sal.ubuntu.service_disable_start_boot("cron")
 
 

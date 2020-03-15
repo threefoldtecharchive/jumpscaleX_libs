@@ -7,7 +7,8 @@ def test():
     # Make sure that the server has stopped
     j.servers.smtp.stop()
     j.servers.smtp.start()
-    with SMTP("172.17.0.2", 7002) as smtp:
+    ip = j.sal.nettools.getIpAddress()['ip'][0]
+    with SMTP(ip, 7002) as smtp:
         # Create the mail
         body = "Hello!"
         from_mail = "you@gmail.com"
