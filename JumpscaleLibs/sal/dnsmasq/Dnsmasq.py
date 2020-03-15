@@ -771,11 +771,3 @@ class DNSMasq(JSBASE):
         j.sal.fs.createDir("/etc/dnsmasq.d/")
         j.sal.fs.createDir(self._configdir)
         j.tools.bash.get().executor.file_write(self._configfile, config)
-
-    def _test(self, name=""):
-        """Run tests under tests
-
-        :param name: basename of the file to run, defaults to "".
-        :type name: str, optional
-        """
-        self._test_run(name=name, obj_key="test_main")

@@ -1,10 +1,10 @@
 from Jumpscale import j
 from .DigitalOcean import DigitalOcean
 
-JSConfigBaseFactory = j.baseclasses.object_config_collection_testtools
+skip = j.baseclasses.testtools._skip
 
 
-class DigitalOceanFactory(JSConfigBaseFactory):
+class DigitalOceanFactory(j.baseclasses.object_config_collection_testtools):
 
     __jslocation__ = "j.clients.digitalocean"
     _CHILDCLASS = DigitalOcean
@@ -39,6 +39,7 @@ class DigitalOceanFactory(JSConfigBaseFactory):
             droplet, sshclient = c.droplet_create(delete=delete)
         return sshclient
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_core/issues/525")
     def test(self, reset=False):
         """
         do:

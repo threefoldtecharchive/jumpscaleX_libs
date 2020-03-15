@@ -2,6 +2,7 @@ from Jumpscale import j
 from .MongoDBClient import MongoDBClient
 
 JSConfigs = j.baseclasses.object_config_collection
+skip = j.baseclasses.testtools._skip
 
 
 class MongoFactory(JSConfigs):
@@ -17,6 +18,7 @@ class MongoFactory(JSConfigs):
     def stop(self):
         j.builders.db.mongodb.stop()
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/79")
     def test(self):
         # check README
         self.start()

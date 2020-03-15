@@ -5,6 +5,7 @@ from .Standard import TransactionV1
 from .Minting import TransactionV128, TransactionV129
 from .ThreeBot import BotTransactionBaseClass, TransactionV144, TransactionV145, TransactionV146
 from .ERC20 import TransactionV208, TransactionV209, TransactionV210
+from .Authcoin import TransactionV176, TransactionV177
 
 
 class TransactionFactory(j.baseclasses.object):
@@ -73,6 +74,18 @@ class TransactionFactory(j.baseclasses.object):
         """
         return TransactionV210()
 
+    def auth_address_update_new(self):
+        """
+        Creates and returns an empty Authcoin AuthAddressUpdate transaction
+        """
+        return TransactionV176()
+
+    def auth_condition_update_new(self):
+        """
+        Creates and returns an empty Authcoin AuthConditionUpdate transaction
+        """
+        return TransactionV177()
+
     def from_json(self, obj, id=None):
         """
         Create a TFChain transaction from a JSON string or dictionary.
@@ -105,6 +118,10 @@ class TransactionFactory(j.baseclasses.object):
             txn = TransactionV210.from_json(obj)
         elif tt == TransactionVersion.MINTER_DEFINITION:
             txn = TransactionV128.from_json(obj)
+        elif tt == TransactionVersion.AUTH_ADDRESS_UPDATE:
+            txn = TransactionV176.from_json(obj)
+        elif tt == TransactionVersion.AUTH_CONDITION_UPDATE:
+            txn = TransactionV177.from_json(obj)
         elif tt == TransactionVersion.MINTER_COIN_CREATION:
             txn = TransactionV129.from_json(obj)
         elif tt == TransactionVersion.LEGACY:

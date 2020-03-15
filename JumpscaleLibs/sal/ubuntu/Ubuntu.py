@@ -4,7 +4,7 @@ JSBASE = j.baseclasses.object
 TESTTOOLS = j.baseclasses.testtools
 
 
-class Ubuntu(JSBASE, TESTTOOLS):
+class Ubuntu(JSBASE, j.baseclasses.testtools):
     __jslocation__ = "j.sal.ubuntu"
 
     def _init(self, **kwargs):
@@ -493,10 +493,10 @@ exec {demonpath} {args} >> {logdir}/{servicename}.log 2>&1
             cmd = "ssh-keygen -t %s -b 4096 -P '%s' -f %s" % (ssh_type, passphrase, path)
             j.sal.process.execute(cmd)
 
-    def _test(self, name=""):
+    def test(self, name=""):
         """Run tests under tests
 
         :param name: basename of the file to run, defaults to "".
         :type name: str, optional
         """
-        self._test_run(name=name, obj_key="main")
+        self._tests_run(name=name)

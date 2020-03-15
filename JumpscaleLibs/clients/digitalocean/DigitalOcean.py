@@ -123,11 +123,10 @@ class DigitalOcean(j.baseclasses.object_config):
 
     def image_get(self, name):
         for item in self.digitalocean_account_images:
-            if item.description:
-                name_do = item.description.lower()
-            else:
-                name_do = item.distribution + " " + item.name
-            if name_do.lower().find(name) != -1:
+            name_do1 = item.description.lower()
+            name_do2 = item.distribution + " " + item.name
+            print(f" - {name_do1}--{name_do2}")
+            if name_do1.lower().find(name) != -1 or name_do2.lower().find(name) != -1:
                 return item
         raise j.exceptions.Base("did not find image:%s" % name)
 
@@ -189,9 +188,7 @@ class DigitalOcean(j.baseclasses.object_config):
             if delete:
                 dr0.destroy()
             else:
-                sshcl = j.clients.ssh.get(
-                    name="do_%s" % name, addr=dr0.ip_address, client_type="pssh", sshkey_name=sshkey
-                )
+                sshcl = j.clients.ssh.get(name="do_%s" % name, addr=dr0.ip_address, sshkey_name=sshkey)
                 sshcl.save()
                 return dr0, sshcl
 
@@ -241,10 +238,7 @@ class DigitalOcean(j.baseclasses.object_config):
         actions_wait()
         droplet.load()
 
-        sshcl = j.clients.ssh.get(
-            name="do_%s" % name, addr=droplet.ip_address, client_type="pssh", sshkey_name=sshkey.name
-        )
-        sshcl.state_reset()  # important otherwise the state does not correspond
+        sshcl = j.clients.ssh.get(name="do_%s" % name, addr=droplet.ip_address, sshkey_name=sshkey.name)
         sshcl.save()
 
         return droplet, sshcl

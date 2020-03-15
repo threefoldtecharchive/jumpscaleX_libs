@@ -111,10 +111,6 @@ class Container(j.baseclasses.object):
 
         @param private_port int: private port number to look for its public port
         """
-
-        if self.is_running() is False:
-            raise j.exceptions.RuntimeError("docker %s is not running cannot get pub port." % self)
-
         if self.info["Ports"] is not None:
             for port in self.info["Ports"]:
                 if port["PrivatePort"] == private_port:

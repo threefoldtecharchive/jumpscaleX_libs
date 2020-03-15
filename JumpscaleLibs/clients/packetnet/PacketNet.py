@@ -27,10 +27,10 @@ class PacketNet(JSConfigBase):
     @property
     def client(self):
         """If client not set, a new client is created
-        
+
         :raises RuntimeError: Auth token not configured
         :return: client
-        :rtype: 
+        :rtype:
         """
 
         if not self._client:
@@ -163,7 +163,7 @@ class PacketNet(JSConfigBase):
 
     def getProjects(self):
         """List projects
-        
+
         :return: projects
         :rtype: dict
         """
@@ -175,7 +175,7 @@ class PacketNet(JSConfigBase):
 
     def getDevices(self):
         """List devices for project
-        
+
         :return: devices
         :rtype: dict
         """
@@ -187,7 +187,7 @@ class PacketNet(JSConfigBase):
 
     def getDevice(self, name, id=None, die=False):
         """Get specific device
-        
+
         :param name: device name
         :type name: str
         :param id:device id, defaults to None
@@ -211,7 +211,7 @@ class PacketNet(JSConfigBase):
 
     def removeDevice(self, name):
         """Remove a specific device
-        
+
         :param name: device name
         :type name: str
         """
@@ -515,8 +515,6 @@ class PacketNet(JSConfigBase):
         conf["project_id"] = self.projectid
         conf["os"] = os
         conf["ipxeUrl"] = ipxeUrl
-
-        sshclient.state_reset()
 
         j.shell()
 

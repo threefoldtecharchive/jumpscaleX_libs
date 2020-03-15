@@ -2,6 +2,7 @@ from Jumpscale import j
 from .PacketNet import PacketNet
 
 JSConfigBaseFactory = j.baseclasses.object_config_collection
+skip = j.baseclasses.testtools._skip
 
 
 class PacketNetFactory(JSConfigBaseFactory):
@@ -12,6 +13,7 @@ class PacketNetFactory(JSConfigBaseFactory):
     def _init(self, **kwargs):
         self.connections = {}
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_core/issues/527")
     def test(self):
         """
         do:

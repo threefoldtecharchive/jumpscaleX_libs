@@ -402,7 +402,7 @@ class Docker(j.baseclasses.object):
             stop_timeout=None,
             runtime=None,
         )
-        if res["Warnings"] is not None:
+        if res["Warnings"]:
             raise j.exceptions.RuntimeError("Could not create docker, res:'%s'" % res)
 
         id = res["Id"]

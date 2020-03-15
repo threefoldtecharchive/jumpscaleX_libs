@@ -18,7 +18,7 @@ class Mount(j.baseclasses.object):
             self._path = j.tools.path.get("/tmp").joinpath(j.data.idgenerator.generateXCharID(8))
             self._autoClean = True
         self._options = options
-        self._executor = executor or j.tools.executorLocal
+        self._executor = executor or j.tools.executor.local
 
     @property
     def _mount(self):

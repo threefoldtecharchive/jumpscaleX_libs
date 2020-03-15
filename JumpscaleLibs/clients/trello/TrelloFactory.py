@@ -2,6 +2,7 @@ from Jumpscale import j
 from .TrelloClient import TrelloClient
 
 JSConfigs = j.baseclasses.object_config_collection
+skip = j.baseclasses.testtools._skip
 
 
 class Trello(JSConfigs):
@@ -9,8 +10,9 @@ class Trello(JSConfigs):
     _CHILDCLASS = TrelloClient
 
     def install(self, reset=False):
-        j.builders.runtimes.pip.install("py-trello", reset=reset)
+        j.builders.runtimes.python3.pip_package_install("py-trello", reset=reset)
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/84")
     def test(self):
         """
         kosmos 'j.clients.trello.test()'

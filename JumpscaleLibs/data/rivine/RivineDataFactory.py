@@ -3,8 +3,10 @@ from Jumpscale import j
 from .RivineBinaryEncoder import RivineBinaryEncoder, RivineBinaryObjectEncoderBase
 from .SiaBinaryEncoder import SiaBinaryEncoder, SiaBinaryObjectEncoderBase
 
+TESTTOOLS = j.baseclasses.testtools
 
-class RivineDataFactory(j.baseclasses.object):
+
+class RivineDataFactory(j.baseclasses.object, TESTTOOLS):
     """
     Tools to encode binary data for rivine
     """
@@ -40,4 +42,4 @@ class RivineDataFactory(j.baseclasses.object):
         kosmos 'j.data.rivine.test()'
         :return:
         """
-        self._test_run(name=name)
+        self._tests_run(name=name)

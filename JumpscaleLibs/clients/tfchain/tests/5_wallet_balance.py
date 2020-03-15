@@ -4,7 +4,7 @@ from JumpscaleLibs.clients.tfchain.stub.ExplorerClientStub import TFChainExplore
 from JumpscaleLibs.clients.tfchain.test_utils import cleanup
 
 
-def main(self):
+def test():
     """
     to run:
 
