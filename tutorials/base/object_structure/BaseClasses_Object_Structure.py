@@ -10,6 +10,8 @@ class Car(j.baseclasses.object_config):
         @url = jumpscale.example.car.1
         name** = ""
         city = ""
+        mother_id** = 0
+        
         """
 
     def _init(self, **kwargs):
@@ -105,8 +107,7 @@ class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object
         assert len(ships.find()) == 1
         assert len(ships._model.find()) == 1
 
-        # small test to see that the dataprops are visible
-        assert len(ship1._dataprops_names_get()) == 4
+        assert len(ship1._dataprops_names_get()) == 3
 
         w = World()
         w.reset()

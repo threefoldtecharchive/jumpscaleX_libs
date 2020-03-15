@@ -90,4 +90,4 @@ class SSHD(JSBASE, j.baseclasses.testtools):
         to run
         kosmos -p 'j.sal.sshd.test_sshd()'
         """
-        self._tests_run(name=name)
+        self._tests_run(name=name, die=True)

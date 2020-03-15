@@ -502,4 +502,4 @@ exec {demonpath} {args} >> {logdir}/{servicename}.log 2>&1
         :param name: basename of the file to run, defaults to "".
         :type name: str, optional
         """
-        self._tests_run(name=name)
+        self._tests_run(name=name, die=True)

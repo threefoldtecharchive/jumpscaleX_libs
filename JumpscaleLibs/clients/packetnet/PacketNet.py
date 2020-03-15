@@ -277,98 +277,99 @@ class PacketNet(JSConfigBase):
             sshkey=sshkey,
         )
 
-    def startZeroOS(
-        self,
-        hostname="removeMe",
-        plan="baremetal_0",
-        facility="ams1",
-        zerotierId="",
-        zerotierAPI="",
-        wait=True,
-        remove=False,
-        params=None,
-        branch="master",
-    ):
-        """
-        return (zero-os-client,pubIpAddress,zerotierIpAddress)
-
-        :param hostname: defaults to "removeMe"
-        :type hostname: str, optional
-        :param plan: defaults to 'baremetal_0'
-        :type plan: str, optional
-        :param facility:  facility of the project, defaults to 'ams1'
-        :type facility: str, optional
-        :param zerotierId: defaults to ""
-        :type zerotierId: str, optional
-        :param zerotierAPI: defaults to ""
-        :type zerotierAPI: str, optional
-        :param wait: defaults to True
-        :type wait: bool, optional
-        :param remove: defaults to False
-        :type remove: bool, optional
-        :param params: defaults to None
-        :type params: [type], optional
-        :param branch: defaults to 'master'
-        :type branch: str, optional
-        :raises RuntimeError: zerotierId not specified
-        :raises RuntimeError: zerotierAPI not specified
-        :return: zero-os-client, pubIpAddress, zerotierIpAddress
-        :rtype: ,str,str
-        """
-        self._log_info(
-            "start device:%s plan:%s facility:%s zerotierId:%s wait:%s" % (hostname, plan, facility, zerotierId, wait)
-        )
-        if zerotierId.strip() == "" or zerotierId is None:
-            raise j.exceptions.Base("zerotierId needs to be specified")
-        if zerotierAPI.strip() == "" or zerotierAPI is None:
-            raise j.exceptions.Base("zerotierAPI needs to be specified")
-        ipxeUrl = "http://unsecure.bootstrap.grid.tf/ipxe/{}/{}".format(branch, zerotierId)
-
-        if params is not None:
-            pstring = "%20".join(params)
-            ipxeUrl = ipxeUrl + "/" + pstring
-
-        node = self._startDevice(
-            hostname=hostname,
-            plan=plan,
-            facility=facility,
-            os="",
-            wait=wait,
-            remove=remove,
-            ipxeUrl=ipxeUrl,
-            zerotierId=zerotierId,
-            always_pxe=True,
-        )
-
-        # data = {'token_': zerotierAPI, 'networkID_': zerotierId}
-        data = {"token_": zerotierAPI}
-        zerotierClient = j.clients.zerotier.get(self.instance, data=data)
-
-        public_ip = node.addr
-        if not public_ip:
-            ipaddr = [
-                netinfo["address"]
-                for netinfo in node.pubconfig["netinfo"]
-                if netinfo["public"] and netinfo["address_family"] == 4
-            ]
-            public_ip = ipaddr[0]
-
-        while True:
-            try:
-                network = zerotierClient.network_get(network_id=zerotierId)
-                member = network.member_get(public_ip=public_ip)
-                member.authorize()
-                ipaddr_priv = member.private_ip
-                break
-            except RuntimeError as e:
-                # case where we don't find the member in zerotier
-                self._log_info("[-] %s" % e)
-                time.sleep(5)
-
-        self._log_info("[+] zerotier IP: %s" % ipaddr_priv)
-        data = {"host": ipaddr_priv, "timeout": 10, "port": 6379, "password_": "", "db": 0, "ssl": True}
-        zosclient = j.clients.zero_os.get(ipaddr_priv, data=data)
-        return zosclient, node, ipaddr_priv
+    #
+    # def startZeroOS(
+    #     self,
+    #     hostname="removeMe",
+    #     plan="baremetal_0",
+    #     facility="ams1",
+    #     zerotierId="",
+    #     zerotierAPI="",
+    #     wait=True,
+    #     remove=False,
+    #     params=None,
+    #     branch="master",
+    # ):
+    #     """
+    #     return (zero-os-client,pubIpAddress,zerotierIpAddress)
+    #
+    #     :param hostname: defaults to "removeMe"
+    #     :type hostname: str, optional
+    #     :param plan: defaults to 'baremetal_0'
+    #     :type plan: str, optional
+    #     :param facility:  facility of the project, defaults to 'ams1'
+    #     :type facility: str, optional
+    #     :param zerotierId: defaults to ""
+    #     :type zerotierId: str, optional
+    #     :param zerotierAPI: defaults to ""
+    #     :type zerotierAPI: str, optional
+    #     :param wait: defaults to True
+    #     :type wait: bool, optional
+    #     :param remove: defaults to False
+    #     :type remove: bool, optional
+    #     :param params: defaults to None
+    #     :type params: [type], optional
+    #     :param branch: defaults to 'master'
+    #     :type branch: str, optional
+    #     :raises RuntimeError: zerotierId not specified
+    #     :raises RuntimeError: zerotierAPI not specified
+    #     :return: zero-os-client, pubIpAddress, zerotierIpAddress
+    #     :rtype: ,str,str
+    #     """
+    #     self._log_info(
+    #         "start device:%s plan:%s facility:%s zerotierId:%s wait:%s" % (hostname, plan, facility, zerotierId, wait)
+    #     )
+    #     if zerotierId.strip() == "" or zerotierId is None:
+    #         raise j.exceptions.Base("zerotierId needs to be specified")
+    #     if zerotierAPI.strip() == "" or zerotierAPI is None:
+    #         raise j.exceptions.Base("zerotierAPI needs to be specified")
+    #     ipxeUrl = "http://unsecure.bootstrap.grid.tf/ipxe/{}/{}".format(branch, zerotierId)
+    #
+    #     if params is not None:
+    #         pstring = "%20".join(params)
+    #         ipxeUrl = ipxeUrl + "/" + pstring
+    #
+    #     node = self._startDevice(
+    #         hostname=hostname,
+    #         plan=plan,
+    #         facility=facility,
+    #         os="",
+    #         wait=wait,
+    #         remove=remove,
+    #         ipxeUrl=ipxeUrl,
+    #         zerotierId=zerotierId,
+    #         always_pxe=True,
+    #     )
+    #
+    #     # data = {'token_': zerotierAPI, 'networkID_': zerotierId}
+    #     data = {"token_": zerotierAPI}
+    #     zerotierClient = j.clients.zerotier.get(self.instance, data=data)
+    #
+    #     public_ip = node.addr
+    #     if not public_ip:
+    #         ipaddr = [
+    #             netinfo["address"]
+    #             for netinfo in node.pubconfig["netinfo"]
+    #             if netinfo["public"] and netinfo["address_family"] == 4
+    #         ]
+    #         public_ip = ipaddr[0]
+    #
+    #     while True:
+    #         try:
+    #             network = zerotierClient.network_get(network_id=zerotierId)
+    #             member = network.member_get(public_ip=public_ip)
+    #             member.authorize()
+    #             ipaddr_priv = member.private_ip
+    #             break
+    #         except RuntimeError as e:
+    #             # case where we don't find the member in zerotier
+    #             self._log_info("[-] %s" % e)
+    #             time.sleep(5)
+    #
+    #     self._log_info("[+] zerotier IP: %s" % ipaddr_priv)
+    #     data = {"host": ipaddr_priv, "timeout": 10, "port": 6379, "password_": "", "db": 0, "ssl": True}
+    #     zosclient = j.clients.zero_os.get(ipaddr_priv, data=data)
+    #     return zosclient, node, ipaddr_priv
 
     # TODO: IS THIS STILL RELEVANT?
 
@@ -459,7 +460,7 @@ class PacketNet(JSConfigBase):
             self.removeDevice(hostname)
 
         if sshkey:
-            sshkey = j.clients.sshkey.get(instance=sshkey)
+            sshkey = j.clients.sshkey.get(name=sshkey)
 
         device = self.getDevice(hostname, die=False)
         if device is None:
@@ -496,16 +497,13 @@ class PacketNet(JSConfigBase):
         sshinstance = ""
         if zerotierId == "":
             j.sal.nettools.waitConnectionTest(ipaddr, 22, 60)
-
             if not sshkey:
-                sshclient = j.clients.ssh.new(instance=hostname, addr=ipaddr)
+                sshclient = j.clients.ssh.new(name=hostname, addr=ipaddr)
             else:
                 self.addSSHKey(sshkey, hostname)
-                sshclient = j.clients.ssh.get(
-                    instance=sshkey.instance, data={"addr": ipaddr, "login": "root", "sshkey": sshkey.instance}
-                )
-            sshclient.connect()
-            sshinstance = sshclient.instance
+                sshclient = j.clients.ssh.get(name=sshkey.name, addr=ipaddr, login="root")
+
+            assert sshclient.isconnected
 
         conf = {}
         conf["facility"] = facility
@@ -516,12 +514,11 @@ class PacketNet(JSConfigBase):
         conf["os"] = os
         conf["ipxeUrl"] = ipxeUrl
 
-        j.shell()
-
-        return node
+        return device
 
     def addSSHKey(self, sshkey, label):
         if j.data.types.string.check(sshkey):
+            j.debug()
             sshkey = j.clients.sshkey.get(instance=sshkey)
 
         ssh_keys = self.client.list_ssh_keys()

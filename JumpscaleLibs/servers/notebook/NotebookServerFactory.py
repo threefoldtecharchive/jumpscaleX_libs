@@ -2,12 +2,17 @@ from Jumpscale import j
 
 skip = j.baseclasses.testtools._skip
 
+import gevent
+
 
 class NotebookServerFactory(j.baseclasses.object):
 
     __jslocation__ = "j.servers.notebook"
 
     def install(self):
+        """
+        kosmos -p 'j.servers.notebook.install()'
+        """
         j.builders.system.package.update()
         j.builders.runtimes.nodejs.install()
 
@@ -46,11 +51,14 @@ class NotebookServerFactory(j.baseclasses.object):
                 )
                 if base_url:
                     cmd_start += f" --NotebookApp.base_url={base_url}"
+
                 j.sal.process.executeInteractive(cmd_start)
+
             else:
                 cmd_start = "cd %s;voila --Voila.ip=%s %s" % (dirpath, ip, basepath)
                 if base_url:
                     cmd_start += f" --Voila.base_url={base_url}"
+
                 j.sal.process.executeInteractive(cmd_start)
         else:
             if not voila:
