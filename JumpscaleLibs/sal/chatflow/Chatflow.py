@@ -34,7 +34,7 @@ class Chatflow(j.baseclasses.object):
 
         return nodes_selected
 
-    def network_configure(self, bot, reservation, nodes, customer_tid):
+    def network_configure(self, bot, reservation, nodes, customer_tid, ip_version):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -43,7 +43,7 @@ class Chatflow(j.baseclasses.object):
         return reservation (Object) , config of network (dict)
         """
         ip_range = self.ip_range_get(bot)
-        return self.network_get(bot, reservation, ip_range, nodes, customer_tid)
+        return self.network_get(bot, reservation, ip_range, nodes, customer_tid, ip_version)
 
     def ip_range_get(self, bot):
         """
@@ -65,7 +65,7 @@ class Chatflow(j.baseclasses.object):
             ip_range = str(first_digit) + "." + str(second_digit) + ".0.0/16"
         return ip_range
 
-    def network_get(self, bot, reservation, ip_range, nodes, customer_tid):
+    def network_get(self, bot, reservation, ip_range, nodes, customer_tid, ip_version):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -82,7 +82,9 @@ class Chatflow(j.baseclasses.object):
                 "Please add a network name. Don't forget to save it. Otherwise leave it empty for using a generated name"
             )
             network = j.sal.zosv2.network.create(reservation, ip_range, network_name)
-            network_config = self._register_network(bot, reservation, ip_range, network, nodes, customer_tid)
+            network_config = self._register_network(
+                bot, reservation, ip_range, network, nodes, customer_tid, ip_version
+            )
         else:
             res = "# This feature is not available yet."
             res = j.tools.jinja2.template_render(text=res)
@@ -90,7 +92,7 @@ class Chatflow(j.baseclasses.object):
 
         return reservation, network_config
 
-    def _register_network(self, bot, reservation, ip_range, network, nodes, customer_tid):
+    def _register_network(self, bot, reservation, ip_range, network, nodes, customer_tid, ip_version="IPV4"):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -122,8 +124,8 @@ class Chatflow(j.baseclasses.object):
             j.sal.zosv2.network.add_node(network, node_selected.node_id, network_node)
             network_range += 256
             network_node = str(network_range) + "/24"
-
-            wg_quick = j.sal.zosv2.network.add_access(network, node_selected.node_id, network_node, ipv4=True)
+            ipv4 = ip_version == "IPV4"
+            wg_quick = j.sal.zosv2.network.add_access(network, node_selected.node_id, network_node, ipv4=ipv4)
 
         network_config["name"] = network.name
         network_config["ip_addresses"] = ip_addresses
