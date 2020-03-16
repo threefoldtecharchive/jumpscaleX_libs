@@ -20,17 +20,13 @@ class Chatflow(j.baseclasses.object):
             ips.append(ip.format())
         return ips
 
-    def nodes_get(self, number_of_nodes, ip_version):
+    def nodes_get(self, number_of_nodes):
         nodes = j.sal.zosv2.nodes_finder.nodes_search()
-        nodes_selected = list()
-        if ip_version == "IPV4":
-            for node in filter(j.sal.zosv2.nodes_finder.filter_public_ip4, nodes):
-                if len(nodes_selected) < number_of_nodes:
-                    nodes_selected.append(node)
-        else:
-            for node in filter(j.sal.zosv2.nodes_finder.filter_public_ip6, nodes):
-                if len(nodes_selected) < number_of_nodes:
-                    nodes_selected.append(node)
+        nodes_selected = []
+        for i in range(number_of_nodes):
+            node = random.choice(nodes)
+            nodes_selected.append(node)
+            # TODO remove the random node selected
 
         return nodes_selected
 
@@ -104,10 +100,12 @@ class Chatflow(j.baseclasses.object):
         """
         network_config = dict()
         network_range = netaddr.IPNetwork(ip_range).ip
-
         ip_addresses = list()
 
+        ipv4_nodes = False
         for i, node_selected in enumerate(nodes):
+            if ip_version == "IPV4" and j.sal.zosv2.nodes_finder.filter_public_ip6(node):
+                ipv4_nodes = True
             network_range += 256
             network_node = str(network_range) + "/24"
 
@@ -125,7 +123,20 @@ class Chatflow(j.baseclasses.object):
             network_range += 256
             network_node = str(network_range) + "/24"
             ipv4 = ip_version == "IPV4"
-            wg_quick = j.sal.zosv2.network.add_access(network, node_selected.node_id, network_node, ipv4=ipv4)
+            if not (ip_version == "IPV4" and j.sal.zosv2.nodes_finder.filter_public_ip6(node)):
+                wg_quick = j.sal.zosv2.network.add_access(network, node_selected.node_id, network_node, ipv4=ipv4)
+
+        if ip_version == "IPV4" and ipv4_nodes:
+            access_nodes = j.sal.zosv2.nodes_finder.nodes_search()
+            for node in filter(j.sal.zosv2.nodes_finder.filter_public_ip4, access_nodes):
+                access_node = node
+            network_range += 256
+            network_node = str(network_range) + "/24"
+            j.sal.zosv2.network.add_node(network, access_node.node_id, network_node)
+
+            network_range += 256
+            network_node = str(network_range) + "/24"
+            wg_quick = j.sal.zosv2.network.add_access(network, access_node.node_id, network_node, ipv4=True)
 
         network_config["name"] = network.name
         network_config["ip_addresses"] = ip_addresses
