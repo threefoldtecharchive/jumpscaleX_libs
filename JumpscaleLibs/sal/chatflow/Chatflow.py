@@ -101,11 +101,13 @@ class Chatflow(j.baseclasses.object):
         network_config = dict()
         network_range = netaddr.IPNetwork(ip_range).ip
         ip_addresses = list()
+        ipv4 = ip_version == "IPV4"
 
-        ipv4_nodes = False
+        ipv4_needed = False
         for i, node_selected in enumerate(nodes):
-            if ip_version == "IPV4" and j.sal.zosv2.nodes_finder.filter_public_ip6(node):
-                ipv4_nodes = True
+            #scenario when the selected ip version is IPV4 and a selected node ip version is IPV6
+            if ipv4 and j.sal.zosv2.nodes_finder.filter_public_ip6(node_selected):
+                ipv4_needed = True
             network_range += 256
             network_node = str(network_range) + "/24"
 
@@ -122,11 +124,12 @@ class Chatflow(j.baseclasses.object):
             j.sal.zosv2.network.add_node(network, node_selected.node_id, network_node)
             network_range += 256
             network_node = str(network_range) + "/24"
-            ipv4 = ip_version == "IPV4"
-            if not (ip_version == "IPV4" and j.sal.zosv2.nodes_finder.filter_public_ip6(node)):
+            # scenario when the selected ip version is the same ip version of a selected node.
+            if not (ipv4 and j.sal.zosv2.nodes_finder.filter_public_ip6(node_selected)):
                 wg_quick = j.sal.zosv2.network.add_access(network, node_selected.node_id, network_node, ipv4=ipv4)
 
-        if ip_version == "IPV4" and ipv4_nodes:
+        # scenario when the selected ip version is IPV4 and a selected node ip version is IPV6
+        if ipv4 and ipv4_needed:
             access_nodes = j.sal.zosv2.nodes_finder.nodes_search()
             for node in filter(j.sal.zosv2.nodes_finder.filter_public_ip4, access_nodes):
                 access_node = node
