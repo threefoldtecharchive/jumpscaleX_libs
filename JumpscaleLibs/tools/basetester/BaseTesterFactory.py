@@ -2,11 +2,12 @@ from Jumpscale import j
 
 from .CoreTest import CoreTest
 from .NodesPacketNet import NodesPacketNet
+from .NodesDigitalOcean import NodesDigitalOcean
 
 
 class Nodes(j.baseclasses.factory_data):
 
-    _CHILDCLASSES = [NodesPacketNet]
+    _CHILDCLASSES = [NodesPacketNet, NodesDigitalOcean]
     _SCHEMATEXT = """
         @url = jumpscale.basetester.nodes
         name** = "" (S)
@@ -21,14 +22,23 @@ class BaseTesterFactory(j.baseclasses.factory):
     _CHILDCLASSES = [Nodes]
 
     def _init(self, **kwargs):
-        # self.core = CoreTest(name="core")
         pass
 
-    def node_get(self, name="basetest", plan="c2.medium.x86", os="ubuntu_18_04", delete=False):
+    def node_get_packetnet(self, name="basetest", plan="c2.medium.x86", os="ubuntu_18_04", reset=False):
         node = self.nodes.packetnet.get(name=name, plan=plan, os=os)
-        if delete:
-            node.delete()
+        node.start(reset=reset)
         return node
+
+    def node_get_digitalocean(self, name="basetest", reset=False):
+        node = self.nodes.digitalocean.get(name=name)
+        node.start(reset=reset)
+        return node
+
+    def coretest(self):
+        """
+        kosmos 'j.tools.basetester.coretest()'
+        """
+        self.core = CoreTest(name="core")
 
     def run(self):
         """
@@ -37,6 +47,5 @@ class BaseTesterFactory(j.baseclasses.factory):
         kosmos 'j.tools.basetester.run()'
 
         """
-        # self.core.run()
-        j.debug()
-        n = self.node_get()
+        self.core = CoreTest(name="core")
+        n = self.node_get_digitalocean()
