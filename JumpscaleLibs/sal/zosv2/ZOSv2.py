@@ -229,3 +229,15 @@ class Zosv2(j.baseclasses.object):
                     continue
 
                 print(f"network name:{network.name} iprage:{network.iprange}")
+
+    def reservation_delete(self, reservation_id):
+        """
+        delete reservation
+
+        :param reservation_id: reservation id
+        :type reservation_id: str
+        """
+        # for now sign_delete method only takes the reservation id and sets the reservation state to delete
+        # TODO: update me when the sign_delete method is updated
+
+        self._actor_workloads.workload_manager.sign_delete(reservation_id)
