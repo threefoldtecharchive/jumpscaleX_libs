@@ -47,7 +47,7 @@ class NodeFinder:
     ):
         """
         list return all the nodes
-        
+
         :return: list of nodes
         :rtype: list
         """
