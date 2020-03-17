@@ -4,7 +4,6 @@ from Jumpscale import j
 
 
 JSBASE = j.baseclasses.object
-DNS_PREFIX = j.core.myenv.config.get("DNS_PREFIX", "")
 
 """
 This module assume having tcprouter and coredns installed.
@@ -21,11 +20,15 @@ class TFGateway(j.baseclasses.object):
 
     def __init__(self, redisclient, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.prefix = j.core.myenv.config.get("DNS_PREFIX", "")
         self.redisclient = redisclient
+        
+    def prefix_set(self, prefix):
+        self.prefix = prefix
 
     def _validate_ip(self, ip):
         if not j.data.types.ipaddr.check(ip):
-            raise j.exceptions.Value("invalid ip {}".format(ip))
+            raise j.exceptions.Value(f"invalid ip {ip}")
 
     def _records_get(self, record_ip):
         records = []
@@ -46,7 +49,7 @@ class TFGateway(j.baseclasses.object):
         j.builders.network.coredns.start()
 
     ## COREDNS redis backend
-    def domain_register(self, name, domain="bots.grid.tf.", record_type="a", records=None, prefix=DNS_PREFIX):
+    def domain_register(self, name, domain="bots.grid.tf.", record_type="a", records=None):
         """registers domain in coredns (needs to be authoritative)
 
         e.g: ahmed.bots.grid.tf
@@ -69,40 +72,40 @@ class TFGateway(j.baseclasses.object):
             domain += "."
         data = {}
         records = records or []
-        if self.redisclient.hexists(prefix + domain, name):
-            data = j.data.serializers.json.loads(self.redisclient.hget(prefix + domain, name))
+        if self.redisclient.hexists(self.prefix+domain, name):
+            data = j.data.serializers.json.loads(self.redisclient.hget(self.prefix+domain, name))
 
         if record_type in data:
             for record in data[record_type]:
                 if record not in records:
                     records.append(record)
         data[record_type] = records
-        self.redisclient.hset(prefix + domain, name, j.data.serializers.json.dumps(data))
+        self.redisclient.hset(self.prefix+domain, name, j.data.serializers.json.dumps(data))
 
-    def domain_list(self, prefix=DNS_PREFIX):
-        domains = [domain_name[len(prefix):] for domain_name in self.redisclient.keys(prefix + "*.")]
+    def domain_list(self):
+        domains = [domain_name[len(self.prefix):] for domain_name in self.redisclient.keys(self.prefix+"*.")]
         return domains
 
-    def domain_exists(self, domain, prefix=DNS_PREFIX):
+    def domain_exists(self, domain):
         if not domain.endswith("."):
             domain += "."
-        if self.redisclient.exists(prefix + domain):
+        if self.redisclient.exists(self.prefix+domain):
             return True
         subdomain, domain = domain.split(".", 1)
-        return self.redisclient.hexists(prefix + domain, subdomain)
+        return self.redisclient.hexists(self.prefix+domain, subdomain)
 
-    def domain_dump(self, domain, prefix=DNS_PREFIX):
+    def domain_dump(self, domain):
         if not domain.endswith("."):
             domain += "."
         resulset = {}
-        for key, value in self.redisclient.hgetall(prefix + domain).items():
+        for key, value in self.redisclient.hgetall(self.prefix+domain).items():
             resulset[key.decode()] = j.data.serializers.json.loads(value)
         return resulset
 
-    def subdomain_get(self, domain, subdomain, prefix=DNS_PREFIX):
+    def subdomain_get(self, domain, subdomain):
         if not domain.endswith("."):
             domain += "."
-        subdomain_info = self.redisclient.hget(prefix + domain, subdomain)
+        subdomain_info = self.redisclient.hget(self.prefix+domain, subdomain)
         return j.data.serializers.json.loads(subdomain_info)
 
     def domain_register_a(self, name, domain, record_ip):
@@ -220,7 +223,7 @@ class TFGateway(j.baseclasses.object):
             name, domain, "srv", records=[{"host": host, "port": port, "priority": priority, "weight": weight}]
         )
 
-    def domain_unregister(self, name, domain="bots.grid.tf.", record_type="a", prefix=DNS_PREFIX, records=[]):
+    def domain_unregister(self, name, domain="bots.grid.tf.", record_type="a", records=None):
         """unregisters domain from coredns
         :param name: name
         :type name: str
@@ -234,19 +237,19 @@ class TFGateway(j.baseclasses.object):
 
         if not domain.endswith("."):
             domain += "."
-        domain_key = prefix + domain
+        domain_key = self.prefix + domain
 
         record_data = j.data.serializers.json.loads(self.redisclient.hget(domain_key, name))
         if not record_data:
             return
 
         type_records = record_data.get(record_type, [])
-        if len(type_records) == 0:
+        if not records:
             return
 
         for rec_to_delete in records:
-            for i in range(0, len(type_records)):
-                if rec_to_delete == type_records[i]:
+            for i, rec in enumerate(type_records):
+                if rec_to_delete == rec:
                     break
             if i < len(type_records):
                 type_records.pop(i)
@@ -398,7 +401,7 @@ class TFGateway(j.baseclasses.object):
                 f"Need to provide only service_addr (you passed {service_addr}) or client_secret (you passed {client_secret})"
             )
         service = {}
-        service["Key"] = "/tcprouter/service/{}".format(domain)
+        service["Key"] = f"/tcprouter/service/{domain}"
         record = {
             "addr": service_addr,
             "tlsport": service_port,
@@ -411,7 +414,7 @@ class TFGateway(j.baseclasses.object):
         self.redisclient.set(service["Key"], j.data.serializers.json.dumps(service))
 
     def tcpservice_dump(self, domain):
-        service_key = "/tcprouter/service/{}".format(domain)
+        service_key = f"/tcprouter/service/{domain}"
         service_record = self.redisclient.get(service_key)
         if not service_record:
             # service doesn't exist
@@ -422,11 +425,11 @@ class TFGateway(j.baseclasses.object):
 
     def tcpservice_list(self):
         prefix = "/tcprouter/service/"
-        services = [domain_name[len(prefix):] for domain_name in self.redisclient.keys(prefix + "*")]
+        services = [domain_name[len(prefix):] for domain_name in self.redisclient.keys(prefix+"*")]
         return services
 
     def tcpservice_unregister(self, domain):
-        key = "/tcprouter/service/{}".format(domain)
+        key = f"/tcprouter/service/{domain}"
         self.redisclient.delete(key)
 
     def create_tcprouter_service_client(
