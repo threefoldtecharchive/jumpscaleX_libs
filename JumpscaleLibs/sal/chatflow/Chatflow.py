@@ -16,18 +16,23 @@ class Chatflow(j.baseclasses.object):
         """
         networks = netaddr.IPNetwork(ip_range)
         ips = []
-        for ip in list(networks.iter_hosts()):
+        all_ips = list(networks.iter_hosts())
+        for i, ip in enumerate(all_ips):
+            if i == 0 or i == len(all_ips) - 1:
+                continue
             ips.append(ip.format())
         return ips
 
-    def nodes_get(self, number_of_nodes):
-        nodes = j.sal.zosv2.nodes_finder.nodes_search()
+    def nodes_get(self, number_of_nodes, farm_id=None, farm_name=None, cru=None, sru=None, mru=None, hru=None):
+        # get nodes without public ips
+        nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
+            farm_id=farm_id, farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru
+        )  # Choose free farm
         nodes_selected = []
+        nodes = list(nodes)
         for i in range(number_of_nodes):
             node = random.choice(nodes)
             nodes_selected.append(node)
-            # TODO remove the random node selected
-
         return nodes_selected
 
     def network_configure(self, bot, reservation, nodes, customer_tid, ip_version):
@@ -95,11 +100,7 @@ class Chatflow(j.baseclasses.object):
         ip_addresses = list()
         ipv4 = ip_version == "IPv4"
 
-        ipv4_needed = False
         for i, node_selected in enumerate(nodes):
-            # scenario when the selected ip version is IPV4 and a selected node ip version is IPV6
-            if ipv4 and j.sal.zosv2.nodes_finder.filter_public_ip6(node_selected):
-                ipv4_needed = True
             network_range += 256
             network_node = str(network_range) + "/24"
 
@@ -109,29 +110,28 @@ class Chatflow(j.baseclasses.object):
                 string_ips.append(ip.format())
 
             # user chooses the ip to be used for the node
-            ip_address = bot.drop_down_choice(f"Please choose the ip address of node {i+1}", string_ips)
+            ip_address = bot.drop_down_choice(f"Please choose the ip address of 3bot {i+1}", string_ips)
             ip_addresses.append(ip_address)  # ip in position i, corresponds to the node in position i in nodes_selected
             string_ips.remove(ip_address)
 
             j.sal.zosv2.network.add_node(network, node_selected.node_id, network_node)
-            network_range += 256
-            network_node = str(network_range) + "/24"
-            # scenario when the selected ip version is the same ip version of a selected        node.
-            if not (ipv4 and j.sal.zosv2.nodes_finder.filter_public_ip6(node_selected)):
-                wg_quick = j.sal.zosv2.network.add_access(network, node_selected.node_id, network_node, ipv4=ipv4)
 
-        # scenario when the selected ip version is IPV4 and a selected node ip version is IPV6
-        if ipv4 and ipv4_needed:
-            access_nodes = j.sal.zosv2.nodes_finder.nodes_search()
+        access_nodes = j.sal.zosv2.nodes_finder.nodes_search(farm_id=71)
+
+        if ipv4:
             for node in filter(j.sal.zosv2.nodes_finder.filter_public_ip4, access_nodes):
                 access_node = node
-            network_range += 256
-            network_node = str(network_range) + "/24"
-            j.sal.zosv2.network.add_node(network, access_node.node_id, network_node)
+        else:
+            for node in filter(j.sal.zosv2.nodes_finder.filter_public_ip6, access_nodes):
+                access_node = node
 
-            network_range += 256
-            network_node = str(network_range) + "/24"
-            wg_quick = j.sal.zosv2.network.add_access(network, access_node.node_id, network_node, ipv4=True)
+        network_range += 256
+        network_node = str(network_range) + "/24"
+        j.sal.zosv2.network.add_node(network, access_node.node_id, network_node)
+
+        network_range += 256
+        network_node = str(network_range) + "/24"
+        wg_quick = j.sal.zosv2.network.add_access(network, access_node.node_id, network_node, ipv4=True)
 
         network_config["name"] = network.name
         network_config["ip_addresses"] = ip_addresses
