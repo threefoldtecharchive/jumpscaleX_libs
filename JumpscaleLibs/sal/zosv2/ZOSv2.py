@@ -95,10 +95,28 @@ class Zosv2(j.baseclasses.object):
         resp = self._actor_workloads.workload_manager.reservation_register(reservation)
         return resp.id
 
+    def reservation_accept(self, reservation, identity=None):
+        """
+        A farmer need to use this function to notify he accepts to deploy the reservation
+        on his node
+        
+        :param reservation: reservation object
+        :type reservation:  tfgrid.workloads.reservation.1
+        :param identity: identity to use
+        :type identity: Jumpscale.tools.threebot.ThreebotMe.ThreebotMe
+        :return: returns true if not error,raise an exception otherwise
+        :rtype: bool
+        """
+        me = identity if identity else j.tools.threebot.me.default
+
+        reservation.json = reservation.data_reservation._json
+        signature = me.nacl.sign_hex(reservation.json.encode())
+        return self._actor_workloads.workload_manager.sign_farmer(reservation.id, me.tid, signature)
+
     def reservation_result(self, reservation_id):
         """
         returns the list of workload provisioning results of a reservation
-        
+
         :param reservation_id: reservation ID
         :type reservation_id: int
         :return: list of tfgrid.workloads.reservation.result.1
@@ -109,7 +127,7 @@ class Zosv2(j.baseclasses.object):
     def reservation_get(self, reservation_id):
         """
         fetch a specific reservation from BCDB
-        
+
         :param reservation_id: reservation ID
         :type reservation_id: int
         :return: reservation object

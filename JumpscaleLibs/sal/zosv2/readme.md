@@ -225,7 +225,7 @@ transactions = zos.billing.payout_farmers(client, costs, reservation)
 # if everything went ok, at this point your transaction are now sent to the blockchain
 ```
 
-## As a farmer verify that a payment as been made for a reservation
+## As a farmer verify that a payment as been made for a reservation and approve it
 
 ```python
 zos = j.sal.zosv2
@@ -240,5 +240,8 @@ client = j.clients.stellar.get('myclient')
 # the farmer needs to know the reservation ID to be able to check if the payment has arrived for it
 reservation = zos.reservation_get(reservation_id)
 # verify_payments will return true if everything has been paid or false if not
-zos.billing.verify_payments(client, reservation)
+is_payed = zos.billing.verify_payments(client, reservation)
+
+if is_payed:
+    zos.reservation_accept(reservation)
 ```
