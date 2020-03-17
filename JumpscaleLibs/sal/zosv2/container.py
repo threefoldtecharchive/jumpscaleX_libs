@@ -104,4 +104,4 @@ class ContainerGenerator:
         box = public.SealedBox(encryption_key)
         result = box.encrypt(value.encode())
 
-        return binascii.hexlify(result)
+        return binascii.hexlify(result).decode()
