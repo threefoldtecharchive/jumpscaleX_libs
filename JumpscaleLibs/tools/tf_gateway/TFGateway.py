@@ -22,7 +22,7 @@ class TFGateway(j.baseclasses.object):
         super().__init__(*args, **kwargs)
         self.prefix = j.core.myenv.config.get("DNS_PREFIX", "")
         self.redisclient = redisclient
-        
+
     def prefix_set(self, prefix):
         self.prefix = prefix
 
@@ -72,40 +72,40 @@ class TFGateway(j.baseclasses.object):
             domain += "."
         data = {}
         records = records or []
-        if self.redisclient.hexists(self.prefix+domain, name):
-            data = j.data.serializers.json.loads(self.redisclient.hget(self.prefix+domain, name))
+        if self.redisclient.hexists(self.prefix + domain, name):
+            data = j.data.serializers.json.loads(self.redisclient.hget(self.prefix + domain, name))
 
         if record_type in data:
             for record in data[record_type]:
                 if record not in records:
                     records.append(record)
         data[record_type] = records
-        self.redisclient.hset(self.prefix+domain, name, j.data.serializers.json.dumps(data))
+        self.redisclient.hset(self.prefix + domain, name, j.data.serializers.json.dumps(data))
 
     def domain_list(self):
-        domains = [domain_name[len(self.prefix):] for domain_name in self.redisclient.keys(self.prefix+"*.")]
+        domains = [domain_name[len(self.prefix) :] for domain_name in self.redisclient.keys(self.prefix + "*.")]
         return domains
 
     def domain_exists(self, domain):
         if not domain.endswith("."):
             domain += "."
-        if self.redisclient.exists(self.prefix+domain):
+        if self.redisclient.exists(self.prefix + domain):
             return True
         subdomain, domain = domain.split(".", 1)
-        return self.redisclient.hexists(self.prefix+domain, subdomain)
+        return self.redisclient.hexists(self.prefix + domain, subdomain)
 
     def domain_dump(self, domain):
         if not domain.endswith("."):
             domain += "."
         resulset = {}
-        for key, value in self.redisclient.hgetall(self.prefix+domain).items():
+        for key, value in self.redisclient.hgetall(self.prefix + domain).items():
             resulset[key.decode()] = j.data.serializers.json.loads(value)
         return resulset
 
     def subdomain_get(self, domain, subdomain):
         if not domain.endswith("."):
             domain += "."
-        subdomain_info = self.redisclient.hget(self.prefix+domain, subdomain)
+        subdomain_info = self.redisclient.hget(self.prefix + domain, subdomain)
         return j.data.serializers.json.loads(subdomain_info)
 
     def domain_register_a(self, name, domain, record_ip):
@@ -425,7 +425,7 @@ class TFGateway(j.baseclasses.object):
 
     def tcpservice_list(self):
         prefix = "/tcprouter/service/"
-        services = [domain_name[len(prefix):] for domain_name in self.redisclient.keys(prefix+"*")]
+        services = [domain_name[len(prefix) :] for domain_name in self.redisclient.keys(prefix + "*")]
         return services
 
     def tcpservice_unregister(self, domain):
