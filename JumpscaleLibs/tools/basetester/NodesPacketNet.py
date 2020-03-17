@@ -41,7 +41,8 @@ class NodePacketNet(NodeBaseClass):
         for ipaddress in self._device_obj.ip_addresses:
             if ipaddress["public"] == True:
                 return ipaddress["address"]
-        raise RuntimeError("can not find ipaddress", data=self)
+        j.shell()
+        raise j.exceptions.Base("can not find ipaddress", data=self)
 
     def init(self, reset=False):
         if self.state != "ok":
@@ -54,8 +55,8 @@ class NodePacketNet(NodeBaseClass):
             self._sshclient = j.clients.ssh.get(name=self.sshclient_name)
         return self._sshclient
 
-    def destroy(self):
-        # TODO: remove machine
+    def delete(self):
+        self._packet.removeDevice(self.name)
         self.state = "init"
 
 

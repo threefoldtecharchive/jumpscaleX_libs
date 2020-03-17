@@ -24,8 +24,11 @@ class BaseTesterFactory(j.baseclasses.factory):
         # self.core = CoreTest(name="core")
         pass
 
-    def node_get(self, name="basetest", plan="c2.medium.x86", os="ubuntu_18_04"):
-        return self.nodes.packetnet.get(name=name, plan=plan, os=os)
+    def node_get(self, name="basetest", plan="c2.medium.x86", os="ubuntu_18_04", delete=False):
+        node = self.nodes.packetnet.get(name=name, plan=plan, os=os)
+        if delete:
+            node.delete()
+        return node
 
     def run(self):
         """

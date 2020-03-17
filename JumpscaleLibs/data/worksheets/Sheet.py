@@ -93,14 +93,13 @@ class Sheet(j.baseclasses.object):
         if (ttype == "float" or isinstance(ttype, j.data.types._float)) and nrfloat is None:
             nrfloat = 2
         row = Row(
-            name,
-            ttype,
-            nrcols,
-            aggregate,
+            name=name,
+            ttype=ttype,
+            nrcols=nrcols,
+            aggregate=aggregate,
             description=description,
             groupname=groupname,
             groupdescr=groupdescr,
-            format=format,
             defval=defval,
             nrfloat=nrfloat,
             sheet=self,
