@@ -46,9 +46,11 @@ class Chatflow(j.baseclasses.object):
         bot: Gedis chatbot object from chatflow
         return ip_range from user or generated one
         """
-        ip_range_choose = ["Specify IP Range", "Choose IP Range for me"]
-        iprange_user_choice = bot.single_choice("Specify IP Range OR Choose IP Range for me?", ip_range_choose)
-        if iprange_user_choice == "Specify IP Range":
+        ip_range_choose = ["Configure IP range myself", "Choose IP range for me"]
+        iprange_user_choice = bot.single_choice(
+            "To have access to the threebot, the network must be configured", ip_range_choose
+        )
+        if iprange_user_choice == "Configure IP range myself":
             ip_range = bot.string_ask("Please add private IP Range of the network")
         else:
             first_digit = random.choice([192, 172, 10])
@@ -70,25 +72,15 @@ class Chatflow(j.baseclasses.object):
 
         return reservation (Object) , config of network (dict)
         """
-        network_choice = ["New network", "Existing network"]
 
-        user_choice = bot.single_choice("Create a new network or use an existing one.", network_choice)
-        if user_choice == "New network":
-            network_name = bot.string_ask(
-                "Please add a network name. Don't forget to save it. Otherwise leave it empty for using a generated name"
-            )
-            network = j.sal.zosv2.network.create(reservation, ip_range, network_name)
-            network_config = self._register_network(
-                bot, reservation, ip_range, network, nodes, customer_tid, ip_version
-            )
-        else:
-            res = "# This feature is not available yet."
-            res = j.tools.jinja2.template_render(text=res)
-            bot.md_show(res)
-
+        network_name = bot.string_ask(
+            "Please add a network name. please remember it for next time. Otherwise leave it empty for using a generated name"
+        )
+        network = j.sal.zosv2.network.create(reservation, ip_range, network_name)
+        network_config = self._register_network(bot, reservation, ip_range, network, nodes, customer_tid, ip_version)
         return reservation, network_config
 
-    def _register_network(self, bot, reservation, ip_range, network, nodes, customer_tid, ip_version="IPV4"):
+    def _register_network(self, bot, reservation, ip_range, network, nodes, customer_tid, ip_version="IPv4"):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -101,11 +93,11 @@ class Chatflow(j.baseclasses.object):
         network_config = dict()
         network_range = netaddr.IPNetwork(ip_range).ip
         ip_addresses = list()
-        ipv4 = ip_version == "IPV4"
+        ipv4 = ip_version == "IPv4"
 
         ipv4_needed = False
         for i, node_selected in enumerate(nodes):
-            #scenario when the selected ip version is IPV4 and a selected node ip version is IPV6
+            # scenario when the selected ip version is IPV4 and a selected node ip version is IPV6
             if ipv4 and j.sal.zosv2.nodes_finder.filter_public_ip6(node_selected):
                 ipv4_needed = True
             network_range += 256
@@ -124,7 +116,7 @@ class Chatflow(j.baseclasses.object):
             j.sal.zosv2.network.add_node(network, node_selected.node_id, network_node)
             network_range += 256
             network_node = str(network_range) + "/24"
-            # scenario when the selected ip version is the same ip version of a selected node.
+            # scenario when the selected ip version is the same ip version of a selected        node.
             if not (ipv4 and j.sal.zosv2.nodes_finder.filter_public_ip6(node_selected)):
                 wg_quick = j.sal.zosv2.network.add_access(network, node_selected.node_id, network_node, ipv4=ipv4)
 
@@ -146,7 +138,7 @@ class Chatflow(j.baseclasses.object):
         network_config["wg"] = wg_quick
 
         # register the reservation
-        expiration = j.data.time.epoch + (3600 * 24 * 365)
+        expiration = j.data.time.epoch + (60 * 60 * 24)
         rid = j.sal.zosv2.reservation_register(reservation, expiration, customer_tid=customer_tid)
         network_config["rid"] = rid
 
