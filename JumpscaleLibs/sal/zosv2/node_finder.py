@@ -21,8 +21,10 @@ class NodeFinder:
     def filter_public_ip6(self, node):
         return filter_public_ip(node, 6)
 
-    def nodes_by_capacity(self, cru=None, sru=None, mru=None, hru=None):
-        nodes = self._actor_directory.nodes.list(cru=cru, sru=sru, mru=mru, hru=hru).nodes
+    def nodes_by_capacity(
+        self, farm_id=None, farm_name=None, country=None, city=None, cru=None, sru=None, mru=None, hru=None
+    ):
+        nodes = self.nodes_search(farm_id=farm_id, farm_name=farm_name, country=country, city=city)
         for node in nodes:
             total = node.total_resources
             reserved = node.reserved_resources
@@ -41,7 +43,7 @@ class NodeFinder:
             yield node
 
     def nodes_search(
-        self, farm_id=None, farm_name=None, country=None, city=None, cru=None, sru=None, mru=None, hru=None
+        self, farm_id=None, country=None, city=None, cru=None, sru=None, mru=None, hru=None, farm_name=None
     ):
         """
         list return all the nodes
@@ -49,14 +51,11 @@ class NodeFinder:
         :return: list of nodes
         :rtype: list
         """
-        if not farm_id and not farm_name:
-            farm_name = "freefarm"
-
         if farm_name:
             try:
                 farm = self._actor_directory.farms.get(name=farm_name)
                 farm_id = farm.id
-            except j.exceptions.NotFound:
+            except:
                 return []
 
         return self._actor_directory.nodes.list(
