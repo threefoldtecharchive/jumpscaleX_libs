@@ -150,7 +150,15 @@ class ResourceParser:
         getcontext().prec = 9
         me_tid = j.tools.threebot.me.default.tid
         # load all farms belonging to our threebot id
+<<<<<<< HEAD
         farms = self._farms.list(me_tid)
+=======
+
+        # TODO: missing owned by
+        # farms = self._farms.owned_by(me_tid).farms
+        farms = None
+
+>>>>>>> update SAL zosv2 to use new explorer client
         farm_ids = set()
         for farm in farms:
             farm_ids.add(farm.id)
