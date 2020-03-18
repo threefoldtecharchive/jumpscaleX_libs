@@ -13,8 +13,9 @@ class Reservations:
 
     def create(self, reservation):
         data = j.data.serializers.json.dumps(reservation._ddict)
-        self._session.post(self._base_url, data=data)
-        return True
+        resp = self._session.post(self._base_url, data=data)
+        resp.raise_for_status()
+        return resp.json()["id"]
 
     def list(self):
         reservations = []

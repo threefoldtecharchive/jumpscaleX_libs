@@ -6,7 +6,8 @@ from .network import is_private
 
 class NodeFinder:
     def __init__(self, explorer):
-        self._actor_directory = explorer.actors_get("tfgrid.directory")
+        self._nodes = explorer.nodes
+        self._farms = explorer.farms
 
     def filter_is_up(self, node):
         """
@@ -53,14 +54,12 @@ class NodeFinder:
         """
         if farm_name:
             try:
-                farm = self._actor_directory.farms.get(name=farm_name)
+                farm = self._farms.get(name=farm_name)
                 farm_id = farm.id
             except:
                 return []
 
-        return self._actor_directory.nodes.list(
-            farm_id=farm_id, country=country, city=city, cru=cru, sru=sru, mru=mru, hru=hru
-        ).nodes
+        return self._nodes.list(farm_id=farm_id, country=country, city=city, cru=cru, sru=sru, mru=mru, hru=hru).nodes
 
 
 def filter_public_ip(node, version):

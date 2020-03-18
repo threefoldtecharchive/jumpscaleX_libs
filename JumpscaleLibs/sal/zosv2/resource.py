@@ -13,8 +13,9 @@ ASSET_CODE = "TFT"
 
 class ResourceParser:
     def __init__(self, explorer, reservation):
-        self._actor_directory = explorer.actors_get("tfgrid.directory")
-        self._actor_workloads = explorer.actors_get("tfgrid.workloads")
+        self._farms = explorer.farms
+        self._nodes = explorer.nodes
+        self._reservations = explorer.reservations
         self._reservation = reservation
 
     def calculate_used_resources(self):
@@ -52,9 +53,8 @@ class ResourceParser:
     def calculate_used_resources_cost(self):
         resource_units_per_node = self.calculate_used_resources()
         for resource_unit_node in resource_units_per_node:
-            node = self._actor_directory.nodes.get(resource_unit_node.node_id, False)
-            farm = self._actor_directory.farms.get(node.farm_id, False)
-
+            node = self._nodes.get(resource_unit_node.node_id, False)
+            farm = self._farms.get(node.farm_id, False)
             wallet_address = farm.wallet_addresses[0]
             total_cru_cost = resource_unit_node.CRU * farm.resource_prices[0].cru
             total_sru_cost = resource_unit_node.SRU * farm.resource_prices[0].sru
@@ -150,7 +150,11 @@ class ResourceParser:
         getcontext().prec = 9
         me_tid = j.tools.threebot.me.default.tid
         # load all farms belonging to our threebot id
-        farms = self._actor_directory.farms.owned_by(me_tid).farms
+
+        # TODO: missing owned by
+        # farms = self._farms.owned_by(me_tid).farms
+        farms = None
+
         farm_ids = set()
         for farm in farms:
             farm_ids.add(farm.id)
@@ -193,7 +197,11 @@ class ResourceParser:
         getcontext().prec = 7
         me_tid = j.tools.threebot.me.default.tid
         # load all farms belonging to our threebot id
-        farms = self._actor_directory.farms.owned_by(me_tid).farms
+
+        # TODO: missing owned by
+        # farms = self._farms.owned_by(me_tid).farms
+        farms = None
+
         farm_ids = set()
         for farm in farms:
             farm_ids.add(farm.id)
