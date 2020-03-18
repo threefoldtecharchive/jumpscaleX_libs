@@ -10,10 +10,12 @@ class Nodes:
         )
         self._node_model = j.data.schema.get_from_url("tfgrid.directory.node.2")
 
-    def list(self, farm_id=None):
+    def list(self, farm_id=None, proofs=False):
         query = {}
         if farm_id is not None:
             query["farm"] = farm_id
+        if proofs:
+            query["proofs"] = "true"
         resp = self._session.get(self._base_url + "/nodes", params=query)
         resp.raise_for_status()
         nodes = []
@@ -22,7 +24,10 @@ class Nodes:
             nodes.append(node)
         return nodes
 
-    def get(self, node_id):
-        resp = self._session.get(self._base_url + f"/nodes/{node_id}")
+    def get(self, node_id, proofs=False):
+        params = {}
+        if proofs:
+            params["proofs"] = "true"
+        resp = self._session.get(self._base_url + f"/nodes/{node_id}", params=params)
         resp.raise_for_status()
         return self._node_model.new(datadict=resp.json())
