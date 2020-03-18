@@ -23,15 +23,31 @@ class Chatflow(j.baseclasses.object):
             ips.append(ip.format())
         return ips
 
-    def nodes_get(self, number_of_nodes, farm_id=None, farm_name=None, cru=None, sru=None, mru=None, hru=None):
+    def nodes_get(
+        self, number_of_nodes, ip_version, farm_id=None, farm_name=None, cru=None, sru=None, mru=None, hru=None
+    ):
         # get nodes without public ips
+        access_nodes_filter = []
         nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
             farm_id=farm_id, farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru
         )  # Choose free farm
+
+        access_nodes = j.sal.zosv2.nodes_finder.nodes_search(farm_id=71)
+        if ip_version == "IPv4":
+            for node in filter(j.sal.zosv2.nodes_finder.filter_public_ip4, access_nodes):
+                access_nodes_filter.append(node)
+        else:
+            for node in filter(j.sal.zosv2.nodes_finder.filter_public_ip6, access_nodes):
+                access_nodes_filter.append(node)
+
+        # to avoid using the same node with different networks
+        nodes = set(list(nodes)) - set(access_nodes_filter)
         nodes_selected = []
         nodes = list(nodes)
         for i in range(number_of_nodes):
             node = random.choice(nodes)
+            while not j.sal.zosv2.nodes_finder.filter_is_up(node):
+                node = random.choice(nodes)
             nodes_selected.append(node)
         return nodes_selected
 
