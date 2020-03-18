@@ -4,11 +4,11 @@ import struct
 import math
 
 JSBASE = j.baseclasses.object
-TESTTOOLS = j.baseclasses.testtools
+
 skip = j.baseclasses.testtools._skip
 
 
-class NumTools(j.baseclasses.object, TESTTOOLS):
+class NumTools(j.baseclasses.object):
 
     __jslocation__ = "j.tools.numtools"
 
