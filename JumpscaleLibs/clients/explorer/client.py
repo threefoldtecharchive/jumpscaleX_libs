@@ -17,7 +17,7 @@ class Explorer(JSConfigClient):
 
     def _init(self, **kwargs):
         self._session = requests.Session()
-        self.directory = Directory(self._session, self.url)
-        # self.workloads = Workloads(self._session, self.url)
+        # self.directory = Directory(self._session, self.url)
+        self.workloads = Workloads(self._session, self.url)
         # self.phonebook = Phonebook(self._session, self.url)
 
