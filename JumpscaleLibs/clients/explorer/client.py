@@ -1,6 +1,7 @@
 import requests
 
 from .directory import Directory
+from .workloads import Workloads
 
 from Jumpscale import j
 
