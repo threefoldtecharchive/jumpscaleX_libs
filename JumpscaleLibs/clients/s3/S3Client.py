@@ -7,7 +7,7 @@ try:
     from minio import Minio
     from minio.error import ResponseError, BucketAlreadyOwnedByYou, BucketAlreadyExists
 except ImportError:
-    print("WARNING: s3 pip client (minio) not found please install do j.clients.s3.install()")
+    j.builders.runtimes.python3.pip_package_install("minio")
 
 JSConfigBase = j.baseclasses.object_config
 
@@ -89,7 +89,7 @@ class S3Client(JSConfigBase):
         :type object_name: str
         :param file_path: local path to which object data will be written
         :type file_path: str
-        :return: object stat info (includes: size, etag, content_type,last_modified, metadata) 
+        :return: object stat info (includes: size, etag, content_type,last_modified, metadata)
         :rtype: Object
         """
 
@@ -105,7 +105,7 @@ class S3Client(JSConfigBase):
 
     def list_objects(self, bucket_name, prefix=None, recursive=None):
         """List objects in a specific bucket
-        
+
         :param bucket_name: name of bucket
         :type bucket_name: str
         :param prefix: prefix of the objects that should be listed, defaults to None
@@ -128,7 +128,7 @@ class S3Client(JSConfigBase):
 
     def remove_object(self, bucket_name, object_name):
         """Remove object from bucket
-        
+
         :param bucket_name: name of bucket
         :type bucket_name: str
         :param object_name: name of object to be removed
