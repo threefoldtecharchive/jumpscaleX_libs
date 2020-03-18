@@ -1,6 +1,8 @@
 import requests
 
-from .directory import Directory
+from .nodes import Nodes
+from .users import Users
+from .farms import Farms
 from .reservations import Reservations
 
 from Jumpscale import j
@@ -18,7 +20,8 @@ class Explorer(JSConfigClient):
 
     def _init(self, **kwargs):
         self._session = requests.Session()
-        # self.directory = Directory(self._session, self.url)
+        self.nodes = Nodes(self._session, self.url)
+        self.users = Users(self._session, self.url)
+        self.farms = Farms(self._session, self.url)
         self.reservations = Reservations(self._session, self.url)
-        # self.phonebook = Phonebook(self._session, self.url)
 
