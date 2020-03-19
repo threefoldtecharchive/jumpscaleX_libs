@@ -65,7 +65,9 @@ class Zosv2(j.baseclasses.object):
         """
         return self._explorer.reservations.new()
 
-    def reservation_register(self, reservation, expiration_date, identity=None, expiration_provisioning=None):
+    def reservation_register(
+        self, reservation, expiration_date, identity=None, expiration_provisioning=None, customer_tid=None
+    ):
         """
         register a reservation in BCDB
         

@@ -27,4 +27,3 @@ class Explorer(JSConfigClient):
         self.users = Users(self._session, self.url)
         self.farms = Farms(self._session, self.url)
         self.reservations = Reservations(self._session, self.url)
-
