@@ -46,7 +46,7 @@ class Users:
     def get(self, tid=None, name=None, email=None):
         if tid != None:
             resp = self._session.get(self._base_url + f"/users/{tid}")
-            return self._user_model.new(datadict=resp.json())
+            return self._model.new(datadict=resp.json())
 
         results = self.list(name=name, email=email)
         if results:
