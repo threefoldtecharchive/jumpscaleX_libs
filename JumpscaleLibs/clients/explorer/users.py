@@ -17,7 +17,6 @@ class Users:
         if email is not None:
             query["email"] = email
         resp = self._session.get(self._base_url + "/users", params=query)
-        resp.raise_for_status()
         users = []
         for user_data in resp.json():
             user = self._model.new(datadict=user_data)
@@ -29,7 +28,6 @@ class Users:
 
     def register(self, user):
         resp = self._session.post(self._base_url + "/users", json=user._ddict)
-        resp.raise_for_status()
         return resp.json()["id"]
 
     def validate(self, tid, payload, signature):
@@ -40,17 +38,14 @@ class Users:
         }
 
         resp = self._session.post(url, json=data)
-        resp.raise_for_status()
         return resp.json()["is_valid"]
 
     def update(self, user):
         resp = self._session.put(self._base_url + "/users", json=user._ddict)
-        resp.raise_for_status()
 
     def get(self, tid=None, name=None, email=None):
         if tid != None:
             resp = self._session.get(self._base_url + f"/users/{tid}")
-            resp.raise_for_status()
             return self._user_model.new(datadict=resp.json())
 
         results = self.list(name=name, email=email)
