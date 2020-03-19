@@ -1,5 +1,6 @@
 from Jumpscale import j
 
+
 class Users:
     def __init__(self, session, url):
         self._session = session
@@ -27,10 +28,33 @@ class Users:
         return self._user_model.new()
 
     def register(self, user):
-        resp = self._session.post(self._base_url + "/users", json=user._dict)
+        resp = self._session.post(self._base_url + "/users", json=user._ddict)
         resp.raise_for_status()
         return resp.json()
 
-    def update(self, user):
-        resp = self._session.put(self._base_url + "/users", json=user._dict)
+    def validate(self, tid, payload, signature):
+        url = self._base_url + f"/users/{tid}/validate"
+        data = {
+            "payload": payload,
+            "signature": signature,
+        }
+
+        resp = self._session.post(url, json=data)
         resp.raise_for_status()
+        return resp.json()["is_valid"]
+
+    def update(self, user):
+        resp = self._session.put(self._base_url + "/users", json=user._ddict)
+        resp.raise_for_status()
+
+    def get(self, tid=None, name=None, email=None):
+        if tid != None:
+            resp = self._session.get(self._base_url + f"/users/{tid}")
+            resp.raise_for_status()
+            return self._user_model.new(datadict=resp.json())
+
+        results = self.list(name=name, email=email)
+        if results:
+            return results[0]
+        raise j.exceptions.NotFound("user not found")
+

@@ -11,11 +11,13 @@ class Reservations:
         )
         self._model = j.data.schema.get_from_url("tfgrid.workloads.reservation.1")
 
+    def new(self):
+        return self._model.new()
+
     def create(self, reservation):
-        data = j.data.serializers.json.dumps(reservation._ddict)
-        resp = self._session.post(self._base_url, data=data)
+        resp = self._session.post(self._base_url, json=reservation._ddict)
         resp.raise_for_status()
-        return resp.json()["id"]
+        return resp.json()
 
     def list(self):
         reservations = []

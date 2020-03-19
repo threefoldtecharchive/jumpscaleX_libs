@@ -59,7 +59,7 @@ class NodeFinder:
             except:
                 return []
 
-        return self._nodes.list(farm_id=farm_id, country=country, city=city, cru=cru, sru=sru, mru=mru, hru=hru).nodes
+        return self._nodes.list(farm_id=farm_id, country=country, city=city, cru=cru, sru=sru, mru=mru, hru=hru)
 
 
 def filter_public_ip(node, version):

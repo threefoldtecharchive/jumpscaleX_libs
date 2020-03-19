@@ -91,12 +91,14 @@ class Zosv2(j.baseclasses.object):
 
         reservation.data_reservation.expiration_provisioning = expiration_provisioning
         reservation.data_reservation.expiration_reservation = expiration_date
+        reservation.data_reservation.signing_request_delete.quorum_min = 0
+        reservation.data_reservation.signing_request_provision.quorum_min = 0
 
         reservation.json = reservation.data_reservation._json
         reservation.customer_signature = me.nacl.sign_hex(reservation.json.encode())
 
-        resp = self._explorer.reservations.create(reservation)
-        return resp.id
+        id = self._explorer.reservations.create(reservation)
+        return id
 
     def reservation_accept(self, reservation, identity=None):
         """

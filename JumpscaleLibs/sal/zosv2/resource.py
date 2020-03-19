@@ -150,11 +150,7 @@ class ResourceParser:
         getcontext().prec = 9
         me_tid = j.tools.threebot.me.default.tid
         # load all farms belonging to our threebot id
-
-        # TODO: missing owned by
-        # farms = self._farms.owned_by(me_tid).farms
-        farms = None
-
+        farms = self._farms.list(me_tid)
         farm_ids = set()
         for farm in farms:
             farm_ids.add(farm.id)
@@ -197,11 +193,7 @@ class ResourceParser:
         getcontext().prec = 7
         me_tid = j.tools.threebot.me.default.tid
         # load all farms belonging to our threebot id
-
-        # TODO: missing owned by
-        # farms = self._farms.owned_by(me_tid).farms
-        farms = None
-
+        farms = self._farms.list(me_tid)
         farm_ids = set()
         for farm in farms:
             farm_ids.add(farm.id)

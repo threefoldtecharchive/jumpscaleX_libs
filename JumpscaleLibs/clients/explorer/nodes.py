@@ -10,12 +10,22 @@ class Nodes:
         )
         self._node_model = j.data.schema.get_from_url("tfgrid.directory.node.2")
 
-    def list(self, farm_id=None, proofs=False):
+    def list(self, farm_id=None, country=None, city=None, cru=None, sru=None, mru=None, hru=None, proofs=False):
         query = {}
-        if farm_id is not None:
-            query["farm"] = farm_id
         if proofs:
             query["proofs"] = "true"
+        args = {
+            "farm_id": farm_id,
+            "city": city,
+            "cru": cru,
+            "sru": sru,
+            "mru": mru,
+            "hru": hru,
+        }
+        for k, v in args.items():
+            if v is not None:
+                query[k] = v
+
         resp = self._session.get(self._base_url + "/nodes", params=query)
         resp.raise_for_status()
         nodes = []

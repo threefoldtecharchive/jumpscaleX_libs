@@ -19,6 +19,7 @@ class ExplorerClientFactory(JSConfigs):
     @property
     def default(self):
         if not self._explorer:
-            url = j.core.myenv.config.get("EXPLORER_ADDR", "localhost")
+            addr = j.core.myenv.config.get("EXPLORER_ADDR", "localhost")
+            url = f"http://{addr}"
             self._explorer = j.baseclasses.object_config_collection_testtools.get(self, name="explorer", url=url)
         return self._explorer

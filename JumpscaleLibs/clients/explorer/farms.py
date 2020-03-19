@@ -10,8 +10,12 @@ class Farms:
         )
         self._farm_model = j.data.schema.get_from_url("tfgrid.directory.farm.1")
 
-    def list(self):
-        resp = self._session.get(self._base_url + "/farms")
+    def list(self, threebot_id=None):
+        url = self._base_url + "/farms"
+        if threebot_id:
+            url += f"?owner={threebot_id}"
+        resp = self._session.get(url)
+
         resp.raise_for_status()
         farms = []
         for farm_data in resp.json():
@@ -23,11 +27,11 @@ class Farms:
         return self._farm_model.new()
 
     def register(self, farm):
-        resp = self._session.post(self._base_url + "/farms", json=farm._dict)
+        resp = self._session.post(self._base_url + "/farms", json=farm._ddict)
         resp.raise_for_status()
         return resp.json()
 
     def get(self, farm_id):
-        resp = self._session.get(self._base_url + f"/farm/{farm_id}")
+        resp = self._session.get(self._base_url + f"/farms/{farm_id}")
         resp.raise_for_status()
         return self._farm_model.new(datadict=resp.json())
