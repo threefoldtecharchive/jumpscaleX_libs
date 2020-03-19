@@ -15,7 +15,7 @@ class Nodes:
         if proofs:
             query["proofs"] = "true"
         args = {
-            "farm_id": farm_id,
+            "farm": farm_id,
             "city": city,
             "cru": cru,
             "sru": sru,

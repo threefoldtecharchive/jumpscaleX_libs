@@ -89,12 +89,18 @@ class Zosv2(j.baseclasses.object):
         if expiration_provisioning is None:
             expiration_provisioning = j.data.time.epoch + (3600 * 24 * 365)
 
-        reservation.data_reservation.expiration_provisioning = expiration_provisioning
-        reservation.data_reservation.expiration_reservation = expiration_date
-        reservation.data_reservation.signing_request_delete.quorum_min = 0
-        reservation.data_reservation.signing_request_provision.quorum_min = 0
+        dr = reservation.data_reservation
 
-        reservation.json = reservation.data_reservation._json
+        dr.expiration_provisioning = expiration_provisioning
+        dr.expiration_reservation = expiration_date
+        dr.signing_request_delete.quorum_min = 0
+        dr.signing_request_provision.quorum_min = 0
+
+        # make the reservation cancellable by the user that registered it
+        dr.signing_request_delete.signers.append(me.tid)
+        dr.signing_request_delete.quorum_min = len(dr.signing_request_delete.signers)
+
+        reservation.json = dr._json
         reservation.customer_signature = me.nacl.sign_hex(reservation.json.encode())
 
         id = self._explorer.reservations.create(reservation)
@@ -159,14 +165,15 @@ class Zosv2(j.baseclasses.object):
         me = identity if identity else j.tools.threebot.me.default
 
         reservation = self.reservation_get(reservation_id)
-        signature = me.nacl.sign_hex(reservation.json.encode())
+        payload = j.data.nacl.payload_build(reservation.id, reservation.json.encode())
+        signature = me.nacl.sign_hex(payload)
 
         return self._explorer.reservations.sign_delete(reservation_id=reservation_id, tid=me.tid, signature=signature)
 
     def reservation_list(self, tid=None):
         tid = tid if tid else j.tools.threebot.me.default.tid
         result = self._explorer.reservations.list()
-        return list(filter(lambda r: r.customer_tid == tid, result.reservations))
+        return list(filter(lambda r: r.customer_tid == tid, result))
 
     def reservation_store(self, reservation, path):
         """
