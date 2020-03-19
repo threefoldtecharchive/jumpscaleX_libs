@@ -78,6 +78,7 @@ class ContainerGenerator:
         net = cont.network_connection.new()
         net.network_id = network_name
         net.ipaddress = ip_address
+        net.public_ip6 = public_ipv6
 
         cont.capacity.cpu = cpu
         cont.capacity.memory = memory
@@ -104,4 +105,4 @@ class ContainerGenerator:
         box = public.SealedBox(encryption_key)
         result = box.encrypt(value.encode())
 
-        return binascii.hexlify(result)
+        return binascii.hexlify(result).decode()

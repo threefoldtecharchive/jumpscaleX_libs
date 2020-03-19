@@ -212,27 +212,36 @@ costs = zos.billing.reservation_resources_cost(reservation)
 for cost in costs:
     print(cost)
 
-# to be able to send tokens to the farmers, a TFChain wallet needs to be available on the system
-client = j.clients.tfchain.get('myclient')
-wallet = client.wallets.get("default")
+# to be able to send tokens to the farmers, a TFChain wallet or Stellar client needs to be available on the system
+tfchain = j.clients.tfchain.get('myclient')
+client = tfchain.wallets.get("default")
+
+# or use the stellar client
+client = j.clients.stellar.get('myclient')
 
 # once we have verified everything is in order, we create the transaction
 # to send the token to the farms
-transactions = zos.billing.payout_farmers(wallet, costs, reservation)
+transactions = zos.billing.payout_farmers(client, costs, reservation)
 # if everything went ok, at this point your transaction are now sent to the blockchain
 ```
 
-## As a farmer verify that a payment as been made for a reservation
+## As a farmer verify that a payment as been made for a reservation and approve it
 
 ```python
 zos = j.sal.zosv2
 
 
-client = j.clients.tfchain.get('myclient')
-wallet = client.wallets.get("default")
+tfchain = j.clients.tfchain.get('myclient')
+client = tfchain.wallets.get("default")
+
+# or use the stellar client
+client = j.clients.stellar.get('myclient')
 
 # the farmer needs to know the reservation ID to be able to check if the payment has arrived for it
 reservation = zos.reservation_get(reservation_id)
 # verify_payments will return true if everything has been paid or false if not
-zos.billing.verify_payments(wallet, reservation)
+is_payed = zos.billing.verify_payments(client, reservation)
+
+if is_payed:
+    zos.reservation_accept(reservation)
 ```

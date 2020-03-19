@@ -7,7 +7,7 @@ try:
     from minio import Minio
     from minio.error import ResponseError, BucketAlreadyOwnedByYou, BucketAlreadyExists
 except ImportError:
-    print("WARNING: s3 pip client (minio) not found please install do j.clients.s3.install()")
+    j.builders.runtimes.python3.pip_package_install("minio")
 
 JSConfigBase = j.baseclasses.object_config
 
@@ -28,14 +28,7 @@ class S3Client(JSConfigBase):
     bucket_ok = false (B)
     """
 
-    def _init(self, **kwargs):
-        # s3 = boto3.resource('s3',
-        #                     endpoint_url='http://%s:%s' % (c["address"], c["port"]),
-        #                     config=boto3.session.Config(signature_version='s3v4'),
-        #                     aws_access_key_id=c["accesskey_"],
-        #                     aws_secret_access_key=c["secretkey_"]
-        #                     )
-
+    def connect(self):
         # Create the http client to be able to set timeout
         http_client = urllib3.PoolManager(
             timeout=5,
@@ -96,7 +89,7 @@ class S3Client(JSConfigBase):
         :type object_name: str
         :param file_path: local path to which object data will be written
         :type file_path: str
-        :return: object stat info (includes: size, etag, content_type,last_modified, metadata) 
+        :return: object stat info (includes: size, etag, content_type,last_modified, metadata)
         :rtype: Object
         """
 
@@ -112,7 +105,7 @@ class S3Client(JSConfigBase):
 
     def list_objects(self, bucket_name, prefix=None, recursive=None):
         """List objects in a specific bucket
-        
+
         :param bucket_name: name of bucket
         :type bucket_name: str
         :param prefix: prefix of the objects that should be listed, defaults to None
@@ -135,7 +128,7 @@ class S3Client(JSConfigBase):
 
     def remove_object(self, bucket_name, object_name):
         """Remove object from bucket
-        
+
         :param bucket_name: name of bucket
         :type bucket_name: str
         :param object_name: name of object to be removed
