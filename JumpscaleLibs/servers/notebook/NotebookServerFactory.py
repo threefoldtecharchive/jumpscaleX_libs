@@ -2,17 +2,12 @@ from Jumpscale import j
 
 skip = j.baseclasses.testtools._skip
 
-import gevent
-
 
 class NotebookServerFactory(j.baseclasses.object):
 
     __jslocation__ = "j.servers.notebook"
 
     def install(self):
-        """
-        kosmos -p 'j.servers.notebook.install()'
-        """
         j.builders.system.package.update()
         j.builders.runtimes.nodejs.install()
 
@@ -45,31 +40,24 @@ class NotebookServerFactory(j.baseclasses.object):
         self._log_info(path)
         if not background:
             if not voila:
-                # cmd_start = "cd %s;jupyter lab --ip=0.0.0.0 --allow-root %s" % (dirpath, basepath)
-                cmd_start = "cd %s;jupyter notebook --ip=0.0.0.0 --allow-root %s" % (dirpath, basepath)
-                # cmd_start = (
-                #     "cd %s;jupyter lab --NotebookApp.allow_remote_access=True --NotebookApp.token='' --NotebookApp.password='' --ip=%s --allow-root %s"
-                #     % (dirpath, ip, basepath)
-                # )
+                cmd_start = (
+                    "cd %s;jupyter lab --NotebookApp.allow_remote_access=True --NotebookApp.token='' --NotebookApp.password='' --ip=%s --allow-root %s"
+                    % (dirpath, ip, basepath)
+                )
                 if base_url:
                     cmd_start += f" --NotebookApp.base_url={base_url}"
-
                 j.sal.process.executeInteractive(cmd_start)
-
             else:
                 cmd_start = "cd %s;voila --Voila.ip=%s %s" % (dirpath, ip, basepath)
                 if base_url:
                     cmd_start += f" --Voila.base_url={base_url}"
-
                 j.sal.process.executeInteractive(cmd_start)
         else:
             if not voila:
-                # cmd_start = "jupyter lab --ip=0.0.0.0 --allow-root %s" % path
-                cmd_start = "jupyter notebook --ip=0.0.0.0 --allow-root %s" % path
-                # cmd_start = (
-                #     "jupyter lab --NotebookApp.allow_remote_access=True --NotebookApp.token='' --NotebookApp.password='' --ip=%s --allow-root %s"
-                #     % (ip, path,)
-                # )
+                cmd_start = (
+                    "jupyter lab --NotebookApp.allow_remote_access=True --NotebookApp.token='' --NotebookApp.password='' --ip=%s --allow-root %s"
+                    % (ip, path)
+                )
                 if base_url:
                     cmd_start += f" --NotebookApp.base_url={base_url}"
                 cmd = j.servers.startupcmd.get("notebook", cmd_start=cmd_start)

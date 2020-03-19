@@ -49,4 +49,4 @@ class GoldChainClientFactory(JSConfigBaseFactory):
         kosmos 'j.clients.goldchain.test()'
         :return:
         """
-        self._tests_run(name=name, die=True)
+        self._tests_run(name=name)

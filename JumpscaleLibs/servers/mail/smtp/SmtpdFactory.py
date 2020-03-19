@@ -48,5 +48,5 @@ class SmtpdFactory(j.baseclasses.object, j.baseclasses.testtools):
                 "{DIR_BASE}/code/github/threefoldtech/jumpscaleX_libs/JumpscaleLibs/servers/mail/models/"
             )
         )
-        self._tests_run(name=name, die=True)
+        self._tests_run(name=name)
         self._log_info("All TESTS DONE")

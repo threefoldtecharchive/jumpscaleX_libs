@@ -88,4 +88,4 @@ class DigitalOceanFactory(j.baseclasses.object_config_collection_testtools, j.ba
 
     @skip("https://github.com/threefoldtech/zeroCI/issues/30")
     def test_DO_client(self, name=""):
-        self._tests_run(name=name, die=True)
+        self._tests_run(name=name)

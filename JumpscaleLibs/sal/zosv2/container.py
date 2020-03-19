@@ -71,7 +71,7 @@ class ContainerGenerator:
                 ip = netaddr.IPAddress(ip_address)
                 subnet = netaddr.IPNetwork(nw.iprange)
                 if ip not in subnet:
-                    raise j.excpetions.Input(
+                    raise j.exceptions.Input(
                         f"ip address {str(ip)} is not in the range of the network resource of the node {str(subnet)}"
                     )
 

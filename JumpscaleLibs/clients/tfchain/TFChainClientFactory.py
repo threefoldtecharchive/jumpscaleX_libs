@@ -49,4 +49,4 @@ class TFChainClientFactory(JSConfigBaseFactory):
         kosmos 'j.clients.tfchain.test()'
         :return:
         """
-        self._tests_run(name=name, die=True)
+        self._tests_run(name=name)

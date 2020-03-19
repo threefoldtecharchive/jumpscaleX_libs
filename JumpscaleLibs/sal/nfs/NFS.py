@@ -194,4 +194,4 @@ class NFS(JSBASE, j.baseclasses.testtools):
         :param name: basename of the file to run, defaults to "".
         :type name: str, optional
         """
-        self._tests_run(name=name, die=True)
+        self._tests_run(name=name)

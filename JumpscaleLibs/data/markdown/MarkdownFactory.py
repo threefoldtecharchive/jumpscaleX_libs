@@ -45,4 +45,4 @@ class MarkdownFactory(JSBASE, TESTTOOLS):
 
         """
 
-        self._tests_run(name=name, die=True)
+        self._tests_run(name=name)

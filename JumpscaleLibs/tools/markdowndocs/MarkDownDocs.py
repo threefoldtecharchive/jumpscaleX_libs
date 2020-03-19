@@ -429,7 +429,7 @@ class MarkDownDocs(j.baseclasses.object, TESTTOOLS):
         """
         kosmos 'j.tools.markdowndocs.test()
         """
-        self._tests_run(name=name, die=True)
+        self._tests_run(name=name)
 
         url = "https://github.com/abom/test_custom_md/tree/master/docs"
         ds = self.load(url, name="test")

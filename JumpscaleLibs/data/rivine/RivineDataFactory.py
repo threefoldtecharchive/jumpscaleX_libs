@@ -42,4 +42,4 @@ class RivineDataFactory(j.baseclasses.object, TESTTOOLS):
         kosmos 'j.data.rivine.test()'
         :return:
         """
-        self._tests_run(name=name, die=True)
+        self._tests_run(name=name)
