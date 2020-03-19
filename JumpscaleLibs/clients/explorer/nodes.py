@@ -27,7 +27,6 @@ class Nodes:
                 query[k] = v
 
         resp = self._session.get(self._base_url + "/nodes", params=query)
-        resp.raise_for_status()
         nodes = []
         for node_data in resp.json():
             node = self._model.new(datadict=node_data)
@@ -39,5 +38,4 @@ class Nodes:
         if proofs:
             params["proofs"] = "true"
         resp = self._session.get(self._base_url + f"/nodes/{node_id}", params=params)
-        resp.raise_for_status()
         return self._model.new(datadict=resp.json())
