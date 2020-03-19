@@ -15,8 +15,6 @@ class Farms:
         if threebot_id:
             url += f"?owner={threebot_id}"
         resp = self._session.get(url)
-
-        resp.raise_for_status()
         farms = []
         for farm_data in resp.json():
             farm = self._model.new(datadict=farm_data)
@@ -28,10 +26,8 @@ class Farms:
 
     def register(self, farm):
         resp = self._session.post(self._base_url + "/farms", json=farm._ddict)
-        resp.raise_for_status()
         return resp.json()["id"]
 
     def get(self, farm_id):
         resp = self._session.get(self._base_url + f"/farms/{farm_id}")
-        resp.raise_for_status()
         return self._model.new(datadict=resp.json())
