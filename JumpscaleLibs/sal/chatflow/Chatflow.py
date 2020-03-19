@@ -4,7 +4,7 @@ import random
 
 
 class Chatflow(j.baseclasses.object):
-    __jslocation__ = "j.sal.chatflow"
+    __jslocation__ = "j.sal.reservation_chatflow"
 
     def _init(self, **kwargs):
         pass
