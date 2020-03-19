@@ -51,7 +51,7 @@ class Chatflow(j.baseclasses.object):
             nodes_selected.append(node)
         return nodes_selected
 
-    def network_configure(self, bot, reservation, nodes, customer_tid, ip_version, number_of_ipaddresses=1):
+    def network_configure(self, bot, reservation, nodes, customer_tid, ip_version, number_of_ipaddresses=0):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -84,7 +84,7 @@ class Chatflow(j.baseclasses.object):
             ip_range = str(first_digit) + "." + str(second_digit) + ".0.0/16"
         return ip_range
 
-    def network_get(self, bot, reservation, ip_range, nodes, customer_tid, ip_version, number_of_ipaddresses=1):
+    def network_get(self, bot, reservation, ip_range, nodes, customer_tid, ip_version, number_of_ipaddresses=0):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -104,7 +104,7 @@ class Chatflow(j.baseclasses.object):
         return reservation, network_config
 
     def _register_network(
-        self, bot, reservation, ip_range, network, nodes, customer_tid, ip_version="IPv4", number_of_ipaddresses=1
+        self, bot, reservation, ip_range, network, nodes, customer_tid, ip_version="IPv4", number_of_ipaddresses=0
     ):
         """
         bot: Gedis chatbot object from chatflow
@@ -163,7 +163,20 @@ class Chatflow(j.baseclasses.object):
 
         # register the reservation
         expiration = j.data.time.epoch + (60 * 60 * 24)
-        rid = j.sal.zosv2.reservation_register(reservation, expiration, customer_tid=customer_tid)
+        rid = self.reservation_register(reservation, expiration, customer_tid)
+
         network_config["rid"] = rid
 
         return network_config
+
+    def reservation_register(self, reservation, expiration, customer_tid):
+        rid = j.sal.zosv2.reservation_register(reservation, expiration, customer_tid=customer_tid)
+
+        if j.core.myenv.config.get("DEPLOYER") and customer_tid:
+            # create a new object from deployed_reservation with the reservation and the tid
+            deployed_rsv_model = j.clients.bcdbmodel.get(url="tfgrid.deployed_reservation.1", name="tfgrid_workloads")
+            deployed_reservation = deployed_rsv_model.new()
+            deployed_reservation.reservation_id = rid
+            deployed_reservation.customer_tid = customer_tid
+            deployed_reservation.save()
+        return rid

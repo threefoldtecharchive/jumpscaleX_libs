@@ -6,7 +6,7 @@ from .id import _next_workload_id
 
 class ZDBGenerator:
     def __init__(self, explorer):
-        self._actor_directory = explorer.actors_get("tfgrid.directory")
+        self._nodes = explorer.nodes
 
     def create(self, reservation, node_id, size, mode, password, disk_type="SSD", public=False):
         """
@@ -40,7 +40,7 @@ class ZDBGenerator:
         zdb.size = size
         zdb.mode = mode
         if password:
-            node = self._actor_directory.nodes.get(node_id)
+            node = self._nodes.get(node_id)
             zdb.password = encrypt_for_node(node.public_key_hex, password)
         zdb.disk_type = disk_type.lower()
         return zdb

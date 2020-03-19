@@ -9,14 +9,15 @@ from .node_finder import NodeFinder
 from .volumes import VolumesGenerator
 from .zdb import ZDBGenerator
 from .billing import Billing
+from .resource import ResourceParser
+from .gateway import Gateway
 
 
 class Zosv2(j.baseclasses.object):
     __jslocation__ = "j.sal.zosv2"
 
     def _init(self, **kwargs):
-        self._explorer = j.clients.threebot.explorer
-        self._actor_workloads = self._explorer.actors_get("tfgrid.workloads")
+        self._explorer = j.clients.explorer.default
         self._nodes_finder = NodeFinder(self._explorer)
         self._network = NetworkGenerator(self._explorer)
         self._container = ContainerGenerator()
@@ -24,6 +25,8 @@ class Zosv2(j.baseclasses.object):
         self._zdb = ZDBGenerator(self._explorer)
         self._kubernetes = K8sGenerator(self._explorer)
         self._billing = Billing(self._explorer)
+        # TODO: gateway is not implemented in bcdb_mock
+        # self._gateway = Gateway(self._explorer)
 
     @property
     def network(self):
@@ -60,11 +63,11 @@ class Zosv2(j.baseclasses.object):
         :return: reservation (tfgrid.workloads.reservation.1)
         :rtype: BCDBModel
         """
-        reservation_model = j.data.schema.get_from_url("tfgrid.workloads.reservation.1")
-        reservation = reservation_model.new()
-        return reservation
+        return self._explorer.reservations.new()
 
-    def reservation_register(self, reservation, expiration_date, identity=None, expiration_provisioning=None, customer_tid=None):
+    def reservation_register(
+        self, reservation, expiration_date, identity=None, expiration_provisioning=None, customer_tid=None
+    ):
         """
         register a reservation in BCDB
         
@@ -88,19 +91,14 @@ class Zosv2(j.baseclasses.object):
 
         reservation.data_reservation.expiration_provisioning = expiration_provisioning
         reservation.data_reservation.expiration_reservation = expiration_date
+        reservation.data_reservation.signing_request_delete.quorum_min = 0
+        reservation.data_reservation.signing_request_provision.quorum_min = 0
 
         reservation.json = reservation.data_reservation._json
         reservation.customer_signature = me.nacl.sign_hex(reservation.json.encode())
 
-        resp = self._actor_workloads.workload_manager.reservation_register(reservation)
-        if j.core.myenv.config.get("DEPLOYER") and customer_tid:
-            # create a new object from deployed_reservation with the reservation and the tid
-            deployed_rsv_model = j.clients.bcdbmodel.get(url="tfgrid.deployed_reservation.1", name="tfgrid_workloads")
-            deployed_reservation = deployed_rsv_model.new()
-            deployed_reservation.reservation_id = resp.id
-            deployed_reservation.customer_tid = customer_tid
-            deployed_reservation.save()
-        return resp.id
+        id = self._explorer.reservations.create(reservation)
+        return id
 
     def reservation_accept(self, reservation, identity=None):
         """
@@ -118,7 +116,8 @@ class Zosv2(j.baseclasses.object):
 
         reservation.json = reservation.data_reservation._json
         signature = me.nacl.sign_hex(reservation.json.encode())
-        return self._actor_workloads.workload_manager.sign_farmer(reservation.id, me.tid, signature)
+        # TODO: missing sign_farm
+        # return self._explorer.reservations.sign_farmer(reservation.id, me.tid, signature)
 
     def reservation_result(self, reservation_id):
         """
@@ -140,7 +139,7 @@ class Zosv2(j.baseclasses.object):
         :return: reservation object
         :rtype: "tfgrid.workloads.reservation.1
         """
-        return self._actor_workloads.workload_manager.reservation_get(reservation_id)
+        return self._explorer.reservations.get(reservation_id)
 
     def reservation_cancel(self, reservation_id, identity=None):
         """
@@ -162,9 +161,12 @@ class Zosv2(j.baseclasses.object):
         reservation = self.reservation_get(reservation_id)
         signature = me.nacl.sign_hex(reservation.json.encode())
 
-        return self._actor_workloads.workload_manager.sign_delete(
-            reservation_id=reservation_id, tid=me.tid, signature=signature
-        )
+        return self._explorer.reservations.sign_delete(reservation_id=reservation_id, tid=me.tid, signature=signature)
+
+    def reservation_list(self, tid=None):
+        tid = tid if tid else j.tools.threebot.me.default.tid
+        result = self._explorer.reservations.list()
+        return list(filter(lambda r: r.customer_tid == tid, result.reservations))
 
     def reservation_store(self, reservation, path):
         """
@@ -193,7 +195,7 @@ class Zosv2(j.baseclasses.object):
 
     def reservation_live(self, expired=False, cancelled=False, identity=None):
         me = identity if identity else j.tools.threebot.me.default
-        rs = self._actor_workloads.workload_manager.reservations_list().reservations
+        rs = self._explorer.reservations.list()
 
         now = j.data.time.epoch
 

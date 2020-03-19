@@ -1,11 +1,13 @@
 from Jumpscale import j
 from smtplib import SMTP
+
 try:
     from imbox import Imbox
 except ImportError:
     j.builders.runtimes.python3.pip_package_install("imbox")
     from imbox import Imbox
 import unittest
+
 try:
     from imapclient import IMAPClient
 except ImportError:
@@ -69,6 +71,7 @@ def test001_imapclient_can_create_folder_in_imap():
     # assert box_name in str(box.folders()[-1][0])
     # assert the whole string instead of the first element in the tuple as it is ordered alphabetically.
     assert box_name in str(box.folders()[-1])
+
 
 @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/62")
 def test002_imapClient_get_messages_from_database():

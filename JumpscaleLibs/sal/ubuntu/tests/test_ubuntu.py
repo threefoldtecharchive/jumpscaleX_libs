@@ -542,8 +542,7 @@ def test022_deb_download_install():
         j.sal.process.execute("apt remove -y nano")
     info("installed nano again by tested method")
     j.sal.ubuntu.deb_download_install(
-        "http://archive.ubuntu.com/ubuntu/pool/main/n/nano/nano_2.9.3-2_amd64.deb",
-        remove_downloaded=True,
+        "http://archive.ubuntu.com/ubuntu/pool/main/n/nano/nano_2.9.3-2_amd64.deb", remove_downloaded=True,
     )
     info("Get nano status should be installed successfully ")
     rc2, out2, err2 = j.sal.process.execute("dpkg -s nano|grep Status")

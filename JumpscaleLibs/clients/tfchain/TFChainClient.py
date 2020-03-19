@@ -904,6 +904,7 @@ class ThreeBotRecord(NamedTuple):
     public_key: PublicKey
     expiration: int
 
+
 class TfChainAuthcoinClient:
     """
     TfChainAuthcoinClient contains all Auth Coin logic.

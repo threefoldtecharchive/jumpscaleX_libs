@@ -973,6 +973,7 @@ class TfChainAuthcoin:
         """
         return self._wallet.client.transaction_put(transaction=transaction)
 
+
 from .types.ConditionTypes import ConditionAtomicSwap, OutputLock, AtomicSwapSecret, AtomicSwapSecretHash
 from .types.FulfillmentTypes import FulfillmentAtomicSwap
 
