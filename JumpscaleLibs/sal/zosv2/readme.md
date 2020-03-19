@@ -1,4 +1,4 @@
-# Making use of zosv2 
+# Making use of zosv2
 
 ## Index
 
@@ -52,8 +52,8 @@ for n2 in network.network_resources:
 ```
 
 ## set-up network in Wireguard
-In order to have the network active and accessible from your local machine, a good way is to create the network configuration in Wireguard. 
-To do this, copy the setup into wireguard: 
+In order to have the network active and accessible from your local machine, a good way is to create the network configuration in Wireguard.
+To do this, copy the setup into wireguard:
 ```bash
 # for macOS 10.7 or newer
 
@@ -68,7 +68,7 @@ wg-quick [up|down] $config_file
 cat /tmp/wg_config
 
 ```
-You will see something like : 
+You will see something like :
 ```bash
 [Interface]
 Address = 100.64.22.100/32
@@ -79,7 +79,7 @@ AllowedIPs = 172.22.0.0/16, 100.64.22.0/32
 PersistentKeepalive = 25
 Endpoint = 185.69.166.59:5000
 ```
-Import these lines into a new Wireguard tunnel. 
+Import these lines into a new Wireguard tunnel.
 
 ## create a container
 
@@ -95,7 +95,7 @@ zos.container.create(reservation=r,
                     ip_address='172.24.1.10', # part of ip_range you reserved for your network xxx.xxx.1.10
                     flist='https://hub.grid.tf/zaibon/zaibon-ubuntu-ssh-0.0.2.flist', # flist of the container you want to install
                   # interactive=True,         # True only if corex_connect required, default false
-                  # env={},                   # field for parameters like config 
+                  # env={},                   # field for parameters like config
                     entrypoint='/sbin/my_init')
 
 # expiration = j.data.time.epoch + (3600 * 24 * 365)
@@ -190,7 +190,6 @@ print("provisioning result")
 print(result)
 ```
 
-## reserve S3 storage servers
 
 ```python
 password = "supersecret"
@@ -249,51 +248,4 @@ zos.container.create(reservation=r,
 
 rid = zos.reservation_register(r, j.data.time.epoch+(60*60))
 results = zos.reservation_result(rid)
-```
-
-## Pay reservation to farmer
-
-Once the reservation has been registered, the user needs to pay for it to the farmer
-```python
-zos = j.sal.zosv2
-
-# ... we assume the user already created and registered and reservation
-
-# fist needs to compute how much is needed to be payed
-costs = zos.billing.reservation_resources_cost(reservation)
-for cost in costs:
-    print(cost)
-
-# to be able to send tokens to the farmers, a TFChain wallet or Stellar client needs to be available on the system
-tfchain = j.clients.tfchain.get('myclient')
-client = tfchain.wallets.get("default")
-
-# or use the stellar client
-client = j.clients.stellar.get('myclient')
-
-# once we have verified everything is in order, we create the transaction
-# to send the token to the farms
-transactions = zos.billing.payout_farmers(client, costs, reservation)
-# if everything went ok, at this point your transaction are now sent to the blockchain
-```
-
-## As a farmer verify that a payment as been made for a reservation and approve it
-
-```python
-zos = j.sal.zosv2
-
-
-tfchain = j.clients.tfchain.get('myclient')
-client = tfchain.wallets.get("default")
-
-# or use the stellar client
-client = j.clients.stellar.get('myclient')
-
-# the farmer needs to know the reservation ID to be able to check if the payment has arrived for it
-reservation = zos.reservation_get(reservation_id)
-# verify_payments will return true if everything has been paid or false if not
-is_payed = zos.billing.verify_payments(client, reservation)
-
-if is_payed:
-    zos.reservation_accept(reservation)
 ```
