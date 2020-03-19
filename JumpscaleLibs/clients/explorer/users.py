@@ -8,7 +8,7 @@ class Users:
         j.data.schema.add_from_path(
             "/sandbox/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/tfgrid/phonebook/models"
         )
-        self._user_model = j.data.schema.get_from_url("tfgrid.phonebook.user.1")
+        self._model = j.data.schema.get_from_url("tfgrid.phonebook.user.1")
 
     def list(self, name=None, email=None):
         query = {}
@@ -20,17 +20,17 @@ class Users:
         resp.raise_for_status()
         users = []
         for user_data in resp.json():
-            user = self._user_model.new(datadict=user_data)
+            user = self._model.new(datadict=user_data)
             users.append(user)
         return users
 
     def new(self):
-        return self._user_model.new()
+        return self._model.new()
 
     def register(self, user):
         resp = self._session.post(self._base_url + "/users", json=user._ddict)
         resp.raise_for_status()
-        return resp.json()
+        return resp.json()["id"]
 
     def validate(self, tid, payload, signature):
         url = self._base_url + f"/users/{tid}/validate"

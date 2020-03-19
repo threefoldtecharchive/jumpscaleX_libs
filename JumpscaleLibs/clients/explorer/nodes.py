@@ -8,7 +8,7 @@ class Nodes:
         j.data.schema.add_from_path(
             "/sandbox/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/tfgrid/directory/models"
         )
-        self._node_model = j.data.schema.get_from_url("tfgrid.directory.node.2")
+        self._model = j.data.schema.get_from_url("tfgrid.directory.node.2")
 
     def list(self, farm_id=None, country=None, city=None, cru=None, sru=None, mru=None, hru=None, proofs=False):
         query = {}
@@ -30,7 +30,7 @@ class Nodes:
         resp.raise_for_status()
         nodes = []
         for node_data in resp.json():
-            node = self._node_model.new(datadict=node_data)
+            node = self._model.new(datadict=node_data)
             nodes.append(node)
         return nodes
 
@@ -40,4 +40,4 @@ class Nodes:
             params["proofs"] = "true"
         resp = self._session.get(self._base_url + f"/nodes/{node_id}", params=params)
         resp.raise_for_status()
-        return self._node_model.new(datadict=resp.json())
+        return self._model.new(datadict=resp.json())
