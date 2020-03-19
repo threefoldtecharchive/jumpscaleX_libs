@@ -51,7 +51,7 @@ class Chatflow(j.baseclasses.object):
             nodes_selected.append(node)
         return nodes_selected
 
-    def network_configure(self, bot, reservation, nodes, customer_tid, ip_version, number_of_ipaddresses=1):
+    def network_configure(self, bot, reservation, nodes, customer_tid, ip_version, number_of_ipaddresses=0):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -84,7 +84,7 @@ class Chatflow(j.baseclasses.object):
             ip_range = str(first_digit) + "." + str(second_digit) + ".0.0/16"
         return ip_range
 
-    def network_get(self, bot, reservation, ip_range, nodes, customer_tid, ip_version, number_of_ipaddresses=1):
+    def network_get(self, bot, reservation, ip_range, nodes, customer_tid, ip_version, number_of_ipaddresses=0):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -104,7 +104,7 @@ class Chatflow(j.baseclasses.object):
         return reservation, network_config
 
     def _register_network(
-        self, bot, reservation, ip_range, network, nodes, customer_tid, ip_version="IPv4", number_of_ipaddresses=1
+        self, bot, reservation, ip_range, network, nodes, customer_tid, ip_version="IPv4", number_of_ipaddresses=0
     ):
         """
         bot: Gedis chatbot object from chatflow

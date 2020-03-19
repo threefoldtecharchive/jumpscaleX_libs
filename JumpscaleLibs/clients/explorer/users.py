@@ -57,4 +57,3 @@ class Users:
         if results:
             return results[0]
         raise j.exceptions.NotFound("user not found")
-
