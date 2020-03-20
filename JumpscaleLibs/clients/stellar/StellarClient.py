@@ -33,7 +33,7 @@ from .transaction import TransactionSummary, Effect
 
 JSConfigClient = j.baseclasses.object_config
 
-_UNLOCKHASH_TRANSACTIONS_SERVICES = {"TEST": "testnet.threefold.io"}
+_UNLOCKHASH_TRANSACTIONS_SERVICES = {"TEST": "testnet.threefold.io", "STD": "threefold.io"}
 _HORIZON_NETWORKS = {"TEST": "https://horizon-testnet.stellar.org", "STD": "https://horizon.stellar.org"}
 _NETWORK_PASSPHRASES = {"TEST": Network.TESTNET_NETWORK_PASSPHRASE, "STD": Network.PUBLIC_NETWORK_PASSPHRASE}
 
@@ -69,15 +69,19 @@ class StellarClient(JSConfigClient):
         """
 
         if self._unlock_service_client_ is None:
-            try:
+            gedis_client_name = "unlock_service_{}".format(str(self.network))
+            if j.clients.gedis.exists(gedis_client_name):
+                c = j.clients.gedis.get(gedis_client_name)
+                if str(c.host) != _UNLOCKHASH_TRANSACTIONS_SERVICES[str(self.network)]:
+                    j.clients.gedis.delete(gedis_client_name)
+
+            if not j.clients.gedis.exists(gedis_client_name):
                 c = j.clients.gedis.new(
-                    "unlock_service",
+                    gedis_client_name,
                     host=_UNLOCKHASH_TRANSACTIONS_SERVICES[str(self.network)],
                     port=8901,
                     package_name="threefoldfoundation.unlock_service",
                 )
-            except Exception:
-                c = j.clients.gedis.get("unlock_service")
 
             self._unlock_service_client_ = c.actors.unlock_service
         return self._unlock_service_client_
