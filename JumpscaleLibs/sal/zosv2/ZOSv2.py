@@ -2,14 +2,12 @@ import netaddr
 from Jumpscale import j
 
 from .container import ContainerGenerator
-from .id import _next_workload_id
 from .kubernetes import K8sGenerator
 from .network import NetworkGenerator
 from .node_finder import NodeFinder
 from .volumes import VolumesGenerator
 from .zdb import ZDBGenerator
 from .billing import Billing
-from .resource import ResourceParser
 from .gateway import Gateway
 
 
@@ -25,8 +23,7 @@ class Zosv2(j.baseclasses.object):
         self._zdb = ZDBGenerator(self._explorer)
         self._kubernetes = K8sGenerator(self._explorer)
         self._billing = Billing(self._explorer)
-        # TODO: gateway is not implemented in bcdb_mock
-        # self._gateway = Gateway(self._explorer)
+        self._gateway = Gateway(self._explorer)
 
     @property
     def network(self):
@@ -55,6 +52,10 @@ class Zosv2(j.baseclasses.object):
     @property
     def billing(self):
         return self._billing
+
+    @property
+    def gateway(self):
+        return self._gateway
 
     def reservation_create(self):
         """
@@ -249,7 +250,7 @@ class Zosv2(j.baseclasses.object):
                     print("container: no result")
                     continue
 
-                data = j.data.serializers.json.loads(result.data)
+                data = result.data_json
                 print(f"container ip4:{data['ipv4']} ip6{data['ipv6']}")
 
             for zdb in r.data_reservation.zdbs:
@@ -258,8 +259,8 @@ class Zosv2(j.baseclasses.object):
                     print("zdb: no result")
                     continue
 
-                data = j.data.serializers.json.loads(result.data)
-                print(f"zdb namespace:{namespace} ip:{ip} port:{port}")
+                data = result.data_json
+                print(f"zdb namespace:{data['namespace']} ip:{data['ip']} port:{data['port']}")
 
             for network in r.data_reservation.networks:
                 result = wid_res.get(network.workload_id)
