@@ -184,7 +184,7 @@ class Chatflow(j.baseclasses.object):
     def reservation_failed(self, bot, category, resv_id):
         explorer = j.clients.explorer.explorer
         container_found = False
-        trials = 20
+        trials = 50
         while not container_found:
             reservation_result = explorer.reservations.get(resv_id).results
             for result in reservation_result:
@@ -196,7 +196,7 @@ class Chatflow(j.baseclasses.object):
 
         reservation = explorer.reservations.get(resv_id)
         failed = j.sal.zosv2.reservation_failed(reservation)
-        if failed or not container_found:
+        if failed:
             res = f"# Sorry your reservation ```{resv_id}``` has failed :\n"
             for x in reservation.results:
                 if x.state == "ERROR":
