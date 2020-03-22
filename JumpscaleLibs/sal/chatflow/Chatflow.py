@@ -180,3 +180,29 @@ class Chatflow(j.baseclasses.object):
             deployed_reservation.customer_tid = customer_tid
             deployed_reservation.save()
         return rid
+
+    def reservation_failed(self, bot, category, resv_id):
+        explorer = j.clients.explorer.explorer
+        container_found = False
+        trials = 20
+        while not container_found:
+            reservation_result = explorer.reservations.get(resv_id).results
+            for result in reservation_result:
+                if result.category == category:
+                    container_found = True
+            trials -= 1
+            if trials == 0:
+                break
+
+        reservation = explorer.reservations.get(resv_id)
+        failed = j.sal.zosv2.reservation_failed(reservation)
+        if failed or not container_found:
+            res = f"# Sorry your reservation ```{resv_id}``` has failed :\n"
+            for x in reservation.results:
+                if x.state == "ERROR":
+                    res += f"\n### {x.category}: ```{x.message}```\n"
+            link = f"{explorer.url}/reservations/{resv_id}"
+            res += f"<h2> <a href={link}>Full reservation info</a></h2>"
+            res = j.tools.jinja2.template_render(text=res)
+            bot.md_show(res)
+        return  failed
