@@ -1,6 +1,6 @@
 from nacl import public
 from nacl.encoding import Base64Encoder
-
+import random
 import netaddr
 from Jumpscale import j
 
@@ -342,7 +342,7 @@ def _find_free_wg_port(node):
     ports = set(list(range(1000, 9000)))
     used = set(node.wg_ports)
     free = ports - used
-    return free.pop()
+    return random.choice(free)
 
 
 # a node has either a public namespace with []ipv4 or/and []ipv6 -or-
