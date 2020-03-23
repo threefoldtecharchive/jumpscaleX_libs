@@ -1,4 +1,5 @@
 from Jumpscale import j
+from .pagination import get_page, get_all
 
 
 class Farms:
@@ -10,16 +11,26 @@ class Farms:
         )
         self._model = j.data.schema.get_from_url("tfgrid.directory.farm.1")
 
-    def list(self, threebot_id=None):
+    def list(self, threebot_id=None, page=None):
         url = self._base_url + "/farms"
+
+        query = {}
         if threebot_id:
-            url += f"?owner={threebot_id}"
-        resp = self._session.get(url)
-        farms = []
-        for farm_data in resp.json():
-            farm = self._model.new(datadict=farm_data)
-            farms.append(farm)
+            query["owner"] = threebot_id
+
+        if page:
+            farms, _ = get_page(self._session, page, self._model, url, query)
+        else:
+            farms = list(self.iter(threebot_id))
+
         return farms
+
+    def iter(self, threebot_id=None):
+        url = self._base_url + "/farms"
+        query = {}
+        if threebot_id:
+            query["owner"] = threebot_id
+        yield from get_all(self._session, self._model, url, query)
 
     def new(self):
         return self._model.new()
