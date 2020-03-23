@@ -1,6 +1,6 @@
 from nacl import public
 from nacl.encoding import Base64Encoder
-
+import random
 import netaddr
 from Jumpscale import j
 
@@ -29,7 +29,7 @@ class NetworkGenerator:
     def create(self, reservation, ip_range, network_name=None):
         """
         add a network into the reservation
-        
+
         :param reservation: root reservation object, the network will be added to it
         :type reservation: tfgrid.workloads.reservation.1
         :param ip_range: subnet of the network, it must have a network mask of /16
@@ -54,7 +54,7 @@ class NetworkGenerator:
     def add_node(self, network, node_id, ip_range, wg_port=None):
         """
         add a 0-OS node into the network
-        
+
         :param network: network object where to add the network resource
         :type network: tfgrid.workloads.reservation.network.1
         :param node_id: node_id of the node we want to add to the network
@@ -95,7 +95,7 @@ class NetworkGenerator:
         """
         add an external access to the network. use this function is you want to allow
         a member to your network that is not a 0-OS node. User laptop, external server,...
-        
+
         :param network: network object where to add the network resource
         :type network: tfgrid.workloads.reservation.network.1
         :param node_id: node_id of the node to use a access point into the network
@@ -342,7 +342,7 @@ def _find_free_wg_port(node):
     ports = set(list(range(1000, 9000)))
     used = set(node.wg_ports)
     free = ports - used
-    return free.pop()
+    return random.choice(tuple(free))
 
 
 # a node has either a public namespace with []ipv4 or/and []ipv6 -or-
@@ -418,10 +418,7 @@ class AccessPoint:
 
 def generate_wg_quick(wg_private_key, subnet, peer_wg_pub_key, allowed_ip, endpoint):
     address = wg_routing_ip(subnet)
-    allowed_ips = [
-        allowed_ip,
-        wg_routing_ip(allowed_ip),
-    ]
+    allowed_ips = [allowed_ip, wg_routing_ip(allowed_ip)]
     aip = ", ".join(allowed_ips)
 
     result = f"""

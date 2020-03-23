@@ -1,5 +1,4 @@
 from Jumpscale import j
-from os import path
 
 
 class Reservations:
@@ -34,11 +33,11 @@ class Reservations:
     def sign_provision(self, reservation_id, tid, signature):
         url = self._base_url + f"/{reservation_id}/sign/provision"
         data = j.data.serializers.json.dumps({"signature": signature, "tid": tid, "epoch": j.data.time.epoch,})
-        resp = self._session.post(url, data=data)
+        self._session.post(url, data=data)
         return True
 
     def sign_delete(self, reservation_id, tid, signature):
         url = self._base_url + f"/{reservation_id}/sign/delete"
         data = j.data.serializers.json.dumps({"signature": signature, "tid": tid, "epoch": j.data.time.epoch})
-        resp = self._session.post(url, data=data)
+        self._session.post(url, data=data)
         return True

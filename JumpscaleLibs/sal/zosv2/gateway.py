@@ -1,9 +1,10 @@
+from Jumpscale import j
 import netaddr
 
 
 class Gateway:
     def __init__(self, explorer):
-        self._actor_gateway = explorer.actors_get("tfgrid.gateway")
+        self._explorer = explorer
 
     def expose_ip(self, domain, ip):
         """
@@ -18,7 +19,7 @@ class Gateway:
         if not _is_valid_ip(ip):
             raise j.exceptions.Input(f"{id} is not valid IP address")
 
-        self._actor_gateway.gateway.tcpservice_ip_register(domain, ip)
+        self._explorer.gateway.tcpservice_ip_register(domain, ip)
 
     def reverse_tunnel(self, domain, secret):
         """
@@ -31,7 +32,7 @@ class Gateway:
         :param secret: secret used by the tcp router client
         :type secret: str
         """
-        self._actor_gateway.gateway.tcpservice_client_register(domain, secret)
+        self._explorer.gateway.tcpservice_client_register(domain, secret)
 
 
 def _is_valid_ip(ip):
