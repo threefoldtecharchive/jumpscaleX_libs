@@ -7,7 +7,7 @@ def get_page(session, page, model, url, query=None):
     for data in resp.json():
         obj = model.new(datadict=data)
         output.append(obj)
-    pages = int(resp.headers.get("Pages"), 0)
+    pages = int(resp.headers.get("Pages", 0))
     return output, pages
 
 
