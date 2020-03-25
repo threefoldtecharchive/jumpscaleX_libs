@@ -190,6 +190,7 @@ print("provisioning result")
 print(result)
 ```
 
+## Example : deploy minio container
 
 ```python
 password = "supersecret"
@@ -199,12 +200,18 @@ nodes = zos.nodes_finder.nodes_search(sru=10)
 nodes = list(filter(zos.nodes_finder.filter_is_up,nodes))
 nodes = nodes[:3]
 
-# create a reservation
-r = zos.reservation_create()
+# find a node where to run the minio container itself
+# make sure this node is part of your overlay network
+nodes = zos.nodes_finder.nodes_search(sru=10)
+nodes = list(filter(zos.nodes_finder.filter_is_up,nodes))
+minio_node = nodes[0]
+
+# create a reservation for the 0-DBs
+reservation_storage = zos.reservation_create()
 # reservation some 0-db namespaces
 for node in nodes:
     zos.zdb.create(
-        reservation=r,
+        reservation=reservation_storage,
         node_id=node.node_id,
         size=10,
         mode='seq',
@@ -212,8 +219,10 @@ for node in nodes:
         disk_type="SSD",
         public=False)
 
-rid = zos.reservation_register(r, j.data.time.epoch+(60*60))
-results = zos.reservation_result(rid)
+volume = zos.volume.create(reservation_storage,minio_node.node_id,size=10,type='SSD')
+
+zdb_rid = zos.reservation_register(reservation_storage, j.data.time.epoch+(60*60))
+results = zos.reservation_result(zdb_rid)
 
 # read the IP address of the 0-db namespaces after they are deployed
 # we will need these IPs when creating the minio container
@@ -223,18 +232,16 @@ for result in results:
     cfg = f"{data['Namespace']}:{password}@[{data['IP']}]:{data['Port']}"
     namespace_config.append(cfg)
 
-# find a node where to run the minio container itself
-# make sure this node is part of your overlay network
-nodes = zos.nodes_finder.nodes_search(sru=10)
-nodes = list(filter(zos.nodes_finder.filter_is_up,nodes))
-minio_node = nodes[0]
 
+# create a reservation for the minio container
+reservation_container = zos.reservation_create()
 
-zos.container.create(reservation=r,
+container = zos.container.create(
+    reservation=reservation_container,
     node_id="72CP8QPhMSpF7MbSvNR1TYZFbTnbRiuyvq5xwcoRNAib",
     network_name='zaibon_testnet_0', # this assume this network is already provisioned on the node
     ip_address='172.24.2.15',
-    flist='https://hub.grid.tf/azmy.3bot/minio.flist',
+    flist='https://hub.grid.tf/tf-official-apps/minio-2020-01-25T02-50-51Z.flist',
     entrypoint='/bin/entrypoint',
     cpu=2,
     memory=2048,
@@ -245,6 +252,12 @@ zos.container.create(reservation=r,
         "ACCESS_KEY":"minio",
         "SECRET_KEY":"passwordpassword",
     })
+
+zos.volume.attach_existing(
+    container=container,
+    volume_id=f'{zdb_rid}-{volume.workload_id}',
+    mount_point='/data')
+
 
 rid = zos.reservation_register(r, j.data.time.epoch+(60*60))
 results = zos.reservation_result(rid)
