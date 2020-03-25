@@ -33,7 +33,7 @@ from .transaction import TransactionSummary, Effect
 
 JSConfigClient = j.baseclasses.object_config
 
-_UNLOCKHASH_TRANSACTIONS_SERVICES = {"TEST": "localhost"}
+_UNLOCKHASH_TRANSACTIONS_SERVICES = {"TEST": "testnet.threefold.io", "STD": "threefold.io"}
 _HORIZON_NETWORKS = {"TEST": "https://horizon-testnet.stellar.org", "STD": "https://horizon.stellar.org"}
 _NETWORK_PASSPHRASES = {"TEST": Network.TESTNET_NETWORK_PASSPHRASE, "STD": Network.PUBLIC_NETWORK_PASSPHRASE}
 
@@ -69,15 +69,19 @@ class StellarClient(JSConfigClient):
         """
 
         if self._unlock_service_client_ is None:
-            try:
+            gedis_client_name = "unlock_service_{}".format(str(self.network))
+            if j.clients.gedis.exists(gedis_client_name):
+                c = j.clients.gedis.get(gedis_client_name)
+                if str(c.host) != _UNLOCKHASH_TRANSACTIONS_SERVICES[str(self.network)]:
+                    j.clients.gedis.delete(gedis_client_name)
+
+            if not j.clients.gedis.exists(gedis_client_name):
                 c = j.clients.gedis.new(
-                    "unlock_service",
+                    gedis_client_name,
                     host=_UNLOCKHASH_TRANSACTIONS_SERVICES[str(self.network)],
                     port=8901,
                     package_name="threefoldfoundation.unlock_service",
                 )
-            except Exception:
-                c = j.clients.gedis.get("unlock_service")
 
             self._unlock_service_client_ = c.actors.unlock_service
         return self._unlock_service_client_
@@ -92,9 +96,7 @@ class StellarClient(JSConfigClient):
         tx_hash = txe.hash()
         unlock_hash = strkey.StrKey.encode_pre_auth_tx(tx_hash)
 
-        self._unlock_service_client.create_unlockhash_transaction(
-            unlock_hash=escrow_kp.public_key, transaction_xdr=preauth_tx.to_xdr()
-        )
+        self._unlock_service_client.create_unlockhash_transaction(unlock_hash=unlock_hash, transaction_xdr=txe.to_xdr())
 
     def _get_horizon_server(self):
         return Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])

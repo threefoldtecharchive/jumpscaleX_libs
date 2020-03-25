@@ -29,7 +29,7 @@ class ZDBGenerator:
         :return: newly created zdb workload
         :rtype: tfgrid.workloads.reservation.zdb.1
         """
-        if disk_type not in ["SSD", "HHD"]:
+        if disk_type not in ["SSD", "HDD"]:
             raise j.excpetions.Input("disk type can only be SSD or HDD")
         if mode not in ["seq", "user"]:
             raise j.excpetions.Input("mode can only be 'seq' or 'user'")

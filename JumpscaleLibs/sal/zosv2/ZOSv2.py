@@ -2,14 +2,12 @@ import netaddr
 from Jumpscale import j
 
 from .container import ContainerGenerator
-from .id import _next_workload_id
 from .kubernetes import K8sGenerator
 from .network import NetworkGenerator
 from .node_finder import NodeFinder
 from .volumes import VolumesGenerator
 from .zdb import ZDBGenerator
 from .billing import Billing
-from .resource import ResourceParser
 from .gateway import Gateway
 
 
@@ -25,8 +23,7 @@ class Zosv2(j.baseclasses.object):
         self._zdb = ZDBGenerator(self._explorer)
         self._kubernetes = K8sGenerator(self._explorer)
         self._billing = Billing(self._explorer)
-        # TODO: gateway is not implemented in bcdb_mock
-        # self._gateway = Gateway(self._explorer)
+        self._gateway = Gateway(self._explorer)
 
     @property
     def network(self):
@@ -70,7 +67,7 @@ class Zosv2(j.baseclasses.object):
     ):
         """
         register a reservation in BCDB
-        
+
         :param reservation: reservation object
         :type reservation:  tfgrid.workloads.reservation.1
         :param expiration_date: timestamp of the date when to expiration should expire
@@ -110,7 +107,7 @@ class Zosv2(j.baseclasses.object):
         """
         A farmer need to use this function to notify he accepts to deploy the reservation
         on his node
-        
+
         :param reservation: reservation object
         :type reservation:  tfgrid.workloads.reservation.1
         :param identity: identity to use
@@ -154,7 +151,7 @@ class Zosv2(j.baseclasses.object):
         you can only cancel your own reservation
         Once a reservation is cancelled, it is marked as to be deleted in BCDB
         the 0-OS node then detects it an will decomission the workloads from the reservation
-        
+
         :param reservation_id: reservation id
         :type reservation_id: int
         :param identity: identity to use
