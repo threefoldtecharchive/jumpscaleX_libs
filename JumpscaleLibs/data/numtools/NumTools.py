@@ -5,6 +5,8 @@ import math
 
 JSBASE = j.baseclasses.object
 
+skip = j.baseclasses.testtools._skip
+
 
 class NumTools(j.baseclasses.object):
 
@@ -270,6 +272,7 @@ class NumTools(j.baseclasses.object):
             res.append(item[0])
         return res
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/100")
     def test(self):
         """
         kosmos 'j.tools.numtools.test()'

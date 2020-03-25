@@ -11,6 +11,8 @@ import sys
 from .Link import Linker
 
 JSBASE = j.baseclasses.object
+TESTTOOLS = j.baseclasses.testtools
+skip = j.baseclasses.testtools._skip
 
 
 class Watcher:
@@ -83,14 +85,13 @@ class DocsiteChangeHandler(FileSystemEventHandler):
                 return docsite
 
 
-class MarkDownDocs(j.baseclasses.object):
+class MarkDownDocs(j.baseclasses.object, TESTTOOLS):
     """
     """
 
     __jslocation__ = "j.tools.markdowndocs"
 
     def _init(self, **kwargs):
-        j.clients.redis.core_get()
 
         self.__imports__ = "toml"
         self._macroPathsDone = []
@@ -409,6 +410,7 @@ class MarkDownDocs(j.baseclasses.object):
         ff_event_wiki = self.load(url, name="freeflowevent")
         ff_event_wiki.write()
 
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/99")
     def test2(self):
         url = (
             "https://github.com/threefoldtech/jumpscaleX_core/tree/master/docs/tools/wiki/docsites/examples/docs/"
@@ -422,10 +424,13 @@ class MarkDownDocs(j.baseclasses.object):
 
         webbrowser.open("http://localhost:8090/wiki/examples#/test_include")
 
-    def test(self, watch=False):
+    @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/99")
+    def test(self, name="", watch=False):
         """
-        kosmos 'j.tools.markdowndocs.test()'
+        kosmos 'j.tools.markdowndocs.test()
         """
+        self._tests_run(name=name)
+
         url = "https://github.com/abom/test_custom_md/tree/master/docs"
         ds = self.load(url, name="test")
 

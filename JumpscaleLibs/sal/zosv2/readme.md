@@ -1,17 +1,27 @@
-# Usage example
+# Making use of zosv2
 
-## Create a network on all the nodes of a farm
+## Index
+
+- [Create a network](#create-a-network)
+- [Create a container](#create-a-container)
+- [Create a Kubernetes cluster](#create-k8s-cluster)
+- [Reserve storage](#reserve-storage)
+
+## Create a network
+
+### Create a network on all the nodes of a farm
 
 ```python
 zos = j.sal.zosv2
 
 # create a reservation
 r = zos.reservation_create()
-# create a network and add it to the reservation
-network = zos.network.create(r, ip_range="172.24.0.0/16", network_name="zaibon_testnet_0")
+# create a network with name <network_name> and add it to the reservation
+# ip_range = "xxx.xxx.0.0/16", range in private address space, ex. 172.24.0.0/16
+network = zos.network.create(r, ip_range="172.24.0.0/16", network_name="<network_name>")
 
-# find all node from farm 1
-nodes = zos.nodes_finder.nodes_search(farm_id=1)
+# find all node from farm with id <farm_id>
+nodes = zos.nodes_finder.nodes_search(farm_id=<farm_id>)
 # add each node into the network
 for i, node in enumerate(nodes):
     iprange = f"172.24.{i+2}.0/24"
@@ -36,7 +46,40 @@ print("wireguard configuration")
 print(wg_config)
 print("provisioning result")
 print(result)
+print("network")
+for n2 in network.network_resources:
+    print(n2.node_id, n2.iprange)
 ```
+
+## set-up network in Wireguard
+In order to have the network active and accessible from your local machine, a good way is to create the network configuration in Wireguard.
+To do this, copy the setup into wireguard:
+```bash
+# for macOS 10.7 or newer
+
+# in Docker installation:
+docker exec --it 3bot bash
+
+# for ubuntu
+
+wg-quick [up|down] $config_file
+
+
+cat /tmp/wg_config
+
+```
+You will see something like :
+```bash
+[Interface]
+Address = 100.64.22.100/32
+PrivateKey = <private_key>
+[Peer]
+PublicKey = <public_key>
+AllowedIPs = 172.22.0.0/16, 100.64.22.0/32
+PersistentKeepalive = 25
+Endpoint = 185.69.166.59:5000
+```
+Import these lines into a new Wireguard tunnel.
 
 ## create a container
 
@@ -47,13 +90,16 @@ zos = j.sal.zosv2
 r = zos.reservation_create()
 # add container reservation into the reservation
 zos.container.create(reservation=r,
-                    node_id='2fi9ZZiBGW4G9pnrN656bMfW6x55RSoHDeMrd9pgSA8T',
-                    network_name='zaibon_testnet_0', # this assume this network is already provisioned on the node
-                    ip_address='172.24.1.10',
-                    flist='https://hub.grid.tf/zaibon/zaibon-ubuntu-ssh-0.0.2.flist',
+                    node_id='2fi9ZZiBGW4G9pnrN656bMfW6x55RSoHDeMrd9pgSA8T', # one of the node_id that is part of the network
+                    network_name='<network_name>', # this assume this network is already provisioned on the node
+                    ip_address='172.24.1.10', # part of ip_range you reserved for your network xxx.xxx.1.10
+                    flist='https://hub.grid.tf/zaibon/zaibon-ubuntu-ssh-0.0.2.flist', # flist of the container you want to install
+                  # interactive=True,         # True only if corex_connect required, default false
+                  # env={},                   # field for parameters like config
                     entrypoint='/sbin/my_init')
 
 # expiration = j.data.time.epoch + (3600 * 24 * 365)
+# reserve until now + (x) seconds
 expiration = j.data.time.epoch + (10*60)
 # register the reservation
 rid = zos.reservation_register(r, expiration)
@@ -66,6 +112,10 @@ print(result)
 ```
 
 ## create k8s cluster
+
+Main documentation can be found [here](https://github.com/threefoldtech/zos/tree/master/docs/kubernetes)
+
+### Example of a deployment
 
 ```python
 zos = j.sal.zosv2
@@ -107,7 +157,9 @@ print("provisioning result")
 print(result)
 ```
 
-## reserve 0-DB storage namespaces
+## Reserve storage
+
+## Example : reserve 0-DB storage namespaces
 
 ```python
 zos = j.sal.zosv2
@@ -138,7 +190,6 @@ print("provisioning result")
 print(result)
 ```
 
-## reserve S3 storage servers
 
 ```python
 password = "supersecret"
@@ -197,48 +248,4 @@ zos.container.create(reservation=r,
 
 rid = zos.reservation_register(r, j.data.time.epoch+(60*60))
 results = zos.reservation_result(rid)
-```
-
-## Pay reservation to farmer
-
-Once the reservation has been registered, the user needs to pay for it to the farmer
-```python
-zos = j.sal.zosv2
-
-# ... we assume the user already created and registered and reservation
-
-# fist needs to compute how much is needed to be payed
-costs = zos.billing.reservation_resources_cost(reservation)
-for cost in costs:
-    print(cost)
-
-# to be able to send tokens to the farmers, a TFChain wallet or Stellar client needs to be available on the system
-tfchain = j.clients.tfchain.get('myclient')
-client = tfchain.wallets.get("default")
-
-# or use the stellar client
-client = j.clients.stellar.get('myclient')
-
-# once we have verified everything is in order, we create the transaction
-# to send the token to the farms
-transactions = zos.billing.payout_farmers(client, costs, reservation)
-# if everything went ok, at this point your transaction are now sent to the blockchain
-```
-
-## As a farmer verify that a payment as been made for a reservation
-
-```python
-zos = j.sal.zosv2
-
-
-tfchain = j.clients.tfchain.get('myclient')
-client = tfchain.wallets.get("default")
-
-# or use the stellar client
-client = j.clients.stellar.get('myclient')
-
-# the farmer needs to know the reservation ID to be able to check if the payment has arrived for it
-reservation = zos.reservation_get(reservation_id)
-# verify_payments will return true if everything has been paid or false if not
-zos.billing.verify_payments(client, reservation)
 ```

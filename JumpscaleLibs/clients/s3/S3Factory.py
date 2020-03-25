@@ -17,8 +17,7 @@ class S3Factory(JSConfigBase):
         self.__imports__ = "minio"
 
     def install(self):
-        p = j.tools.prefab.local
-        p.runtimes.pip.install("minio")
+        j.builders.runtimes.python3.pip_package_install(["minio"])
 
     @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/82")
     def test(self):
