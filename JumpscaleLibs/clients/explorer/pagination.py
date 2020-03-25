@@ -15,5 +15,5 @@ def get_all(session, model, url, query=None):
     iter, pages = get_page(session, 1, model, url, query)
     yield from iter
     for i in range(2, pages):
-        obj, _ = get_page(i, model, url, query)
+        obj, _ = get_page(session, i, model, url, query)
         yield from iter
