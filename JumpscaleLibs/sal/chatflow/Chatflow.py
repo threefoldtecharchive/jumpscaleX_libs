@@ -1,6 +1,7 @@
 import netaddr
 from Jumpscale import j
 import random
+import copy
 
 
 class Chatflow(j.baseclasses.object):
@@ -51,7 +52,7 @@ class Chatflow(j.baseclasses.object):
             nodes_selected.append(node)
         return nodes_selected
 
-    def network_configure(self, bot, reservation, nodes, customer_tid, ip_version, number_of_ipaddresses=0):
+    def network_configure(self, bot, reservation, nodes, customer_tid, ip_version, number_of_ipaddresses=0, trial=1):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -59,8 +60,46 @@ class Chatflow(j.baseclasses.object):
 
         return reservation (Object) , config of network (dict)
         """
+        reservation_copy = copy.copy(reservation)
+        explorer = j.clients.explorer.explorer
         ip_range = self.ip_range_get(bot)
-        return self.network_get(bot, reservation, ip_range, nodes, customer_tid, ip_version, number_of_ipaddresses)
+        # network_config = dict()
+        reservation, network_config = self.network_get(
+            bot, reservation, ip_range, nodes, customer_tid, ip_version, number_of_ipaddresses
+        )
+        network_config["ip_range"] = ip_range
+        # Check if reservation failed
+        result_check = False
+        while not result_check:
+            resv_id = network_config["rid"]
+            reservation_results = explorer.reservations.get(resv_id).results
+            port_error = False
+            for result in reservation_results:
+                if result.state == "ERROR" and "wireguard listen port already in use" in result.message:
+                    port_error = True
+                    break
+            if port_error:
+                # Cancel failed reservation
+                j.sal.zosv2.reservation_cancel(resv_id)
+                reservation = reservation_copy
+                reservation_copy = copy.copy(reservation)
+
+                # Need to re do the reservation with another port
+                reservation, network_config = self.network_get(
+                    bot,
+                    reservation,
+                    ip_range,
+                    nodes,
+                    customer_tid,
+                    ip_version,
+                    number_of_ipaddresses,
+                    interactive=False,
+                    noninteractive_args=network_config,
+                )
+            else:
+                result_check = len(reservation_results) == len(nodes)
+
+        return reservation, network_config
 
     def ip_range_get(self, bot):
         """
@@ -84,7 +123,18 @@ class Chatflow(j.baseclasses.object):
             ip_range = str(first_digit) + "." + str(second_digit) + ".0.0/16"
         return ip_range
 
-    def network_get(self, bot, reservation, ip_range, nodes, customer_tid, ip_version, number_of_ipaddresses=0):
+    def network_get(
+        self,
+        bot,
+        reservation,
+        ip_range,
+        nodes,
+        customer_tid,
+        ip_version,
+        number_of_ipaddresses=0,
+        interactive=True,
+        noninteractive_args=None,
+    ):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -93,18 +143,39 @@ class Chatflow(j.baseclasses.object):
 
         return reservation (Object) , config of network (dict)
         """
-
-        network_name = bot.string_ask(
-            "Please add a network name. please remember it for next time. Otherwise leave it empty for using a generated name"
-        )
+        if not interactive and noninteractive_args:
+            network_name = noninteractive_args["name"]
+        else:
+            network_name = bot.string_ask(
+                "Please add a network name. please remember it for next time. Otherwise leave it empty for using a generated name"
+            )
         network = j.sal.zosv2.network.create(reservation, ip_range, network_name)
         network_config = self._register_network(
-            bot, reservation, ip_range, network, nodes, customer_tid, ip_version, number_of_ipaddresses
+            bot,
+            reservation,
+            ip_range,
+            network,
+            nodes,
+            customer_tid,
+            ip_version,
+            number_of_ipaddresses,
+            interactive=interactive,
+            noninteractive_args=noninteractive_args,
         )
         return reservation, network_config
 
     def _register_network(
-        self, bot, reservation, ip_range, network, nodes, customer_tid, ip_version="IPv4", number_of_ipaddresses=0
+        self,
+        bot,
+        reservation,
+        ip_range,
+        network,
+        nodes,
+        customer_tid,
+        ip_version="IPv4",
+        number_of_ipaddresses=0,
+        interactive=True,
+        noninteractive_args=None,
     ):
         """
         bot: Gedis chatbot object from chatflow
@@ -116,28 +187,32 @@ class Chatflow(j.baseclasses.object):
         return config of network (dict)
         """
         number_of_ipaddresses = number_of_ipaddresses or len(nodes)
-        network_config = dict()
-        network_range = netaddr.IPNetwork(ip_range).ip
-        ip_addresses = list()
         ipv4 = ip_version == "IPv4"
+        network_range = netaddr.IPNetwork(ip_range).ip
+
+        if not interactive:
+            network_config = noninteractive_args
+            ip_addresses = network_config["ip_addresses"]
+        else:
+            network_config = dict()
+            ip_addresses = list()
 
         for i, node_selected in enumerate(nodes):
             network_range += 256
             network_node = str(network_range) + "/24"
-
-            avaliable_ips = self.get_all_ips(network_node)
-            string_ips = []
-            for ip in avaliable_ips:
-                string_ips.append(ip.format())
-            if number_of_ipaddresses > 0:
-                # user chooses the ip to be used for the node
-                ip_address = bot.drop_down_choice(f"Please choose the ip address {i+1}", string_ips)
-                ip_addresses.append(
-                    ip_address
-                )  # ip in position i, corresponds to the node in position i in nodes_selected
-                string_ips.remove(ip_address)
-                number_of_ipaddresses -= 1
-
+            if interactive:
+                avaliable_ips = self.get_all_ips(network_node)
+                string_ips = []
+                for ip in avaliable_ips:
+                    string_ips.append(ip.format())
+                if number_of_ipaddresses > 0:
+                    # user chooses the ip to be used for the node
+                    ip_address = bot.drop_down_choice(f"Please choose the ip address {i+1}", string_ips)
+                    ip_addresses.append(
+                        ip_address
+                    )  # ip in position i, corresponds to the node in position i in nodes_selected
+                    string_ips.remove(ip_address)
+                    number_of_ipaddresses -= 1
             j.sal.zosv2.network.add_node(network, node_selected.node_id, network_node)
 
         access_nodes = j.sal.zosv2.nodes_finder.nodes_search(farm_id=71)
@@ -205,4 +280,4 @@ class Chatflow(j.baseclasses.object):
             res += f"<h2> <a href={link}>Full reservation info</a></h2>"
             res = j.tools.jinja2.template_render(text=res)
             bot.md_show(res)
-        return  failed
+        return failed
