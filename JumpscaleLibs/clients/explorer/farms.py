@@ -1,4 +1,5 @@
 from Jumpscale import j
+from .pagination import get_page, get_all
 
 
 class Farms:
@@ -10,16 +11,26 @@ class Farms:
         )
         self._model = j.data.schema.get_from_url("tfgrid.directory.farm.1")
 
-    def list(self, threebot_id=None):
+    def list(self, threebot_id=None, page=None):
         url = self._base_url + "/farms"
+
+        query = {}
         if threebot_id:
-            url += f"?owner={threebot_id}"
-        resp = self._session.get(url)
-        farms = []
-        for farm_data in resp.json():
-            farm = self._model.new(datadict=farm_data)
-            farms.append(farm)
+            query["owner"] = threebot_id
+
+        if page:
+            farms, _ = get_page(self._session, page, self._model, url, query)
+        else:
+            farms = list(self.iter(threebot_id))
+
         return farms
+
+    def iter(self, threebot_id=None):
+        url = self._base_url + "/farms"
+        query = {}
+        if threebot_id:
+            query["owner"] = threebot_id
+        yield from get_all(self._session, self._model, url, query)
 
     def new(self):
         return self._model.new()
@@ -28,6 +39,14 @@ class Farms:
         resp = self._session.post(self._base_url + "/farms", json=farm._ddict)
         return resp.json()["id"]
 
-    def get(self, farm_id):
+    def get(self, farm_id=None, farm_name=None):
+        if farm_name:
+            for farm in self.iter():
+                if farm.name == farm_name:
+                    return farm
+            else:
+                raise j.exceptions.NotFound(f"Could not find farm with name {farm_name}")
+        elif not farm_id:
+            raise j.exceptions.Input("farms.get requires atleast farm_id or farm_name")
         resp = self._session.get(self._base_url + f"/farms/{farm_id}")
         return self._model.new(datadict=resp.json())
