@@ -25,22 +25,30 @@ class Sheet(j.baseclasses.object):
         self.rows = j.baseclasses.dict()
         self.rowNames = []
 
-    # def _obj2dict(self):
-    # ddict={}
-    # ddict["name"]=self.name
-    # ddict["headers"]=self.headers
-    # ddict["nrcols"]=self.nrcols
-    # ddict["rows"]=[item.obj2dict() for item in self.rows]
-    # return ddict
+    def clean(self):
+        for row in self.rows.values():
+            row.clean()
 
-    def _dict2obj(self, dict):
+    def export_(self):
+        ddict = {}
+        ddict["name"] = self.name
+        ddict["headers"] = self.headers
+        ddict["period"] = self.period
+        ddict["nrcols"] = self.nrcols
+        ddict["rows"] = {}
+        for key, item in self.rows.items():
+            ddict["rows"][key] = item.export_()
+        return ddict
+
+    def import_(self, dict):
         self.name = dict["name"]
         self.headers = dict["headers"]
         self.nrcols = dict["nrcols"]
-        slf.period = dict["period"]
+        self.period = dict["period"]
         for key in list(dict["rows"].keys()):
             item = dict["rows"][key]
-            row = j.tools.code.dict2object(Row(), item)
+            row = Row(sheet=self)
+            row.import_(item)
             self.rows[row.name] = row
 
     def copy(self, name, row, ttype=None, aggregate=None, description="", defval=None, empty=False):

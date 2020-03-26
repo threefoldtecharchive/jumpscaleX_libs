@@ -507,26 +507,18 @@ class Row(j.baseclasses.object):
 
     @property
     def values(self):
+        """
+        """
         start = self.window_month_start
         nr = self.window_month_period
         self.clean()
         i = self.cells[start : start + nr]
-        return self._clean(i)
-
-    def _clean(self, i):
-        # remove 0 values
-        res = []
-        for val in i:
-            if val == 0:
-                res.append(None)
-            else:
-                res.append(val)
-        return res
+        return i
 
     @property
     def values_all(self):
         self.clean()
-        return self._clean(self.cells)
+        return self.cells
 
     @property
     def values_inverted(self):
@@ -573,18 +565,41 @@ class Row(j.baseclasses.object):
 
     __repr__ = __str__
 
-    # def _dict2obj(self, dict):
-    #     self.name = dict["name"]
-    #     self.cells = dict["cells"]
-    #     self.ttype = dict["ttype"]
-    #     self.format = dict["format"]
-    #     self.description = dict["description"]
-    #     self.groupname = dict["groupname"]
-    #     self.groupdescr = dict["groupdescr"]
-    #     self.aggregate_type = dict["aggregate_type"]
-    #     self.nrcols = dict["nrcols"]
-    #     self.nrfloat = dict["nrfloat"]
-    #     return self
+    def import_(self, dict):
+        self.name = dict["name"]
+        # self.format = dict["format"]
+        self.description = dict["description"]
+        self.groupname = dict["groupname"]
+        self.groupdescr = dict["groupdescr"]
+        self.aggregate_type = dict["aggregate_type"]
+        self.nrcols = dict["nrcols"]
+        self.nrfloat = dict["nrfloat"]
+        self.window_month_start = dict["window_month_start"]
+        self.window_month_period = dict["window_month_period"]
+
+        self.ttype = j.data.types.get(dict["ttype"], default=dict["defval"])
+        self.defval = dict["defval"]
+
+        self.cells = [self.ttype.clean(i) for i in dict["cells"]]
+
+        return self
+
+    def export_(self):
+        dict = {}
+        dict["name"] = self.name
+        dict["cells"] = [self.ttype.clean(i) for i in self.cells]
+        dict["ttype"] = self.ttype.NAME
+        # dict["format"] = self.format
+        dict["description"] = self.description
+        dict["defval"] = self.defval
+        dict["groupname"] = self.groupname
+        dict["groupdescr"] = self.groupdescr
+        dict["aggregate_type"] = self.aggregate_type
+        dict["nrcols"] = self.nrcols
+        dict["nrfloat"] = self.nrfloat
+        dict["window_month_start"] = self.window_month_start
+        dict["window_month_period"] = self.window_month_period
+        return dict
 
     def _check_operator(self, other):
         if not isinstance(other, Row):
