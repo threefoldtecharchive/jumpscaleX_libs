@@ -259,6 +259,6 @@ zos.volume.attach_existing(
     mount_point='/data')
 
 
-rid = zos.reservation_register(r, j.data.time.epoch+(60*60))
+rid = zos.reservation_register(reservation_container, j.data.time.epoch+(60*60))
 results = zos.reservation_result(rid)
 ```
