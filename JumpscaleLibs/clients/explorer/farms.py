@@ -39,6 +39,14 @@ class Farms:
         resp = self._session.post(self._base_url + "/farms", json=farm._ddict)
         return resp.json()["id"]
 
-    def get(self, farm_id):
+    def get(self, farm_id=None, farm_name=None):
+        if farm_name:
+            for farm in self.iter():
+                if farm.name == farm_name:
+                    return farm
+            else:
+                raise j.exceptions.NotFound(f"Could not find farm with name {farm_name}")
+        elif not farm_id:
+            raise j.exceptions.Input("farms.get requires atleast farm_id or farm_name")
         resp = self._session.get(self._base_url + f"/farms/{farm_id}")
         return self._model.new(datadict=resp.json())

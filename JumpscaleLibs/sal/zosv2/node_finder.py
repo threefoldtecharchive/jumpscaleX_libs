@@ -54,9 +54,9 @@ class NodeFinder:
         """
         if farm_name:
             try:
-                farm = self._farms.get(name=farm_name)
+                farm = self._farms.get(farm_name=farm_name)
                 farm_id = farm.id
-            except:
+            except j.exceptions.NotFound:
                 return []
 
         return self._nodes.list(farm_id=farm_id, country=country, city=city, cru=cru, sru=sru, mru=mru, hru=hru)
