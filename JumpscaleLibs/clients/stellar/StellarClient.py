@@ -247,7 +247,7 @@ class StellarClient(JSConfigClient):
             self._log_info("Transaction hash: {}".format(response["hash"]))
             self._log_info(response)
         except BadRequestError as e:
-            self.log_debug(e)
+            self._log_debug(e)
 
     def add_trustline(self, asset_code, issuer, secret=None):
         """Create a trustline to an asset.
