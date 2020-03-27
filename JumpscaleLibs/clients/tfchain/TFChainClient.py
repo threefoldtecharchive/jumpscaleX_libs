@@ -49,6 +49,7 @@ class TFChainClient(j.baseclasses.factory_data_testtools):
         self._threebot = TFChainThreeBotClient(self)
         self._minter = TFChainMinterClient(self)
         self._erc20 = TFChainERC20Client(self)
+        self._authcoin = TfChainAuthcoinClient(self)
 
     @property
     def threebot(self):
@@ -70,6 +71,13 @@ class TFChainClient(j.baseclasses.factory_data_testtools):
         ERC20 Client API.
         """
         return self._erc20
+
+    @property
+    def authcoin(self):
+        """
+        AuthCoin Client API
+        """
+        return self._authcoin
 
     @property
     def explorer_addresses(self):
@@ -895,3 +903,64 @@ class ThreeBotRecord(NamedTuple):
     addresses: list
     public_key: PublicKey
     expiration: int
+
+
+class TfChainAuthcoinClient:
+    """
+    TfChainAuthcoinClient contains all Auth Coin logic.
+    """
+
+    def __init__(self, client):
+        if not isinstance(client, TFChainClient):
+            raise j.exceptions.Value("client is expected to be a TFChainClient")
+        self._client = client
+
+    def condition_get(self, height=None):
+        """
+        Get the latest auth coin condition or the auth coin condition at the specified block height.
+
+        @param height: if defined the block height at which to look up the auth coin condition (if none latest block will be used)
+        """
+        # define the endpoint
+        endpoint = "/explorer/authcoin/condition"
+        if height is not None:
+            if not isinstance(height, (int, str)):
+                raise j.exceptions.Value("invalid block height given")
+            height = int(height)
+            endpoint += "/%d" % (height)
+
+        # get the mint condition
+        resp = self._client.explorer_get(endpoint=endpoint)
+        resp = j.data.serializers.json.loads(resp)
+
+        try:
+            # return the decoded mint condition
+            return j.clients.tfchain.types.conditions.from_json(obj=resp["authcondition"])
+        except KeyError as exc:
+            # return a KeyError as an invalid Explorer Response
+            raise j.clients.tfchain.errors.ExplorerInvalidResponse(str(exc), endpoint, resp) from exc
+
+    def is_authorized(self, unlockhash):
+        """
+        Query the explorer backend to see if an address is currently authorized.
+
+        @param unlockhash: UnlockHash for which to look up the authorizaton state
+        """
+        if not isinstance(unlockhash, UnlockHash):
+            raise j.exceptions.Value("Argument must be of type UnlockHash, got type {}".format(type(unlockhash)))
+        # define endpoint
+        endpoint = "/explorer/authcoin/status?addr={}".format(unlockhash.json())
+        # parse response
+        resp = self._client.explorer_get(endpoint=endpoint)
+        resp = j.data.serializers.json.loads(resp)
+
+        try:
+            # parse response, this returns an array of json booleans, we only check 1 address in this function
+            # so it's always index 0 we are interested in.
+            return resp["auths"][0]
+        except KeyError as exc:
+            # invalid explorer response
+            raise j.clients.tfchain.errors.ExplorerInvalidResponse(str(exc), endpoint, resp) from exc
+        except IndexError as exc:
+            # also invalid explorer response
+            raise j.clients.tfchain.errors.ExplorerInvalidResponse(str(exc), endpoint, resp) from exc

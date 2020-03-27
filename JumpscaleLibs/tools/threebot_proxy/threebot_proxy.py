@@ -37,6 +37,7 @@ class ThreebotProxy(j.baseclasses.object):
         self.session["state"] = state
         redirect_url = "https://login.threefold.me"
 
+        # @TODO: #public_key.to_curve25519_public_key()?
         params = {
             "state": state,
             "appid": app_id,
@@ -48,29 +49,54 @@ class ThreebotProxy(j.baseclasses.object):
         return redirect(f"{redirect_url}?{params}", code=302)
 
     def callback(self):
-        signed_hash = request.params.get("signedhash")
-        username = request.params.get("username")
-        data = request.params.get("data")
 
-        if signed_hash is None or username is None or data is None:
-            return abort(400, "Request must contain signedhash, username, and data.")
-        data = j.data.serializers.json.loads(data)
+        data = request.query.get("signedAttempt")
+
+        if not data:
+            return abort(400, "signedAttempt parameter is missing")
+
+        data = json.loads(data)
+
+        if "signedAttempt" not in data:
+            return abort(400, "signedAttempt value is missing")
+
+        username = data["doubleName"]
+
+        if not username:
+            return abort(400, "DoubleName is missing")
 
         res = requests.get(f"https://login.threefold.me/api/users/{username}", {"Content-Type": "application/json"})
         if res.status_code != 200:
             return abort(400, "Error getting user pub key")
-
         pub_key = res.json()["publicKey"]
-        user_pub = j.data.nacl.verifykey_obj_get(j.data.serializers.base64.decode(pub_key))
-        nonce = j.data.serializers.base64.decode(data["nonce"])
-        ciphertext = j.data.serializers.base64.decode(data["ciphertext"])
-        state = user_pub.verify(j.data.serializers.base64.decode(signed_hash)).decode()
+        user_pub_key = j.data.nacl.verifykey_obj_get(j.data.serializers.base64.decode(pub_key))
 
+        # verify data
+        signedData = data["signedAttempt"]
+
+        verifiedData = user_pub_key.verify(j.data.serializers.base64.decode(signedData)).decode()
+
+        data = json.loads(verifiedData)
+
+        if "doubleName" not in data:
+            return abort(400, "Decrypted data does not contain (doubleName)")
+
+        if "signedState" not in data:
+            return abort(400, "Decrypted data does not contain (state)")
+
+        if data["doubleName"] != username:
+            return abort(400, "username mismatch!")
+
+        # verify state
+        state = data["signedState"]
         if state != self.session["state"]:
             return abort(400, "Invalid state. not matching one in user session")
 
+        nonce = j.data.serializers.base64.decode(data["data"]["nonce"])
+        ciphertext = j.data.serializers.base64.decode(data["data"]["ciphertext"])
+
         try:
-            decrypted = self.nacl.decryptAsymmetric(user_pub.to_curve25519_public_key(), ciphertext, nonce)
+            decrypted = self.nacl.decryptAsymmetric(user_pub_key.to_curve25519_public_key(), ciphertext, nonce)
         except nacl.exceptions.CryptoError:
             return abort(400, "Error decrypting data")
 
@@ -82,11 +108,20 @@ class ThreebotProxy(j.baseclasses.object):
         if "email" not in result:
             return abort(400, "Email is not present in data")
 
-        if not result["email"]["verified"]:
-            return abort(400, "Email not verified")
+        email = result["email"]["email"]
+
+        sei = result["email"]["sei"]
+        res = requests.post(
+            "https://openkyc.live/verification/verify-sei",
+            headers={"Content-Type": "application/json"},
+            json={"signedEmailIdentifier": sei},
+        )
+
+        if res.status_code != 200:
+            return abort(400, "Email is not verified")
 
         self.session["username"] = username
-        self.session["email"] = result["email"]["email"]
+        self.session["email"] = email
         self.session["authorized"] = True
         return redirect(self.next_url)
 

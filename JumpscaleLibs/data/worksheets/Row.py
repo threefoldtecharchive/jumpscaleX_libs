@@ -1,52 +1,53 @@
 from Jumpscale import j
-
-JSBASE = j.baseclasses.object
+import copy
 
 
 class Row(j.baseclasses.object):
-    def __init__(
+    def _init(
         self,
         name="",
-        ttype="float",
+        ttype=None,
         nrcols=72,
-        aggregate="T",
+        aggregate="SUM",
         description="",
         groupname="",
         groupdescr="",
-        format="",
-        defval="default",
+        defval=None,
         nrfloat=None,
+        sheet=None,
+        **kwargs,
     ):
         """
-        @param ttype int,perc,float,empty,str,unknown
-        @param aggregate= T,MIN,MAX,LAST,FIRST,AVG
-        @format bold (if empty then normal)
+        @param ttype int,perc,float,empty,str,unknown or a basetype
+        @param aggregate= MIN,MAX,LAST,FIRST,AVG,SUM
         """
         self.name = name
-        if defval == "default":
-            if ttype == "float" or ttype == "perc" or ttype == "int":
-                defval = 0.0
-            if ttype == "empty":
-                defval = ""
+        if not ttype:
+            ttype = "float"
+        self.ttype = j.data.types.get(ttype, default=defval)
 
-        self.cells = [defval for item in range(nrcols)]
-        self.defval = defval
+        if defval != None:
+            self.defval = self._clean_val(defval)
+        else:
+            self.defval = None
 
-        self.ttype = ttype
-        self.format = format
+        self.nrcols = nrcols
+        self.sheet = sheet
+        assert sheet
+
+        self.empty()
+
         self.description = description
         self.groupname = groupname
         self.groupdescr = groupdescr
-        self.aggregateAction = aggregate
+        self.aggregate_type = aggregate
         self.nrfloat = nrfloat
-        if aggregate not in ["T", "MAX", "MIN", "LAST", "FIRST", "AVG"]:
-            raise j.exceptions.RuntimeError("Cannot find action:%s for agreggate" % self.aggregateAction)
-        if ttype not in ["int", "perc", "float", "empty", "str", "unknown"]:
-            raise j.exceptions.RuntimeError("only support format: int,perc,float,empty,str,unknown")
-        self.nrcols = nrcols
-        JSBASE.__init__(self)
+        if aggregate not in ["MAX", "MIN", "LAST", "FIRST", "AVG", "SUM"]:
+            raise j.exceptions.RuntimeError("Cannot find action:%s for agreggate" % self.aggregate_type)
+        self.window_month_start = 0
+        self.window_month_period = 60
 
-    def setDefaultValue(self, defval=None, stop=None):
+    def default_values_set(self, defval=None, stop=None):
         if defval is None:
             defval = self.defval
         if defval is None:
@@ -57,9 +58,9 @@ class Row(j.baseclasses.object):
             stop += 1
         for colid in range(0, int(stop)):
             if self.cells[colid] is None:
-                self.cells[colid] = defval
+                self.cells[colid] = self.clean_val(defval)
 
-    def indexation(self, yearlyIndexationInPerc, roundval=100):
+    def modify_indexation(self, yearlyIndexationInPerc, roundval=100):
 
         for year in range(2, 7):
             now = 12 * (year - 1)
@@ -67,9 +68,9 @@ class Row(j.baseclasses.object):
             self.cells[now] = self.cells[prev] * (1 + yearlyIndexationInPerc)
             self.setDefaultValue(0.0)
             self.round(roundval=roundval)
-            self.makeGoHigher()
+            self.modify_make_higher()
 
-    def makeGoHigher(self):
+    def modify_make_higher(self):
         """
         make sure each cell of row is higher than previous cell
         """
@@ -79,22 +80,45 @@ class Row(j.baseclasses.object):
                 self.cells[colid] = prev
             prev = self.cells[colid]
 
-    def aggregate(self, period="Y", aggregateAction="T", roundnr=2):
+    def _clean_val(self, val):
+        """
+        use the type to make sure the col has been cleaned and has right type
+        """
+        return self.ttype.clean(val)
+
+    def clean(self):
+        for colid in range(0, self.nrcols):
+            self.cells[colid] = self._clean_val(self.cells[colid])
+        return self
+
+    def copy(self, name, empty=False, ttype=None, defval=None, aggregate=None, description=""):
+        row = self.sheet.copy(
+            name, row=self, ttype=ttype, aggregate=aggregate, description=description, empty=empty, defval=None
+        )
+        return row
+
+    def empty(self):
+        if self.defval != None:
+            self.cells = [self.defval for item in range(self.nrcols)]
+        else:
+            self.cells = [None for item in range(self.nrcols)]
+
+    def aggregate(self, period="Y", aggregate_type=None, roundnr=2):
         """
         @param period is Q or Y (Quarter/Year)
-        @param aggregateAction LAST,FIRST,MIN,MAX,AVG,SUM
+        @param aggregate_type LAST,FIRST,MIN,MAX,AVG,SUM(T)
         """
-        if aggregateAction:
-            self.aggregateAction = aggregateAction
+        if aggregate_type:
+            self.aggregate_type = aggregate_type
 
         def calc(months):
 
-            if self.aggregateAction == "LAST":
+            if self.aggregate_type == "LAST":
                 return self.cells[months[-1]]
-            if self.aggregateAction == "FIRST":
+            if self.aggregate_type == "FIRST":
                 return self.cells[months[0]]
             result = 0.0
-            if self.aggregateAction == "MIN":
+            if self.aggregate_type == "MIN":
                 result = 9999999999999999999
             for m in months:
                 if self.cells[m]:
@@ -105,22 +129,23 @@ class Row(j.baseclasses.object):
                     raise j.exceptions.RuntimeError(
                         "Cannot aggregrate row %s from group %s,\n%s" % (self.name, self.groupname, self.cells)
                     )
-                if self.aggregateAction == "T" or self.aggregateAction == "AVG":
+                if self.aggregate_type == "T" or self.aggregate_type == "SUM" or self.aggregate_type == "AVG":
                     result += val
-                if self.aggregateAction == "MIN":
+                if self.aggregate_type == "MIN":
                     if (val < 0 and val < result) or (val > 0 and val > result):
                         result = val
-                if self.aggregateAction == "MAX":
+                if self.aggregate_type == "MAX":
                     if (val > 0 and val > result) or (val < 0 and val < result):
                         result = val
-            if self.aggregateAction == "AVG":
+            if self.aggregate_type == "AVG":
                 result = result / len(months)
             return result
 
         # monthAttributes=[item.name for item in self.months[1].JSModel_MODEL_INFO.attributes]
         if period == "Y":
-            result = [0.0 for item in range(6)]
-            for year in range(1, 7):
+            result = [0.0 for item in range(7)]
+            # j.debug()
+            for year in range(1, 8):
                 months = [12 * (year - 1) + i for i in range(12)]
                 # name=self._getYearStringFromYearNr(year)
                 result[year - 1] = calc(months)
@@ -169,9 +194,9 @@ class Row(j.baseclasses.object):
             self.cells[x] = interpolated[xx]
             xx += 1
 
-        self.randomVariation(variation, min=min, max=max)
+        self.modify_variation_random(variation, min=min, max=max)
 
-    def randomVariation(self, variation, start=None, stop=None, min=None, max=None):
+    def modify_variation_random(self, variation, start=None, stop=None, min=None, max=None):
         if variation == 0:
             return
         if start is None:
@@ -204,14 +229,14 @@ class Row(j.baseclasses.object):
                 xorg = xInBlock
                 if x > self.nrcols:
                     halt = True
-                    self.setCell(self.nrcols - 1, lastpos, minvalue, maxvalue)
+                    self.set(self.nrcols - 1, lastpos, minvalue, maxvalue)
                     break
                 if self.cells[xorg] is not None:
                     val = self.cells[xorg]
                     val = val + self._getVariationRelative(vvariation, val)
-                    self.setCell(x, val, minvalue, maxvalue)
+                    self.set(x, val, minvalue, maxvalue)
 
-    def setCell(self, posx, value, minvalue=None, maxvalue=None):
+    def set(self, posx, value, minvalue=None, maxvalue=None):
         if minvalue is not None and value < minvalue:
             value = minvalue
         if maxvalue is not None and value > maxvalue:
@@ -241,7 +266,7 @@ class Row(j.baseclasses.object):
         gd = float(j.data.idgenerator.generateRandomInt(changeMin, changeMax) / 100.0)
         return gd
 
-    def goDown(self, start, stop, godown, nrSteps, hvariation, vvariation, isActiveFunction=None):
+    def modify_go_down(self, start, stop, godown, nrSteps, hvariation, vvariation, isActiveFunction=None):
         start = int(start)
         stop = int(stop)
         blocksize = float(stop + 1 - start) / float(nrSteps)
@@ -268,13 +293,13 @@ class Row(j.baseclasses.object):
             y = y - self._getVariationPositive(godown, vvariation)
             y2 = y
             if x > stop:
-                return self.setCell(stop, y)
-            x, y = self.setCell(x, y, minvalue, maxvalue)
+                return self.set(stop, y)
+            x, y = self.set(x, y, minvalue, maxvalue)
             if y is None:
-                self.setCell(self.nrcols - 1, y2)
+                self.set(self.nrcols - 1, y2)
                 return x, y2
 
-    def goUp(self, start, stop, goup, nrSteps, hvariation, vvariation, isActiveFunction=None):
+    def modify_go_up(self, start, stop, goup, nrSteps, hvariation, vvariation, isActiveFunction=None):
         start = int(start)
         stop = int(stop)
         blocksize = float(stop + 1 - start) / float(nrSteps)
@@ -301,13 +326,13 @@ class Row(j.baseclasses.object):
             y = y + self._getVariationPositive(goup, vvariation)
             y2 = y
             if x > stop:
-                return self.setCell(stop, y)
-            x, y = self.setCell(x, y, minvalue, maxvalue)
+                return self.set(stop, y)
+            x, y = self.set(x, y, minvalue, maxvalue)
             if y is None:
-                self.setCell(self.nrcols - 1, y2)
+                self.set(self.nrcols - 1, y2)
                 return x, y
 
-    def getMax(self, start=None, stop=None):
+    def max_get(self, start=None, stop=None):
         if start is None:
             start = 0
         if stop is None:
@@ -318,7 +343,7 @@ class Row(j.baseclasses.object):
                 r = self.cells[x]
         return r
 
-    def checkFilledIn(self, start, stop):
+    def notempty(self, start, stop):
         for x in range(start, stop + 1):
             if start < 0:
                 continue
@@ -350,13 +375,14 @@ class Row(j.baseclasses.object):
             raise j.exceptions.RuntimeError("error in normalizing, should not get here")
         return nr
 
-    def applyFunction(self, ffunction, args={}):
+    def function_apply(self, ffunction, args={}):
         """
         call ffunction with params (val of cell, x, args as dict)
         row gets modified
         """
         for x in range(0, self.nrcols):
             self.cells[x] = ffunction(self.cells[x], x, args)
+        self.clean()
 
     def text2row(self, data, standstill=0, defval=None, round=False, interpolate=False):
         """
@@ -423,7 +449,7 @@ class Row(j.baseclasses.object):
 
         if round:
             self._cumul = 0.0
-            self.applyFunction(self._roundNrCumul)
+            self.function_apply(self._roundNrCumul)
 
     def recurring(self, row, delay, start, churn, nrmonths):
         """
@@ -452,7 +478,7 @@ class Row(j.baseclasses.object):
         row.round()
         return row
 
-    def round(self, nrfloat=None, roundval=None):
+    def modify_round(self, nrfloat=None, roundval=None):
         """
         @param roundval if e.g. 10 means round will be done with values of 10
             nr float will then be 0 (automatically)
@@ -471,22 +497,41 @@ class Row(j.baseclasses.object):
                 elif self.ttype == "float":
                     self.cells[colid] = round(self.cells[colid], nrfloat)
 
-    def areCosts(self):
+    def modify_negate(self):
         """
-        negate the values in the row
+        negate the values in the row, make sure are < 0
         """
         for colid in range(0, int(self.nrcols)):
             if self.cells[colid] > 0:
                 self.cells[colid] = -self.cells[colid]
 
-    def invert(self):
+    @property
+    def values(self):
+        """
+        """
+        start = self.window_month_start
+        nr = self.window_month_period
+        self.clean()
+        i = self.cells[start : start + nr]
+        return i
+
+    @property
+    def values_all(self):
+        self.clean()
+        return self.cells
+
+    @property
+    def values_inverted(self):
+        return [-i for i in self.values]
+
+    def modify_invert(self):
         """
         invert + becomes - and reverse
         """
         for colid in range(0, int(self.nrcols)):
             self.cells[colid] = -self.cells[colid]
 
-    def delay(self, delay=0, defval=None):
+    def modify_delay(self, delay=0, defval=None):
         if defval is not None:
             self.defval = defval
         delay = int(delay)
@@ -520,15 +565,85 @@ class Row(j.baseclasses.object):
 
     __repr__ = __str__
 
-    def _dict2obj(self, dict):
+    def import_(self, dict):
         self.name = dict["name"]
-        self.cells = dict["cells"]
-        self.ttype = dict["ttype"]
-        self.format = dict["format"]
+        # self.format = dict["format"]
         self.description = dict["description"]
         self.groupname = dict["groupname"]
         self.groupdescr = dict["groupdescr"]
-        self.aggregateAction = dict["aggregateAction"]
+        self.aggregate_type = dict["aggregate_type"]
         self.nrcols = dict["nrcols"]
         self.nrfloat = dict["nrfloat"]
+        self.window_month_start = dict["window_month_start"]
+        self.window_month_period = dict["window_month_period"]
+
+        self.ttype = j.data.types.get(dict["ttype"], default=dict["defval"])
+        self.defval = dict["defval"]
+
+        self.cells = [self.ttype.clean(i) for i in dict["cells"]]
+
         return self
+
+    def export_(self):
+        dict = {}
+        dict["name"] = self.name
+        dict["cells"] = [self.ttype.clean(i) for i in self.cells]
+        dict["ttype"] = self.ttype.NAME
+        # dict["format"] = self.format
+        dict["description"] = self.description
+        dict["defval"] = self.defval
+        dict["groupname"] = self.groupname
+        dict["groupdescr"] = self.groupdescr
+        dict["aggregate_type"] = self.aggregate_type
+        dict["nrcols"] = self.nrcols
+        dict["nrfloat"] = self.nrfloat
+        dict["window_month_start"] = self.window_month_start
+        dict["window_month_period"] = self.window_month_period
+        return dict
+
+    def _check_operator(self, other):
+        if not isinstance(other, Row):
+            raise j.exceptions.Input("needs to be of type row, now:\n%s" % other)
+        if self.nrcols != other.nrcols:
+            raise j.exceptions.Input("nr cols of 2 rows need to be the same\n%s\n%s"(self, other))
+        other.clean()
+        self.clean()
+        r = self.copy(name="changeme", empty=True)
+        self.sheet.rows.pop("changeme")  # should not be remembered on sheet level
+        return r
+
+    def accumulate(self, name):
+        """
+        return row with name where values are accumulated
+        """
+        row = self.copy(name=name, empty=True)
+        row.aggregate_type = "LAST"
+        total = self._clean_val(0)
+        for colid in range(0, int(self.nrcols)):
+            total += self.cells[colid]
+            row.cells[colid] = total
+        return row
+
+    def __add__(self, other):
+        result = self._check_operator(other)
+        for colid in range(0, int(self.nrcols)):
+            result.cells[colid] = self.cells[colid] + other.cells[colid]
+        return result.clean()
+
+    def __sub__(self, other):
+        result = self._check_operator(other)
+        for colid in range(0, int(self.nrcols)):
+            result.cells[colid] = self.cells[colid] - other.cells[colid]
+        return result.clean()
+
+    def __mul__(self, other):
+        result = self._check_operator(other)
+        for colid in range(0, int(self.nrcols)):
+            result.cells[colid] = self.cells[colid] * other.cells[colid]
+        return result.clean()
+
+    def __truediv__(self, other):
+        result = self._check_operator(other)
+        for colid in range(0, int(self.nrcols)):
+            result.cells[colid] = self.cells[colid] / other.cells[colid]
+        return result.clean()

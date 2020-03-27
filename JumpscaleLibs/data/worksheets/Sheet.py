@@ -22,32 +22,63 @@ class Sheet(j.baseclasses.object):
             self.headers = headers
             self.nrcols = len(self.headers)
 
-        self.rows = {}
+        self.rows = j.baseclasses.dict()
         self.rowNames = []
 
-    # def _obj2dict(self):
-    # ddict={}
-    # ddict["name"]=self.name
-    # ddict["headers"]=self.headers
-    # ddict["nrcols"]=self.nrcols
-    # ddict["rows"]=[item.obj2dict() for item in self.rows]
-    # return ddict
+    def clean(self):
+        for row in self.rows.values():
+            row.clean()
 
-    def _dict2obj(self, dict):
+    def export_(self):
+        ddict = {}
+        ddict["name"] = self.name
+        ddict["headers"] = self.headers
+        ddict["period"] = self.period
+        ddict["nrcols"] = self.nrcols
+        ddict["rows"] = {}
+        for key, item in self.rows.items():
+            ddict["rows"][key] = item.export_()
+        return ddict
+
+    def import_(self, dict):
         self.name = dict["name"]
         self.headers = dict["headers"]
         self.nrcols = dict["nrcols"]
-        slf.period = dict["period"]
+        self.period = dict["period"]
         for key in list(dict["rows"].keys()):
             item = dict["rows"][key]
-            row = j.tools.code.dict2object(Row(), item)
+            row = Row(sheet=self)
+            row.import_(item)
             self.rows[row.name] = row
+
+    def copy(self, name, row, ttype=None, aggregate=None, description="", defval=None, empty=False):
+        if not ttype:
+            ttype = row.ttype
+
+        if not aggregate:
+            aggregate = row.aggregate_type
+
+        row = self.addRow(
+            name=name,
+            ttype=ttype,
+            aggregate=aggregate,
+            groupname=row.groupname,
+            description=description,
+            groupdescr=row.groupdescr,
+            nrcols=row.nrcols,
+            values=row.cells,
+        )
+
+        if empty:
+            row.empty()
+
+        return row
 
     def addRow(
         self,
         name,
         ttype="float",
-        aggregate="T",
+        aggregate="SUM",
         description="",
         groupname="",
         groupdescr="",
@@ -56,6 +87,7 @@ class Sheet(j.baseclasses.object):
         values=[],
         defval=None,
         nrfloat=None,
+        empty=False,
     ):
         """
         @param ttype int,perc,float,empty,str
@@ -66,25 +98,28 @@ class Sheet(j.baseclasses.object):
         """
         if nrcols is None:
             nrcols = self.nrcols
-        if ttype == "float" and nrfloat is None:
+        if (ttype == "float" or isinstance(ttype, j.data.types._float)) and nrfloat is None:
             nrfloat = 2
         row = Row(
-            name,
-            ttype,
-            nrcols,
-            aggregate,
+            name=name,
+            ttype=ttype,
+            nrcols=nrcols,
+            aggregate=aggregate,
             description=description,
             groupname=groupname,
             groupdescr=groupdescr,
-            format=format,
             defval=defval,
             nrfloat=nrfloat,
+            sheet=self,
         )
         self.rows[name] = row
         self.rowNames.append(name)
         if values != []:
             for x in range(nrcols):
                 self.setCell(name, x, values[x])
+            row.clean()
+        if empty:
+            row.empty()
         return self.rows[name]
 
     # def renting(self,row,interest,nrmonths):

@@ -33,7 +33,8 @@ from .transaction import TransactionSummary, Effect
 
 JSConfigClient = j.baseclasses.object_config
 
-_UNLOCKHASH_TRANSACTIONS_SERVICES = {"TEST": "testnet.threefold.io"}
+
+_UNLOCKHASH_TRANSACTIONS_SERVICES = {"TEST": "testnet.threefold.io", "STD": "threefold.io"}
 _HORIZON_NETWORKS = {"TEST": "https://horizon-testnet.stellar.org", "STD": "https://horizon.stellar.org"}
 _NETWORK_PASSPHRASES = {"TEST": Network.TESTNET_NETWORK_PASSPHRASE, "STD": Network.PUBLIC_NETWORK_PASSPHRASE}
 
@@ -69,15 +70,19 @@ class StellarClient(JSConfigClient):
         """
 
         if self._unlock_service_client_ is None:
-            try:
+            gedis_client_name = "unlock_service_{}".format(str(self.network))
+            if j.clients.gedis.exists(gedis_client_name):
+                c = j.clients.gedis.get(gedis_client_name)
+                if str(c.host) != _UNLOCKHASH_TRANSACTIONS_SERVICES[str(self.network)]:
+                    j.clients.gedis.delete(gedis_client_name)
+
+            if not j.clients.gedis.exists(gedis_client_name):
                 c = j.clients.gedis.new(
-                    "unlock_service",
+                    gedis_client_name,
                     host=_UNLOCKHASH_TRANSACTIONS_SERVICES[str(self.network)],
                     port=8901,
                     package_name="threefoldfoundation.unlock_service",
                 )
-            except Exception:
-                c = j.clients.gedis.get("unlock_service")
 
             self._unlock_service_client_ = c.actors.unlock_service
         return self._unlock_service_client_
@@ -243,7 +248,7 @@ class StellarClient(JSConfigClient):
             self._log_info("Transaction hash: {}".format(response["hash"]))
             self._log_info(response)
         except BadRequestError as e:
-            self.log_debug(e)
+            self._log_debug(e)
 
     def add_trustline(self, asset_code, issuer, secret=None):
         """Create a trustline to an asset.
@@ -302,7 +307,7 @@ class StellarClient(JSConfigClient):
             self.log_debug(e)
             raise e
 
-    def transfer(self, destination_address, amount, asset="XLM", locked_until=None, memo_text=None):
+    def transfer(self, destination_address, amount, asset="XLM", locked_until=None, memo_text=None, memo_hash=None):
         """Transfer assets to another address
         :param destination_address: address of the destination.
         :type destination_address: str
@@ -316,7 +321,10 @@ class StellarClient(JSConfigClient):
         :type locked_until: float
         :param text_memo: optional memo text to add to the transaction, a string encoded using either ASCII or UTF-8, up to 28-bytes long
         :type: Union[str, bytes]
+        :param memo_hash: optional memo hash to add to the transaction, A 32 byte hash
+        :type: Union[str, bytes]
         """
+        issuer = None
         self._log_info("Sending {} {} to {}".format(amount, asset, destination_address))
         if asset != "XLM":
             assetStr = asset.split(":")
@@ -344,6 +352,8 @@ class StellarClient(JSConfigClient):
         transaction_builder.set_timeout(30)
         if memo_text is not None:
             transaction_builder.add_text_memo(memo_text)
+        if memo_hash is not None:
+            transaction_builder.add_hash_memo(memo_hash)
 
         transaction = transaction_builder.build()
 
