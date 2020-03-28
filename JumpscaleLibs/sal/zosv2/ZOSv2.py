@@ -53,10 +53,6 @@ class Zosv2(j.baseclasses.object):
     def billing(self):
         return self._billing
 
-    @property
-    def gateway(self):
-        return self._gateway
-
     def reservation_create(self):
         """
         creates a new empty reservation schema
@@ -176,29 +172,6 @@ class Zosv2(j.baseclasses.object):
         result = self._explorer.reservations.list()
         return list(filter(lambda r: r.customer_tid == tid, result))
 
-    def reservation_failed(self, reservation):
-        """
-        checks if reservation failed.
-
-        :param reservation: reservation object
-        :type reservation: tfgrid.workloads.reservation.1
-        :return: true if the reservation has any of its results in state ERROR.
-        :rtype: bool
-        """
-        return any(map(lambda x: x == "ERROR", [x.state for x in reservation.results]))
-
-    def reservation_ok(self, reservation):
-        """
-        checks if reservation succeeded.
-
-        :param reservation: reservation object
-        :type reservation: tfgrid.workloads.reservation.1
-        :return: true if the reservation has all of its results in state OK.
-        :rtype: bool
-        """
-
-        return all(map(lambda x: x == "OK", [x.state for x in reservation.results]))
-
     def reservation_store(self, reservation, path):
         """
         write the reservation on disk.
@@ -250,7 +223,7 @@ class Zosv2(j.baseclasses.object):
                     print("container: no result")
                     continue
 
-                data = result.data_json
+                data = j.data.serializers.json.loads(result.data)
                 print(f"container ip4:{data['ipv4']} ip6{data['ipv6']}")
 
             for zdb in r.data_reservation.zdbs:
@@ -259,8 +232,8 @@ class Zosv2(j.baseclasses.object):
                     print("zdb: no result")
                     continue
 
-                data = result.data_json
-                print(f"zdb namespace:{data['namespace']} ip:{data['ip']} port:{data['port']}")
+                data = j.data.serializers.json.loads(result.data)
+                print(f"zdb namespace:{namespace} ip:{ip} port:{port}")
 
             for network in r.data_reservation.networks:
                 result = wid_res.get(network.workload_id)
