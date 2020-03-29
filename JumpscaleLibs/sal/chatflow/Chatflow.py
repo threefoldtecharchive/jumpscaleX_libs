@@ -52,7 +52,7 @@ class Chatflow(j.baseclasses.object):
             nodes_selected.append(node)
         return nodes_selected
 
-    def network_configure(self, bot, reservation, nodes, customer_tid, ip_version, number_of_ipaddresses=0, trial=1):
+    def network_configure(self, bot, reservation, nodes, customer_tid, ip_version, number_of_ipaddresses=0):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -61,13 +61,35 @@ class Chatflow(j.baseclasses.object):
         return reservation (Object) , config of network (dict)
         """
         reservation_copy = copy.copy(reservation)
-        explorer = j.clients.explorer.explorer
-        ip_range = self.ip_range_get(bot)
-        # network_config = dict()
-        reservation, network_config = self.network_get(
-            bot, reservation, ip_range, nodes, customer_tid, ip_version, number_of_ipaddresses
-        )
+        explorer = j.clients.explorer.default
+        expiration = j.data.time.epoch + (60 * 60 * 24)
+        networks_name = []
+        network_user_choice = ""
+        while (networks_name == [] and network_user_choice == "Existing network") or network_user_choice == "":
+            network_choice = ["New network", "Existing network"]
+            network_user_choice = bot.single_choice("Create a new network or use an existing one.", network_choice)
+            if network_user_choice == "New network":
+                ip_range = self.ip_range_get(bot)
+                reservation, network_config = self.network_get(
+                    bot, reservation, ip_range, nodes, customer_tid, ip_version, number_of_ipaddresses
+                )
+            else:
+                networks = self.network_exists(customer_tid)
+                for n in networks.keys():
+                    networks_name.append(n)
+                if networks_name == []:
+                    res = "<h2> You don't have any network previously created </h2>"
+                    res = j.tools.jinja2.template_render(text=res)
+                    bot.md_show(res)
+                    continue
+                network = bot.single_choice("Choose a network that you have previously created", networks_name)
+                reservation, network_config = self.add_node_to_network_exists(
+                    bot, reservation, nodes, networks[network], expiration, customer_tid=customer_tid
+                )
+                ip_range = networks[network].iprange
+
         network_config["ip_range"] = ip_range
+        network_config["user_choice"] = network_user_choice
         # Check if reservation failed
         result_check = False
         while not result_check:
@@ -83,19 +105,24 @@ class Chatflow(j.baseclasses.object):
                 j.sal.zosv2.reservation_cancel(resv_id)
                 reservation = reservation_copy
                 reservation_copy = copy.copy(reservation)
+                if network_config["user_choice"] == "New network":
+                    # Need to re do the reservation with another port
+                    reservation, network_config = self.network_get(
+                        bot,
+                        reservation,
+                        ip_range,
+                        nodes,
+                        customer_tid,
+                        ip_version,
+                        number_of_ipaddresses,
+                        interactive=False,
+                        noninteractive_args=network_config,
+                    )
+                else:
+                    reservation, network_config = self.add_node_to_network_exists(
+                        bot, reservation, nodes, networks[network], expiration, customer_tid=customer_tid
+                    )
 
-                # Need to re do the reservation with another port
-                reservation, network_config = self.network_get(
-                    bot,
-                    reservation,
-                    ip_range,
-                    nodes,
-                    customer_tid,
-                    ip_version,
-                    number_of_ipaddresses,
-                    interactive=False,
-                    noninteractive_args=network_config,
-                )
             else:
                 result_check = len(reservation_results) == len(nodes)
 
@@ -201,9 +228,9 @@ class Chatflow(j.baseclasses.object):
             network_range += 256
             network_node = str(network_range) + "/24"
             if interactive:
-                avaliable_ips = self.get_all_ips(network_node)
+                available_ips = self.get_all_ips(network_node)
                 string_ips = []
-                for ip in avaliable_ips:
+                for ip in available_ips:
                     string_ips.append(ip.format())
                 if number_of_ipaddresses > 0:
                     # user chooses the ip to be used for the node
@@ -235,6 +262,7 @@ class Chatflow(j.baseclasses.object):
         network_config["name"] = network.name
         network_config["ip_addresses"] = ip_addresses
         network_config["wg"] = wg_quick
+        j.sal.fs.writeFile(f"/sandbox/cfg/wireguard/{network.name}.conf", f"{wg_quick}")
 
         # register the reservation
         expiration = j.data.time.epoch + (60 * 60 * 24)
@@ -281,3 +309,81 @@ class Chatflow(j.baseclasses.object):
             res = j.tools.jinja2.template_render(text=res)
             bot.md_show(res)
         return failed
+
+    def network_exists(self, tid):
+        reservations = j.sal.zosv2.reservation_list(tid=tid)
+        network_names = dict()
+        names = set()
+        for reservation in reservations:
+            networks = reservation.data_reservation.networks
+            expiration = reservation.data_reservation.expiration_provisioning
+
+            for network in networks:
+                if network.name not in names:
+                    names.add(network.name)
+                    network_name = network.name + " - end at: " + j.data.time.epoch2HRDateTime(expiration, local=True)
+                    network_names[network_name] = network
+
+        return network_names
+
+    def add_node_to_network_exists(self, bot, reservation, nodes, network, expiration, customer_tid):
+        network_resources = network.network_resources
+        network_config = dict()
+        list_ip_range = list()
+        nodes_id = list()
+        ip_addresses = list()
+        ip_range_use = dict()
+
+        # Get all ids of node
+        for i, node_selected in enumerate(nodes):
+            nodes_id.append(node_selected.node_id)
+
+        # Check if any nodes selected is exist before in this network (to use IP range of this node not create new one)
+        for network_resource in network_resources:
+            if network_resource.node_id in nodes_id:
+                ip_range_use[network_resource.node_id] = network_resource.iprange
+            list_ip_range.append(network_resource.iprange)
+
+        ip_range = network.iprange
+        all_ranges = []
+
+        # generate all free network Ip rnages of this network IP range
+        network_range = netaddr.IPNetwork(ip_range).ip
+        for i in range(1, 254):
+            network_range += 256
+            all_ranges.append(str(network_range) + "/24")
+        used = set(list_ip_range)
+        all_ip_range = set(all_ranges)
+        free = all_ip_range - used
+
+        for i, node_selected in enumerate(nodes):
+            add_node = True
+            # Check if node selected it's already exist in this network just create ip address
+            if node_selected.node_id in list(ip_range_use.keys()):
+                ip_range = netaddr.IPNetwork(ip_range_use[node_selected.node_id]).ip
+                add_node = False
+            # Check if node selected not exist in this network  generate new IP range sub of this network and add this node in network
+            else:
+                ip_range = random.choice(tuple(free))
+                used.add(ip_range)
+                free = all_ip_range - used
+
+            if add_node:
+                j.sal.zosv2.network.add_node(network, node_selected.node_id, ip_range)
+
+            available_ips = self.get_all_ips(ip_range)
+            string_ips = []
+            for ip in available_ips:
+                string_ips.append(ip.format())
+
+            ip_address = bot.drop_down_choice(f"Please choose the ip address {i+1}", string_ips)
+            ip_addresses.append(ip_address)
+
+        reservation.data_reservation.networks.append(network._ddict)
+        rid = self.reservation_register(reservation, expiration, customer_tid)
+
+        network_config["rid"] = rid
+        network_config["name"] = network.name
+        network_config["ip_addresses"] = ip_addresses
+        network_config["wg"] = j.sal.fs.readFile(f"/sandbox/cfg/wireguard/{network.name}.conf")
+        return reservation, network_config
