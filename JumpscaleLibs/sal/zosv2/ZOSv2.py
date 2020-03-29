@@ -242,3 +242,24 @@ class Zosv2(j.baseclasses.object):
                     continue
 
                 print(f"network name:{network.name} iprage:{network.iprange}")
+
+    def reservation_failed(self, reservation):
+        """
+        checks if reservation failed.
+        :param reservation: reservation object
+        :type reservation: tfgrid.workloads.reservation.1
+        :return: true if the reservation has any of its results in state ERROR.
+        :rtype: bool
+        """
+        return any(map(lambda x: x == "ERROR", [x.state for x in reservation.results]))
+
+    def reservation_ok(self, reservation):
+        """
+        checks if reservation succeeded.
+        :param reservation: reservation object
+        :type reservation: tfgrid.workloads.reservation.1
+        :return: true if the reservation has all of its results in state OK.
+        :rtype: bool
+        """
+
+        return all(map(lambda x: x == "OK", [x.state for x in reservation.results]))
