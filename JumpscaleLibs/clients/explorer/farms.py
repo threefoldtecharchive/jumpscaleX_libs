@@ -6,9 +6,6 @@ class Farms:
     def __init__(self, session, url):
         self._session = session
         self._base_url = url
-        j.data.schema.add_from_path(
-            "/sandbox/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/tfgrid/directory/models"
-        )
         self._model = j.data.schema.get_from_url("tfgrid.directory.farm.1")
 
     def list(self, threebot_id=None, page=None):

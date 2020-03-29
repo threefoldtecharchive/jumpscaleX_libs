@@ -5,9 +5,6 @@ class Users:
     def __init__(self, session, url):
         self._session = session
         self._base_url = url
-        j.data.schema.add_from_path(
-            "/sandbox/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/tfgrid/phonebook/models"
-        )
         self._model = j.data.schema.get_from_url("tfgrid.phonebook.user.1")
 
     def list(self, name=None, email=None):
