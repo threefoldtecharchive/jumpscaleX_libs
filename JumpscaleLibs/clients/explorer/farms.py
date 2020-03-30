@@ -8,25 +8,29 @@ class Farms:
         self._base_url = url
         self._model = j.data.schema.get_from_url("tfgrid.directory.farm.1")
 
-    def list(self, threebot_id=None, page=None):
+    def list(self, threebot_id=None, name=None, page=None):
         url = self._base_url + "/farms"
 
         query = {}
         if threebot_id:
             query["owner"] = threebot_id
+        if name:
+            query["name"] = name
 
         if page:
             farms, _ = get_page(self._session, page, self._model, url, query)
         else:
-            farms = list(self.iter(threebot_id))
+            farms = list(self.iter(threebot_id, name))
 
         return farms
 
-    def iter(self, threebot_id=None):
+    def iter(self, threebot_id=None, name=None):
         url = self._base_url + "/farms"
         query = {}
         if threebot_id:
             query["owner"] = threebot_id
+        if name:
+            query["name"] = name
         yield from get_all(self._session, self._model, url, query)
 
     def new(self):
