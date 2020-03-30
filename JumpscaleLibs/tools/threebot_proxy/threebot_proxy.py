@@ -129,9 +129,10 @@ class ThreebotProxy(j.baseclasses.object):
     def login_required(self, func):
         @wraps(func)
         def decorator(*args, **kwargs):
-            if not self.session.get("authorized", False):
-                self.session["next_url"] = request.url
-                return redirect(self.login_url)
+            if j.tools.threebot.with_threebotconnect:
+                if not self.session.get("authorized", False):
+                    self.session["next_url"] = request.url
+                    return redirect(self.login_url)
             return func(*args, **kwargs)
 
         return decorator
