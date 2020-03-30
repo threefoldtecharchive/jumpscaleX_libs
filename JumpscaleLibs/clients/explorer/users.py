@@ -41,8 +41,8 @@ class Users:
         me = identity if identity else j.tools.threebot.me.default
         datatosign = ""
         datatosign += f"{user.id}{user.name}{user.email}"
-        if user.ipaddr:
-            datatosign += user.ipaddr
+        if user.host:
+            datatosign += user.host
         datatosign += f"{user.description}{user.pubkey}"
         signature = me.nacl.sign_hex(datatosign.encode("utf8"))
         data = user._ddict.copy()
