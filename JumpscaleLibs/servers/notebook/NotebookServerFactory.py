@@ -80,20 +80,47 @@ class NotebookServerFactory(j.baseclasses.object):
         basepath = j.sal.fs.getBaseName(path)
         self.install()
         self._log_info(path)
+
+        cmd = self.get_cmd(path=path, background=background, voila=voila, base_url=base_url, ip=ip, port=port)
+        if not background:
+            cmd = f"cd {dirpath};{cmd}"
+            j.sal.process.executeInteractive(cmd)
+        else:
+            cmd = j.servers.startupcmd.get("notebook", cmd_start=cmd, path = dirpath)
+            cmd.start()
+        
+    def get_cmd(self, 
+        path=None,
+        background=False,
+        voila=False,
+        base_url=None,
+        ip="0.0.0.0",
+        port=80):
+        
         if not voila:
-            cmd = f"cd {dirpath};jupyter lab --NotebookApp.allow_remote_access=True --NotebookApp.token=''"
+            cmd = "jupyter lab --NotebookApp.allow_remote_access=True --NotebookApp.token=''"
             cmd += f" --NotebookApp.password='' --ip={ip} --port={port} --allow-root"
         else:
-            cmd = f"cd {dirpath};voila --Voila.ip={ip}  --Voila.port={80}"
+            cmd = f"voila --Voila.ip={ip}  --Voila.port={80}"
 
         if base_url:
             cmd += f" --NotebookApp.base_url={base_url}"
+        return cmd
 
-        if not background:
-            j.sal.process.executeInteractive(cmd)
-        else:
+    def stop(self,
+        path="{DIR_CODE}/github/threefoldtech/jumpscaleX_libs_extra/JumpscaleLibsExtra/tools/threefold_simulation/notebooks/threefold_simulator.ipynb",
+        background=False,
+        voila=False,
+        base_url=None,
+        ip="0.0.0.0",
+        port=80,):
+        if background:
+            cmd = self.get_cmd(path=path, background=background, voila=voila, base_url=base_url, ip=ip, port=port)
             cmd = j.servers.startupcmd.get("notebook", cmd_start=cmd)
-            cmd.start()
+            cmd.stop()
+        else:
+            raise Exception("Calling stop is not allowed if not running in background")
+        
 
     @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/105")
     def test(self):
