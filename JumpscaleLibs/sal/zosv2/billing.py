@@ -32,7 +32,7 @@ class Billing:
                 txhash = client.transfer(escrow_address, total_amount, asset=asset, memo_text=str(reservation_id))
                 transaction_hashes.append(txhash)
             except BadRequestError as e:
-                self._log_debug(e)
+                self._log_error(e)
                 raise(e)
 
         return transaction_hashes
