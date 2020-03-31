@@ -70,6 +70,7 @@ class NotebookServerFactory(j.baseclasses.object):
         base_url=None,
         ip="0.0.0.0",
         port=80,
+        pname="notebook"
     ):
         """
         kosmos 'j.servers.notebook.start()'
@@ -86,7 +87,7 @@ class NotebookServerFactory(j.baseclasses.object):
             cmd = f"cd {dirpath};{cmd}"
             j.sal.process.executeInteractive(cmd)
         else:
-            cmd = j.servers.startupcmd.get("notebook", cmd_start=cmd, path = dirpath)
+            cmd = j.servers.startupcmd.get(pname, cmd_start=cmd, path = dirpath)
             cmd.start()
         
     def get_cmd(self, 
@@ -101,7 +102,7 @@ class NotebookServerFactory(j.baseclasses.object):
             cmd = "jupyter lab --NotebookApp.allow_remote_access=True --NotebookApp.token=''"
             cmd += f" --NotebookApp.password='' --ip={ip} --port={port} --allow-root"
         else:
-            cmd = f"voila --Voila.ip={ip}  --Voila.port={80}"
+            cmd = f"voila --Voila.ip={ip}  --Voila.port={port}"
 
         if base_url:
             cmd += f" --NotebookApp.base_url={base_url}"
@@ -113,10 +114,11 @@ class NotebookServerFactory(j.baseclasses.object):
         voila=False,
         base_url=None,
         ip="0.0.0.0",
-        port=80,):
+        port=80,
+        pname="notebook"):
         if background:
             cmd = self.get_cmd(path=path, background=background, voila=voila, base_url=base_url, ip=ip, port=port)
-            cmd = j.servers.startupcmd.get("notebook", cmd_start=cmd)
+            cmd = j.servers.startupcmd.get(pname, cmd_start=cmd)
             cmd.stop()
         else:
             raise Exception("Calling stop is not allowed if not running in background")
