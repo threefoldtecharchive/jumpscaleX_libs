@@ -77,8 +77,8 @@ class Zosv2(j.baseclasses.object):
         :param expiration_provisioning: timestamp of the date when to reservation should be provisionned
                                         if the reservation is not provisioning before this time, it will never be provionned
         :type expiration_provisioning: int, optional
-        :return: reservation ID
-        :rtype: int
+        :return: reservation create result
+        :rtype: tfgrid.workloads.reservation.create.1
         """
         me = identity if identity else j.tools.threebot.me.default
         reservation.customer_tid = me.tid
@@ -100,8 +100,7 @@ class Zosv2(j.baseclasses.object):
         reservation.json = dr._json
         reservation.customer_signature = me.nacl.sign_hex(reservation.json.encode())
 
-        id = self._explorer.reservations.create(reservation)
-        return id
+        return self._explorer.reservations.create(reservation)
 
     def reservation_accept(self, reservation, identity=None):
         """
