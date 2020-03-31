@@ -22,12 +22,17 @@ class Billing:
         else:
             asset = ASSET_CODE + ":" + TFT_ISSUER_PROD
 
+        transaction_hashes = []
         reservation_id = reservation_response["id"]
         escrow_informations = reservation_response["escrow_information"]
         for escrow in escrow_informations:
             escrow_address = escrow["escrow_address"]
             total_amount = escrow["total_amount"] / 10e6
             try:
-                client.transfer(escrow_address, total_amount, asset=asset, memo_text=str(reservation_id))
+                txhash = client.transfer(escrow_address, total_amount, asset=asset, memo_text=str(reservation_id))
+                transaction_hashes.append(txhash)
             except BadRequestError as e:
                 self._log_debug(e)
+                raise(e)
+
+        return transaction_hashes

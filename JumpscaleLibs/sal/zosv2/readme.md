@@ -277,7 +277,6 @@ client.add_trustline("TFT", "GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766P
 client.add_trustline("TFT", "GBOVQKJYHXRR3DX6NOX2RRYFRCUMSADGDESTDNBDS6CDVLGVESRTAC47")
 
 zos = j.sal.zosv2
-zos._explorer = explorer
 
 # create a reservation
 r = zos.reservation_create()
