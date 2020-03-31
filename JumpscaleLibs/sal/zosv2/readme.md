@@ -218,7 +218,7 @@ for node in nodes:
         password='supersecret',
         disk_type="SSD",
         public=False)
-rid
+volume = zos.volume.create(reservation_storage,minio_node.node_id,size=10,type='SSD')
 zdb_rid = zos.reservation_register(reservation_storage, j.data.time.epoch+(60*60))
 results = zos.reservation_result(zdb_rid)
 
