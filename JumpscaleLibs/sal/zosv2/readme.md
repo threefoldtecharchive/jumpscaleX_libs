@@ -40,7 +40,7 @@ expiration = j.data.time.epoch + (3600 * 24 * 365)
 registered_reservation = zos.reservation_register(r, expiration)
 time.sleep(5)
 # inspect the result of the reservation provisioning
-result = zos.reservation_result(registered_reservation["id"])
+result = zos.reservation_result(registered_reservation.reservation_id)
 
 print("wireguard configuration")
 print(wg_config)
@@ -105,7 +105,7 @@ expiration = j.data.time.epoch + (10*60)
 registered_reservation = zos.reservation_register(r, expiration)
 time.sleep(5)
 # inspect the result of the reservation provisioning
-result = zos.reservation_result(registered_reservation["id"])
+result = zos.reservation_result(registered_reservation.reservation_id)
 
 print("provisioning result")
 print(result)
@@ -151,7 +151,7 @@ expiration = j.data.time.epoch + (3600 * 24 * 365)
 registered_reservation = zos.reservation_register(r, expiration)
 time.sleep(120)
 # inspect the result of the reservation provisioning
-result = zos.reservation_result(registered_reservation["id"])
+result = zos.reservation_result(registered_reservation.reservation_id)
 
 print("provisioning result")
 print(result)
@@ -184,7 +184,7 @@ expiration = j.data.time.epoch + (3600 * 24)
 registered_reservation = zos.reservation_register(r, expiration)
 time.sleep(5)
 # inspect the result of the reservation provisioning
-result = zos.reservation_result(registered_reservation["id"])
+result = zos.reservation_result(registered_reservation.reservation_id)
 
 print("provisioning result")
 print(result)
@@ -258,7 +258,7 @@ zos.volume.attach_existing(
 
 
 registered_reservation = zos.reservation_register(reservation_container, j.data.time.epoch+(60*60))
-results = zos.reservation_result(registered_reservation["id"])
+results = zos.reservation_result(registered_reservation.reservation_id)
 ```
 
 ## Payment of a reservation
@@ -287,7 +287,7 @@ expiration = j.data.time.epoch + (3600 * 24 * 365)
 registered_reservation = zos.reservation_register(r, expiration)
 time.sleep(5)
 # inspect the result of the reservation provisioning
-result = zos.reservation_result(registered_reservation["id"])
+result = zos.reservation_result(registered_reservation.reservation_id)
 
 print(result)
 # payout farmer
