@@ -262,3 +262,41 @@ class Zosv2(j.baseclasses.object):
         """
 
         return all(map(lambda x: x == "OK", [x.state for x in reservation.results]))
+
+    def _escrow_to_qrcode(self, escrow_address, total_amount, message="Grid resources fees"):
+        """
+        Converts escrow info to qrcode
+        :param escrow_address: escrow address
+        :type escrow_address: str
+        :param total_amount: total amount of the escrow
+        :type total_amount: float
+        :param message: message encoded in the qr code
+        :type message: str
+
+        :return: escrow encoded for QR code usage
+        :rtype: str
+        """
+        qrcode = f"tft:{escrow_address}?amount={total_amount}&message={message}&sender=me"
+        return qrcode
+
+    def reservation_escrow_infomations_with_qrcodes(self, reservation_create_resp):
+        """
+        Extracts escrow infromations from reservation create response as a dict and adds qrcode to it
+
+        :param reservation_create_resp: reservation create object, returned from reservation_register
+        :type reservation_create_resp: tfgrid.workloads.reservation.create.1
+        :return: escrow encoded for QR code usage e.g [{'escrow_address': 'GACMBAK2IWHGNTAG5WOVELJWUTPOXA2QY2Y23PAXNRKOYFTCBWICXNDO', 'total_amount': 0.586674, 'farmer_id': 10, 'qrcode': 'tft:GACMBAK2IWHGNTAG5WOVELJWUTPOXA2QY2Y23PAXNRKOYFTCBWICXNDO?amount=0.586674&message=Grid resources fees for farmer 10&sender=me'}]
+        :rtype: str
+        """
+        PAYMENT_MSG_TEMPLATE = "Grid resources fees for farmer {}"
+        results = []
+        for escrow in reservation_create_resp.escrow_information:
+            d = escrow._ddict
+            escrow_address = escrow.escrow_address
+            total_amount = escrow.total_amount / 10e6
+            farmer_id = escrow.farmer_id
+            d["total_amount"] = total_amount
+            # should we include farmer id in the message?
+            d["qrcode"] = self._escrow_to_qrcode(escrow_address, total_amount, PAYMENT_MSG_TEMPLATE.format(farmer_id))
+            results.append(d)
+        return results
