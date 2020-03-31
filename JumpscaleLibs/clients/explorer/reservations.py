@@ -7,14 +7,13 @@ class Reservations:
         self._session = session
         self._base_url = url + "/reservations"
         self._model = j.data.schema.get_from_url("tfgrid.workloads.reservation.1")
-        self._reservation_create_model = j.data.schema.get_from_url("tfgrid.workloads.reservation.create.1")
 
     def new(self):
         return self._model.new()
 
     def create(self, reservation):
         resp = self._session.post(self._base_url, json=reservation._ddict)
-        return self._reservation_create_model.new(datadict=resp.json())
+        return resp.json()
 
     def list(self, customer_tid=None, next_action=None, page=None):
         if page:

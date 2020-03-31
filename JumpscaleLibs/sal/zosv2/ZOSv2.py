@@ -22,7 +22,7 @@ class Zosv2(j.baseclasses.object):
         self._volume = VolumesGenerator()
         self._zdb = ZDBGenerator(self._explorer)
         self._kubernetes = K8sGenerator(self._explorer)
-        self._billing = Billing()
+        self._billing = Billing(self._explorer)
         self._gateway = Gateway(self._explorer)
 
     @property
@@ -77,8 +77,8 @@ class Zosv2(j.baseclasses.object):
         :param expiration_provisioning: timestamp of the date when to reservation should be provisionned
                                         if the reservation is not provisioning before this time, it will never be provionned
         :type expiration_provisioning: int, optional
-        :return: reservation create result
-        :rtype: tfgrid.workloads.reservation.create.1
+        :return: reservation ID
+        :rtype: int
         """
         me = identity if identity else j.tools.threebot.me.default
         reservation.customer_tid = me.tid
@@ -100,7 +100,8 @@ class Zosv2(j.baseclasses.object):
         reservation.json = dr._json
         reservation.customer_signature = me.nacl.sign_hex(reservation.json.encode())
 
-        return self._explorer.reservations.create(reservation)
+        id = self._explorer.reservations.create(reservation)
+        return id
 
     def reservation_accept(self, reservation, identity=None):
         """
