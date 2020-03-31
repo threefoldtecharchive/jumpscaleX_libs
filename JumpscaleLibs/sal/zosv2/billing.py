@@ -11,7 +11,8 @@ class Billing:
     def payout_farmers(self, client, reservation_response):
         """
         payout farmer based on the resources per node used
-
+        :param client: stellar client
+        :type client: j.clients.stellar
         :param reservation_response: reservation register response
         :type reservation_response: reservation register response
         """
@@ -24,7 +25,6 @@ class Billing:
         reservation_id = reservation_response["id"]
         escrow_informations = reservation_response["escrow_information"]
         for escrow in escrow_informations:
-            print(escrow)
             escrow_address = escrow["escrow_address"]
             total_amount = escrow["total_amount"] / 10e6
             try:
