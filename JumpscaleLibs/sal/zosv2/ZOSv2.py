@@ -22,7 +22,7 @@ class Zosv2(j.baseclasses.object):
         self._volume = VolumesGenerator()
         self._zdb = ZDBGenerator(self._explorer)
         self._kubernetes = K8sGenerator(self._explorer)
-        self._billing = Billing(self._explorer)
+        self._billing = Billing()
         self._gateway = Gateway(self._explorer)
 
     @property

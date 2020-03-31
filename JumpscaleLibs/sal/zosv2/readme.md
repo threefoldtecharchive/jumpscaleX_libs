@@ -37,10 +37,10 @@ wg_config = zos.network.add_access(network, node.node_id, "172.24.100.0/24", ipv
 
 expiration = j.data.time.epoch + (3600 * 24 * 365)
 # register the reservation
-rid = zos.reservation_register(r, expiration)
+registered_reservation = zos.reservation_register(r, expiration)
 time.sleep(5)
 # inspect the result of the reservation provisioning
-result = zos.reservation_result(rid)
+result = zos.reservation_result(registered_reservation["id"])
 
 print("wireguard configuration")
 print(wg_config)
@@ -102,10 +102,10 @@ zos.container.create(reservation=r,
 # reserve until now + (x) seconds
 expiration = j.data.time.epoch + (10*60)
 # register the reservation
-rid = zos.reservation_register(r, expiration)
+registered_reservation = zos.reservation_register(r, expiration)
 time.sleep(5)
 # inspect the result of the reservation provisioning
-result = zos.reservation_result(rid)
+result = zos.reservation_result(registered_reservation["id"])
 
 print("provisioning result")
 print(result)
@@ -148,10 +148,10 @@ worker = zos.kubernetes.add_worker(
 
 expiration = j.data.time.epoch + (3600 * 24 * 365)
 # register the reservation
-rid = zos.reservation_register(r, expiration)
+registered_reservation = zos.reservation_register(r, expiration)
 time.sleep(120)
 # inspect the result of the reservation provisioning
-result = zos.reservation_result(rid)
+result = zos.reservation_result(registered_reservation["id"])
 
 print("provisioning result")
 print(result)
@@ -181,10 +181,10 @@ zos.zdb.create(
 
 expiration = j.data.time.epoch + (3600 * 24)
 # register the reservation
-rid = zos.reservation_register(r, expiration)
+registered_reservation = zos.reservation_register(r, expiration)
 time.sleep(5)
 # inspect the result of the reservation provisioning
-result = zos.reservation_result(rid)
+result = zos.reservation_result(registered_reservation["id"])
 
 print("provisioning result")
 print(result)
@@ -218,9 +218,7 @@ for node in nodes:
         password='supersecret',
         disk_type="SSD",
         public=False)
-
-volume = zos.volume.create(reservation_storage,minio_node.node_id,size=10,type='SSD')
-
+rid
 zdb_rid = zos.reservation_register(reservation_storage, j.data.time.epoch+(60*60))
 results = zos.reservation_result(zdb_rid)
 
@@ -259,6 +257,33 @@ zos.volume.attach_existing(
     mount_point='/data')
 
 
-rid = zos.reservation_register(reservation_container, j.data.time.epoch+(60*60))
-results = zos.reservation_result(rid)
+registered_reservation = zos.reservation_register(reservation_container, j.data.time.epoch+(60*60))
+results = zos.reservation_result(registered_reservation["id"])
+```
+
+## Payment of a reservation
+
+```python
+import time
+
+explorer = j.clients.explorer.get(name="local")
+client = j.clients.stellar.get(name="client", network="TEST")
+
+zos = j.sal.zosv2
+zos._explorer = explorer
+
+# create a reservation
+r = zos.reservation_create()
+
+zos.volume.create(r, "72CP8QPhMSpF7MbSvNR1TYZFbTnbRiuyvq5xwcoRNAib", size=1, type='SSD')
+expiration = j.data.time.epoch + (3600 * 24 * 365)
+# register the reservation
+registered_reservation = zos.reservation_register(r, expiration)
+time.sleep(5)
+# inspect the result of the reservation provisioning
+result = zos.reservation_result(registered_reservation["id"])
+
+print(result)
+# payout farmer
+zos.billing.payout_farmers(client, registered_reservation)
 ```
