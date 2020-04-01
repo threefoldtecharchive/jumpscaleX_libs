@@ -15,15 +15,25 @@ class Reservations:
         resp = self._session.post(self._base_url, json=reservation._ddict)
         return resp.json()
 
-    def list(self, page=None):
+    def list(self, customer_tid=None, next_action=None, page=None):
         if page:
-            reservations, _ = get_page(self._session, page, self._model, self._base_url)
+            query = {}
+            if customer_tid:
+                query["customer_tid"] = customer_tid
+            if next_action:
+                query["next_action"] = next_action
+            reservations, _ = get_page(self._session, page, self._model, self._base_url, query)
         else:
-            reservations = list(self.iter())
+            reservations = list(self.iter(customer_tid, next_action))
         return reservations
 
-    def iter(self):
-        yield from get_all(self._session, self._model, self._base_url)
+    def iter(self, customer_tid=None, next_action=None, ):
+        query = {}
+        if customer_tid:
+            query["customer_tid"] = customer_tid
+        if next_action:
+            query["next_action"] = next_action
+        yield from get_all(self._session, self._model, self._base_url, query)
 
     def get(self, reservation_id):
         url = self._base_url + f"/{reservation_id}"

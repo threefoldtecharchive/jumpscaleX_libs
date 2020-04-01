@@ -20,9 +20,10 @@ _session_opts = {"session.type": "file", "session.data_dir": "./data", "session.
 
 
 class ThreebotProxy(j.baseclasses.object):
-    def __init__(self, app):
+    def __init__(self, app, login_url):
         self.app = SessionMiddleware(app, _session_opts)
         self.nacl = j.data.nacl.default
+        self.login_url = login_url
 
     @property
     def session(self):
@@ -128,9 +129,10 @@ class ThreebotProxy(j.baseclasses.object):
     def login_required(self, func):
         @wraps(func)
         def decorator(*args, **kwargs):
-            if not self.session.get("authorized", False):
-                self.session["next_url"] = request.url
-                return redirect(self.login_url)
+            if j.tools.threebot.with_threebotconnect:
+                if not self.session.get("authorized", False):
+                    self.session["next_url"] = request.url
+                    return redirect(self.login_url)
             return func(*args, **kwargs)
 
         return decorator
@@ -139,5 +141,5 @@ class ThreebotProxy(j.baseclasses.object):
 class ThreebotProxyFactory(j.baseclasses.factory):
     __jslocation__ = "j.tools.threebotlogin_proxy"
 
-    def get(self, app):
-        return ThreebotProxy(app)
+    def get(self, app, login_url):
+        return ThreebotProxy(app, login_url)
