@@ -140,13 +140,11 @@ class Chatflow(j.baseclasses.object):
         if iprange_user_choice == "Configure IP range myself":
             ip_range = bot.string_ask("Please add private IP Range of the network")
         else:
-            first_digit = random.choice([192, 172, 10])
+            first_digit = random.choice([172, 10])
             if first_digit == 10:
                 second_digit = random.randint(0, 255)
-            elif first_digit == 172:
-                second_digit = random.randint(16, 31)
             else:
-                second_digit = 168
+                second_digit = random.randint(16, 31)
             ip_range = str(first_digit) + "." + str(second_digit) + ".0.0/16"
         return ip_range
 
