@@ -383,7 +383,7 @@ class TFGateway(j.baseclasses.object):
         )
 
     ## TCP Router redis backend
-    def tcpservice_register(self, domain, service_addr="", service_port=443, service_http_port=80, client_secret=""):
+    def tcpservice_register(self, domain, service_addr="", service_port=443, service_http_port=80, client_secret="", expire=None):
         """
         register a tcpservice to be used by tcprouter in j.core.db
 
@@ -395,6 +395,8 @@ class TFGateway(j.baseclasses.object):
         :type service_port: int
         :param service_http_port: Port of the service
         :type service_http_port: int
+        :param expire: timeout in seconds
+        :type expire: int
         """
         if not any([service_addr, client_secret]) or all([service_addr, client_secret]):
             raise j.exceptions.Value(
@@ -411,7 +413,7 @@ class TFGateway(j.baseclasses.object):
         json_dumped_record_bytes = j.data.serializers.json.dumps(record).encode()
         b64_record = j.data.serializers.base64.encode(json_dumped_record_bytes).decode()
         service["Value"] = b64_record
-        self.redisclient.set(service["Key"], j.data.serializers.json.dumps(service))
+        self.redisclient.set(service["Key"], j.data.serializers.json.dumps(service), ex=expire)
 
     def tcpservice_dump(self, domain):
         service_key = f"/tcprouter/service/{domain}"
