@@ -385,3 +385,23 @@ class Chatflow(j.baseclasses.object):
         network_config["ip_addresses"] = ip_addresses
         network_config["wg"] = j.sal.fs.readFile(f"/sandbox/cfg/wireguard/{network.name}.conf")
         return reservation, network_config
+
+    def escrow_qr_show(self, bot, reservation_create_resp):
+        # Get escrow info for reservation_create_resp dict
+        escrow_info = j.sal.zosv2.reservation_escrow_infomations_with_qrcodes(reservation_create_resp)
+
+        # view all qrcodes
+        for i, escrow in enumerate(escrow_info):
+            message_text = f"""
+### escrow address :
+{escrow['escrow_address']} \n
+### amount to be paid :
+{escrow['total_amount']}
+"""
+            msg = j.tools.jinja2.template_render(text=message_text)
+            bot.qrcode_show_dict(
+                escrow["qrcode"],
+                title=f"Scan the following with your application or enter the information below manually to proceed with payment #{i+1}",
+                msg=msg,
+                scale=4,
+            )
