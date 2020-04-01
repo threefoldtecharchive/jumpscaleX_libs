@@ -364,8 +364,9 @@ class StellarClient(JSConfigClient):
             tx_hash = response["hash"]
             self._log_info("Transaction hash: {}".format(tx_hash))
             return tx_hash
-        except BadRequestError as e:
-            raise e
+        except BadRequestError:
+            self._log_info("Transaction might need additional signatures in order to send")
+            return transaction.to_xdr()
 
     def list_transactions(self, address=None):
         """Get the transactions for an adddres
@@ -555,51 +556,6 @@ class StellarClient(JSConfigClient):
         except BadRequestError:
             self._log_info("Transaction need additional signatures in order to send")
             return tx.to_xdr()
-
-    def create_multisig_transaction(self, destination_address, amount, asset="XLM", memo_text=None):
-        """create_multisig_transaction creates a multisig transaction and signs it with the source keypair
-        :param destination_address: address of the destination.
-        :type destination_address: str
-        :param amount: amount, can be a floating point number with 7 numbers after the decimal point expressed as a string.
-        :type amount: str
-        :param asset: asset to transfer (if none is specified the default 'XLM' is used),
-        if you wish to specify an asset it should be in format 'assetcode:issuer'. Where issuer is the address of the
-        issuer of the asset.
-        :type asset: str
-        :param text_memo: optional memo text to add to the transaction, a string encoded using either ASCII or UTF-8, up to 28-bytes long
-        :type: Union[str, bytes]
-        """
-        issuer = None
-        self._log_info("Sending {} {} to {}".format(amount, asset, destination_address))
-        if asset != "XLM":
-            assetStr = asset.split(":")
-            if len(assetStr) != 2:
-                raise Exception("Wrong asset format")
-            asset = assetStr[0]
-            issuer = assetStr[1]
-
-        server = self._get_horizon_server()
-        source_keypair = Keypair.from_secret(self.secret)
-        source_public_key = source_keypair.public_key
-        source_account = server.load_account(source_public_key)
-
-        base_fee = server.fetch_base_fee()
-
-        transaction_builder = TransactionBuilder(
-            source_account=source_account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee
-        )
-        transaction_builder.append_payment_op(
-            destination=destination_address, amount=str(amount), asset_code=asset, asset_issuer=issuer
-        )
-        transaction_builder.set_timeout(30)
-        if memo_text is not None:
-            transaction_builder.add_text_memo(memo_text)
-
-        transaction = transaction_builder.build()
-
-        transaction.sign(source_keypair)
-
-        return transaction.to_xdr()
 
     def sign_multisig_transaction(self, tx_xdr):
         """sign_multisig_transaction signs a transaction xdr and tries to submit it to the network
