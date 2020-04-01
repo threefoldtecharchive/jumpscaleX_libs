@@ -69,7 +69,7 @@ class NotebookServerFactory(j.baseclasses.object):
         voila=False,
         base_url=None,
         ip="0.0.0.0",
-        port=80,
+        port=8005,
     ):
         """
         kosmos 'j.servers.notebook.start()'
