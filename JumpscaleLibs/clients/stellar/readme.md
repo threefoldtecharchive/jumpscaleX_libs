@@ -127,10 +127,10 @@ In this example we create a multisignature account with 1 other wallet with 2 si
 
 ```python
 
-JSX> j.clients.stellar.my_wallet.set_signature_count([otherwallet.address], 2)
+JSX> j.clients.stellar.my_wallet.modify_signing_requirements([otherwallet.address], 2)
 
-# create a multisig transaction to transfer funds to a destination.
-JSX> tx_xdr = j.clients.stellar.my_wallet.create_multisig_transaction(destination_address, "5")
+# transfer funds to a destination. Now transfer will return a transaction in xdr which needs to be signed
+JSX> tx_xdr = j.clients.stellar.my_wallet.transfer(destination_address, "5")
 
 # second signer to the multisig account needs to sign this transaction xdr in order to submit the transaction to the Stellar network.
 # in case there are more than 2 signers the ouput of this function also needs to be signed by the other signers of the multisignature account.
@@ -141,7 +141,7 @@ If you need to remove a signer from a multisignature account:
 
 ```python
 
-JSX> tx = j.clients.stellar.my_wallet.set_signature_count([], 1)
+JSX> tx = j.clients.stellar.my_wallet.modify_signing_requirements([], 1)
 
 # second signer to the multisig account needs to sign this transaction xdr in order to submit the transaction to the Stellar network.
 # in case there are more than 2 signers the ouput of this function also needs to be signed by the other signers of the multisignature account.

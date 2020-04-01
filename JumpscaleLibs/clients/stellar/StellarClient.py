@@ -33,6 +33,7 @@ from .transaction import TransactionSummary, Effect
 
 JSConfigClient = j.baseclasses.object_config
 
+
 _UNLOCKHASH_TRANSACTIONS_SERVICES = {"TEST": "testnet.threefold.io", "STD": "threefold.io"}
 _HORIZON_NETWORKS = {"TEST": "https://horizon-testnet.stellar.org", "STD": "https://horizon.stellar.org"}
 _NETWORK_PASSPHRASES = {"TEST": Network.TESTNET_NETWORK_PASSPHRASE, "STD": Network.PUBLIC_NETWORK_PASSPHRASE}
@@ -364,7 +365,14 @@ class StellarClient(JSConfigClient):
             self._log_info("Transaction hash: {}".format(tx_hash))
             return tx_hash
         except BadRequestError as e:
-            self._log_debug(e)
+            for op in e.extras['result_codes']['operations']:
+                if op == "op_underfunded":
+                    raise e
+                # if op_bad_auth is returned then we assume the transaction needs more signatures 
+                # so we return the transaction as xdr
+                elif op == "op_bad_auth":
+                    self._log_info("Transaction might need additional signatures in order to send")
+                    return transaction.to_xdr()
             raise e
 
     def list_transactions(self, address=None):
@@ -508,3 +516,91 @@ class StellarClient(JSConfigClient):
                 address=address, pk_signer=public_key_signer, preauth_hash_signer=preauth_tx_hash
             )
         )
+
+    def modify_signing_requirements(self, public_keys_signers, signature_count, low_treshold=1, high_treshold=2):
+        """modify_signing_requirements sets to amount of signatures required for the creation of multisig account. It also adds
+        the public keys of the signer to this account
+        :param public_keys_signers: list of public keys of signers.
+        :type public_keys_signers: list
+        :param signature_count: amount of signatures requires to transfer funds.
+        :type signature_count: str
+        :param low_treshold: amount of signatures required for low security operations (transaction processing, allow trust, bump sequence)
+        :type low_treshold: str
+        :param high_treshold: amount of signatures required for high security operations (set options, account merge)
+        :type: str
+        """
+        if len(public_keys_signers) != signature_count - 1:
+            raise Exception(
+                "Number of public_keys must be 1 less than the signature count in order to set the signature count"
+            )
+
+        server = self._get_horizon_server()
+        account = server.load_account(self.address)
+        source_keypair = Keypair.from_secret(self.secret)
+
+        transaction_builder = TransactionBuilder(account)
+        # set the signing options
+        transaction_builder.append_set_options_op(
+            low_threshold=low_treshold, med_threshold=signature_count, high_threshold=high_treshold
+        )
+
+        # For every public key given, add it as a signer to this account
+        for public_key_signer in public_keys_signers:
+            transaction_builder.append_ed25519_public_key_signer(public_key_signer, 1)
+
+        transaction_builder.set_timeout(30)
+        tx = transaction_builder.build()
+        tx.sign(source_keypair)
+
+        try:
+            response = server.submit_transaction(tx)
+            self._log_info(response)
+            self._log_info(
+                "Set the signers of {address} to require {signature_count} signers".format(
+                    address=self.address, signature_count=signature_count
+                )
+            )
+        except BadRequestError:
+            self._log_info("Transaction need additional signatures in order to send")
+            return tx.to_xdr()
+
+    def sign_multisig_transaction(self, tx_xdr):
+        """sign_multisig_transaction signs a transaction xdr and tries to submit it to the network
+        if it fails it returns the signed transaction xdr
+
+        :param tx_xdr: transaction to sign in xdr format.
+        :type tx_xdr: str
+        """
+        server = self._get_horizon_server()
+        source_keypair = Keypair.from_secret(self.secret)
+        tx = TransactionEnvelope.from_xdr(tx_xdr, _NETWORK_PASSPHRASES[str(self.network)])
+        tx.sign(source_keypair)
+
+        try:
+            response = server.submit_transaction(tx)
+            self._log_info(response)
+            self._log_info("Multisig tx signed and sent")
+        except BadRequestError:
+            self._log_info("Transaction need additional signatures in order to send")
+            return tx.to_xdr()
+
+    def remove_signer(self, public_key_signer):
+        """remove_signer removes a public key as a signer from the source account
+
+        :param public_key_signer: public key of an account
+        :type public_key_signer: str
+        """
+        server = self._get_horizon_server()
+        account = server.load_account(self.address)
+        tx = TransactionBuilder(account).append_ed25519_public_key_signer(public_key_signer, 0).build()
+
+        source_keypair = Keypair.from_secret(self.secret)
+
+        tx.sign(source_keypair)
+        try:
+            response = server.submit_transaction(tx)
+            self._log_info(response)
+            self._log_info("Multisig tx signed and sent")
+        except BadRequestError:
+            self._log_info("Transaction need additional signatures in order to send")
+            return tx.to_xdr()
