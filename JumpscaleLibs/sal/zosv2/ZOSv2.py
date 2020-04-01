@@ -280,9 +280,9 @@ class Zosv2(j.baseclasses.object):
         qrcode = f"tft:{escrow_address}?amount={total_amount}&message={message}&sender=me"
         return qrcode
 
-    def reservation_escrow_infomations_with_qrcodes(self, reservation_create_resp):
+    def reservation_escrow_information_with_qrcodes(self, reservation_create_resp):
         """
-        Extracts escrow infromations from reservation create response as a dict and adds qrcode to it
+        Extracts escrow information from reservation create response as a dict and adds qrcode to it
 
         :param reservation_create_resp: reservation create object, returned from reservation_register
         :type reservation_create_resp: tfgrid.workloads.reservation.create.1
