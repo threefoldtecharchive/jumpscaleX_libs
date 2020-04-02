@@ -8,7 +8,7 @@ class Chatflow(j.baseclasses.object):
     __jslocation__ = "j.sal.reservation_chatflow"
 
     def _init(self, **kwargs):
-        pass
+        j.data.bcdb.get("tfgrid_workloads")
 
     def get_all_ips(self, ip_range):
         """
@@ -405,3 +405,13 @@ class Chatflow(j.baseclasses.object):
                 msg=msg,
                 scale=4,
             )
+
+    def save_reservation(self, rid, name, status, solution):
+
+        rsv_model = j.clients.bcdbmodel.get(url="tfgrid.reservation.1", name="tfgrid_workloads")
+        reservation = rsv_model.new()
+        reservation.rid = rid
+        reservation.solution_name = name
+        reservation.status = status
+        reservation.solution = solution
+        reservation.save()
