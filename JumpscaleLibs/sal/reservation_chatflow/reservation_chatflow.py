@@ -52,7 +52,9 @@ class Chatflow(j.baseclasses.object):
             nodes_selected.append(node)
         return nodes_selected
 
-    def network_configure(self, bot, reservation, nodes, customer_tid, ip_version, number_of_ipaddresses=0):
+    def network_configure(
+        self, bot, reservation, nodes, customer_tid, ip_version, number_of_ipaddresses=0, expiration=None
+    ):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -62,7 +64,7 @@ class Chatflow(j.baseclasses.object):
         """
         reservation_copy = copy.copy(reservation)
         explorer = j.clients.explorer.default
-        expiration = j.data.time.epoch + (60 * 60 * 24)
+        expiration = expiration or j.data.time.epoch + (60 * 60 * 24)
         networks_name = []
         network_user_choice = ""
         while (networks_name == [] and network_user_choice == "Existing network") or network_user_choice == "":
@@ -71,7 +73,7 @@ class Chatflow(j.baseclasses.object):
             if network_user_choice == "New network":
                 ip_range = self.ip_range_get(bot)
                 reservation, network_config = self.network_get(
-                    bot, reservation, ip_range, nodes, customer_tid, ip_version, number_of_ipaddresses
+                    bot, reservation, ip_range, nodes, customer_tid, ip_version, number_of_ipaddresses, expiration
                 )
             else:
                 networks = self.network_exists(customer_tid)
@@ -159,6 +161,7 @@ class Chatflow(j.baseclasses.object):
         number_of_ipaddresses=0,
         interactive=True,
         noninteractive_args=None,
+        expiration=None,
     ):
         """
         bot: Gedis chatbot object from chatflow
@@ -186,6 +189,7 @@ class Chatflow(j.baseclasses.object):
             number_of_ipaddresses,
             interactive=interactive,
             noninteractive_args=noninteractive_args,
+            expiration=expiration,
         )
         return reservation, network_config
 
@@ -201,6 +205,7 @@ class Chatflow(j.baseclasses.object):
         number_of_ipaddresses=0,
         interactive=True,
         noninteractive_args=None,
+        expiration=None,
     ):
         """
         bot: Gedis chatbot object from chatflow
@@ -263,7 +268,7 @@ class Chatflow(j.baseclasses.object):
         j.sal.fs.writeFile(f"/sandbox/cfg/wireguard/{network.name}.conf", f"{wg_quick}")
 
         # register the reservation
-        expiration = j.data.time.epoch + (60 * 60 * 24)
+        expiration = expiration or j.data.time.epoch + (60 * 60 * 24)
         rid = self.reservation_register(reservation, expiration, customer_tid)
 
         network_config["rid"] = rid
