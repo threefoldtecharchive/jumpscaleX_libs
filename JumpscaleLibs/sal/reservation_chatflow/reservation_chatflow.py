@@ -8,7 +8,7 @@ class Chatflow(j.baseclasses.object):
     __jslocation__ = "j.sal.reservation_chatflow"
 
     def _init(self, **kwargs):
-        j.data.bcdb.get("tfgrid_workloads")
+        j.data.bcdb.get("tfgrid_solutions")
 
     def get_all_ips(self, ip_range):
         """
@@ -411,12 +411,21 @@ class Chatflow(j.baseclasses.object):
                 scale=4,
             )
 
-    def save_reservation(self, rid, name, status, solution):
-
-        rsv_model = j.clients.bcdbmodel.get(url="tfgrid.reservation.1", name="tfgrid_workloads")
+    def save_reservation(self, rid, name, url):
+        rsv_model = j.clients.bcdbmodel.get(url=url, name="tfgrid_solutions")
         reservation = rsv_model.new()
         reservation.rid = rid
-        reservation.solution_name = name
-        reservation.status = status
-        reservation.solution = solution
+        reservation.name = name
         reservation.save()
+
+    def add_solution_name(self, bot, model):
+        name_exists = False
+        while not name_exists:
+            solution_name = bot.string_ask("Please add a name for your solution")
+            find = model.find(name=solution_name)
+            if len(find) > 0:
+                res = "# Please choose another name because this name already exist"
+                res = j.tools.jinja2.template_render(text=res)
+                bot.md_show(res)
+            else:
+                return solution_name
