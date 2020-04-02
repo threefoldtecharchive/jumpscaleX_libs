@@ -388,7 +388,7 @@ class Chatflow(j.baseclasses.object):
 
     def escrow_qr_show(self, bot, reservation_create_resp):
         # Get escrow info for reservation_create_resp dict
-        escrow_info = j.sal.zosv2.reservation_escrow_infomations_with_qrcodes(reservation_create_resp)
+        escrow_info = j.sal.zosv2.reservation_escrow_information_with_qrcodes(reservation_create_resp)
 
         # view all qrcodes
         for i, escrow in enumerate(escrow_info):
