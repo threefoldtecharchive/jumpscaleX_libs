@@ -399,7 +399,7 @@ class Chatflow(j.baseclasses.object):
 {escrow['total_amount']}
 """
             msg = j.tools.jinja2.template_render(text=message_text)
-            bot.qrcode_show_dict(
+            bot.qrcode_show(
                 escrow["qrcode"],
                 title=f"Scan the following with your application or enter the information below manually to proceed with payment #{i+1}",
                 msg=msg,
