@@ -47,7 +47,9 @@ class Chatflow(j.baseclasses.object):
         nodes = list(nodes)
         for i in range(number_of_nodes):
             node = random.choice(nodes)
-            while not j.sal.zosv2.nodes_finder.filter_is_up(node):
+            while (
+                not j.sal.zosv2.nodes_finder.filter_is_up(node) or node in nodes_selected or node in access_nodes_filter
+            ):
                 node = random.choice(nodes)
             nodes_selected.append(node)
         return nodes_selected
@@ -126,7 +128,7 @@ class Chatflow(j.baseclasses.object):
                     )
 
             else:
-                result_check = len(reservation_results) == len(nodes)
+                result_check = len(reservation_results) >= len(nodes)
 
         return reservation, network_config
 
