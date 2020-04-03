@@ -1,5 +1,9 @@
+from nacl.encoding import Base64Encoder
+
 from Jumpscale import j
-from .pagination import get_page, get_all
+
+from .auth import HTTPSignatureAuth
+from .pagination import get_all, get_page
 
 
 class Nodes:
@@ -50,3 +54,17 @@ class Nodes:
             params["proofs"] = "true"
         resp = self._session.get(self._base_url + f"/nodes/{node_id}", params=params)
         return self._model.new(datadict=resp.json())
+
+    def configure_free_to_use(self, node_id, free, identity=None):
+        if not isinstance(free, bool):
+            raise j.exceptions.Input("free must be a boolean")
+
+        me = identity if identity else j.tools.threebot.me.default
+        secret = me.nacl.signing_key.encode(Base64Encoder)
+
+        auth = HTTPSignatureAuth(key_id=str(me.tid), secret=secret, headers=["(created)", "date", "threebot-id"])
+        headers = {"threebot-id": str(me.tid)}
+
+        data = {"free_to_use": free}
+        self._session.post(self._base_url + f"/nodes/{node_id}/configure_free", auth=auth, headers=headers, json=data)
+        return True
