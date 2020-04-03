@@ -103,10 +103,11 @@ class Row(j.baseclasses.object):
         else:
             self.cells = [None for item in range(self.nrcols)]
 
-    def aggregate(self, period="Y", aggregate_type=None, roundnr=2):
+    def aggregate(self, period="Y", aggregate_type=None, roundnr=2, text=False):
         """
-        @param period is Q or Y (Quarter/Year)
+        @param period is B, Q or Y (Quarter/Year or Begin means first 12 months)
         @param aggregate_type LAST,FIRST,MIN,MAX,AVG,SUM(T)
+        @param if text, then will format to text with right rounding, ...
         """
         if aggregate_type:
             self.aggregate_type = aggregate_type
@@ -149,12 +150,16 @@ class Row(j.baseclasses.object):
                 months = [12 * (year - 1) + i for i in range(12)]
                 # name=self._getYearStringFromYearNr(year)
                 result[year - 1] = calc(months)
-        if period == "Q":
+        elif period == "Q":
             result = [0.0 for item in range(6 * 4)]
             for quarter in range(1, 4 * 6 + 1):
                 months = [3 * (quarter - 1) + i for i in range(3)]
                 # name=self._getYearStringFromYearNr(year)
                 result[quarter - 1] = calc(months)
+        elif period == "B":
+            result = self.cells[0:12]
+        else:
+            raise RuntimeError("not supported, only Y,Q,B")
 
         result2 = []
         for item in result:
@@ -168,6 +173,10 @@ class Row(j.baseclasses.object):
             else:
                 item = float(item)
                 result2.append(round(item, roundnr))
+
+        if text:
+            result2 = j.core.text.format_list(result2)
+
         return result2
 
     def interpolate(self, start=None, stop=None, variation=0, min=None, max=None):
@@ -482,6 +491,9 @@ class Row(j.baseclasses.object):
         """
         @param roundval if e.g. 10 means round will be done with values of 10
             nr float will then be 0 (automatically)
+            roundval 10 means 14.9 becomes 10, 15.1 becomes 20
+
+        @param nrfloat means nr of chars after comma
         """
         if nrfloat is None:
             nrfloat = self.nrfloat
@@ -553,17 +565,6 @@ class Row(j.baseclasses.object):
         if delay < 0:
             out[0] += delayed
         self.cells = out
-
-    def __str__(self):
-        if self.nrcols > 18:
-            l = 18
-        else:
-            l = self.nrcols
-        result = [self.name]
-        result.extend([self.cells[col] for col in range(l)])
-        return str(result)
-
-    __repr__ = __str__
 
     def import_(self, dict):
         self.name = dict["name"]
@@ -647,3 +648,14 @@ class Row(j.baseclasses.object):
         for colid in range(0, int(self.nrcols)):
             result.cells[colid] = self.cells[colid] / other.cells[colid]
         return result.clean()
+
+    def __str__(self):
+        if self.nrcols > 18:
+            l = 18
+        else:
+            l = self.nrcols
+        result = [self.name]
+        result.extend([self.cells[col] for col in range(l)])
+        return str(result)
+
+    __repr__ = __str__

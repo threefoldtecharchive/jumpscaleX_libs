@@ -438,10 +438,70 @@ class Sheet(j.baseclasses.object):
         newRow = self.applyFunctionOnValuesFromRows(rownames, mult, newRow)
         return newRow
 
+    def text_dict(self, period="B", aggregate_type="S"):
+        """
+        returns a dict
+
+        dict[key]=list of values of equal string size & rounded
+        """
+        keys = [i for i in self.rows.keys()]
+        keys.sort()
+        r = {}
+        max_size = {}
+
+        for key in keys:
+            row = self.rows[key]
+            r[key] = row.aggregate(period=period, aggregate_type=aggregate_type, text=True)
+
+        nrcols = len(r[keys[0]])
+
+        for x in range(nrcols):
+            # go over the rows
+            # now per col find the max size
+            max_size = 0
+            # walk over all values, find max length & pad & round
+            for key in keys:
+                str_length = len(r[key][x])
+                if str_length > max_size:
+                    max_size = str_length
+
+            # walk over all values,
+            for key in keys:
+                r[key][x] = j.core.text.padleft(r[key][x], max_size)
+
+        return r
+
+    def text_formatted(self, period="B", aggregate_type=None, exclude=None):
+
+        if not exclude:
+            exclude = []
+
+        r = self.text_dict(period=period, aggregate_type=aggregate_type)
+
+        out = ""
+        keys = [i for i in self.rows.keys()]
+        keys.sort()
+
+        # find max size of key
+        l = 0
+        for key in keys:
+            if len(key) > l:
+                l = len(key)
+
+        for key in keys:
+            if key in exclude:
+                continue
+            key2 = j.core.text.pad(key, l)
+            res2 = "| ".join(r[key])
+            out += f" - {key2} {res2}\n"
+
+        return out
+
     def __str__(self):
-        result = ""
-        for row in self.rows:
-            result += "%s\n" % row
-        return result
+        return self.text_formatted(period="B", aggregate_type=None)
+        # result = ""
+        # for row in self.rows.values():
+        #     result += "%s\n" % row
+        # return result
 
     __repr__ = __str__
