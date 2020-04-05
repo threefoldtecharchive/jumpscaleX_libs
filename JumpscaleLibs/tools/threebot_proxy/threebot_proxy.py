@@ -22,7 +22,7 @@ _session_opts = {"session.type": "file", "session.data_dir": "./data", "session.
 class ThreebotProxy(j.baseclasses.object):
     def __init__(self, app, login_url):
         self.app = SessionMiddleware(app, _session_opts)
-        self.nacl = j.data.nacl.default
+        self.nacl = j.me.encryptor
         self.login_url = login_url
 
     @property
