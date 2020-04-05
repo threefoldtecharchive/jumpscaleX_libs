@@ -316,7 +316,7 @@ class Chatflow(j.baseclasses.object):
         return failed
 
     def network_exists(self, tid):
-        reservations = j.sal.zosv2.reservation_list(tid=tid)
+        reservations = j.sal.zosv2.reservation_list(tid=tid, next_action="DEPLOY")
         network_names = dict()
         names = set()
         for reservation in reservations:

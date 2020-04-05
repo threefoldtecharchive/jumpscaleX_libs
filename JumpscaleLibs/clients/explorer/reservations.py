@@ -21,18 +21,26 @@ class Reservations:
             if customer_tid:
                 query["customer_tid"] = customer_tid
             if next_action:
-                query["next_action"] = next_action
+                query["next_action"] = self._next_action(next_action)
             reservations, _ = get_page(self._session, page, self._model, self._base_url, query)
         else:
             reservations = list(self.iter(customer_tid, next_action))
         return reservations
+
+    def _next_action(self, next_action):
+        if next_action:
+            if isinstance(next_action, str):
+                next_action = getattr(self.new().next_action, next_action.upper()).value
+            if not isinstance(next_action, int):
+                raise j.exceptions.Input("next_action should be of type int")
+        return next_action
 
     def iter(self, customer_tid=None, next_action=None, ):
         query = {}
         if customer_tid:
             query["customer_tid"] = customer_tid
         if next_action:
-            query["next_action"] = next_action
+            query["next_action"] = self._next_action(next_action)
         yield from get_all(self._session, self._model, self._base_url, query)
 
     def get(self, reservation_id):

@@ -170,10 +170,9 @@ class Zosv2(j.baseclasses.object):
 
         return self._explorer.reservations.sign_delete(reservation_id=reservation_id, tid=me.tid, signature=signature)
 
-    def reservation_list(self, tid=None):
+    def reservation_list(self, tid=None, next_action=None):
         tid = tid if tid else j.tools.threebot.me.default.tid
-        result = self._explorer.reservations.list()
-        return list(filter(lambda r: r.customer_tid == tid, result))
+        return self._explorer.reservations.list(customer_tid=tid, next_action=next_action)
 
     def reservation_store(self, reservation, path):
         """
