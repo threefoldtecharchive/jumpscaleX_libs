@@ -416,14 +416,14 @@ class Chatflow(j.baseclasses.object):
                 scale=4,
             )
 
-    def save_reservation(self, rid, name, url):
+    def reservation_save(self, rid, name, url):
         rsv_model = j.clients.bcdbmodel.get(url=url, name="tfgrid_solutions")
         reservation = rsv_model.new()
         reservation.rid = rid
         reservation.name = name
         reservation.save()
 
-    def add_solution_name(self, bot, model):
+    def solution_name_add(self, bot, model):
         name_exists = False
         while not name_exists:
             solution_name = bot.string_ask("Please add a name for your solution")
@@ -434,3 +434,21 @@ class Chatflow(j.baseclasses.object):
                 bot.md_show(res)
             else:
                 return solution_name
+
+    def solutions_get(self, url):
+        model = j.clients.bcdbmodel.get(url=url, name="tfgrid_solutions")
+        solutions = model.find()
+        reservations = []
+        explorer = j.clients.explorer.explorer
+
+        for solution in solutions:
+            reservation = explorer.reservations.get(solution.rid)
+            reservations.append(reservation)
+        return reservations
+
+    def reservation_cancel_for_solution(self, url, solution_name):
+        model = j.clients.bcdbmodel.get(url=url, name="tfgrid_solutions")
+        solutions = model.find(name=solution_name)
+        for solution in solutions:
+            j.sal.zosv2.reservation_cancel(solution.rid)
+            solution.delete()
