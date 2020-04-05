@@ -38,7 +38,7 @@ class Users:
         return resp.json()["is_valid"]
 
     def update(self, user, identity=None):
-        me = identity if identity else j.me_identities.me.default
+        me = identity if identity else j.myidentities.me.default
         datatosign = ""
         datatosign += f"{user.id}{user.name}{user.email}"
         if user.host:

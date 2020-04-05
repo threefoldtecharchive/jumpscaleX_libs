@@ -148,7 +148,7 @@ class ResourceParser:
 
     def _validate_reservation_payment_tfchain(self, tfchain_wallet, reservation_id):
         getcontext().prec = 9
-        me_tid = j.me_identities.me.default.tid
+        me_tid = j.myidentities.me.default.tid
         # load all farms belonging to our threebot id
         farms = self._farms.list(me_tid)
         farm_ids = set()
@@ -191,7 +191,7 @@ class ResourceParser:
         else:
             issuer = TFT_ISSUER_PROD
         getcontext().prec = 7
-        me_tid = j.me_identities.me.default.tid
+        me_tid = j.myidentities.me.default.tid
         # load all farms belonging to our threebot id
         farms = self._farms.list(me_tid)
         farm_ids = set()

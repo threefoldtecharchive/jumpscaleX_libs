@@ -117,7 +117,7 @@ class Zosv2(j.baseclasses.object):
         :return: returns true if not error,raise an exception otherwise
         :rtype: bool
         """
-        me = identity if identity else j.me_identities.me.default
+        me = identity if identity else j.myidentities.me.default
 
         reservation.json = reservation.data_reservation._json
         signature = me.encryptor.sign_hex(reservation.json.encode())
@@ -161,7 +161,7 @@ class Zosv2(j.baseclasses.object):
         :return: true if the reservation has been cancelled successfully
         :rtype: bool
         """
-        me = identity if identity else j.me_identities.me.default
+        me = identity if identity else j.myidentities.me.default
 
         reservation = self.reservation_get(reservation_id)
         payload = j.data.nacl.payload_build(reservation.id, reservation.json.encode())
@@ -199,7 +199,7 @@ class Zosv2(j.baseclasses.object):
         return reservation_model.new(datadict=r)
 
     def reservation_live(self, expired=False, cancelled=False, identity=None):
-        me = identity if identity else j.me_identities.me.default
+        me = identity if identity else j.myidentities.me.default
         rs = self._explorer.reservations.list()
 
         now = j.data.time.epoch
