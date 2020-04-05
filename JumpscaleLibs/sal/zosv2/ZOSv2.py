@@ -81,6 +81,8 @@ class Zosv2(j.baseclasses.object):
         :rtype: int
         """
         me = identity if identity else j.tools.threebot.me.default
+        if me.tid == 0:
+            raise RuntimeError("Make sure to initialize your idenity see `j.tools.threebot.init_my_threebot()`")
         reservation.customer_tid = me.tid
 
         if expiration_provisioning is None:
@@ -94,7 +96,8 @@ class Zosv2(j.baseclasses.object):
         dr.signing_request_provision.quorum_min = 0
 
         # make the reservation cancellable by the user that registered it
-        dr.signing_request_delete.signers.append(me.tid)
+        if me.tid not in dr.signing_request_delete.signers:
+            dr.signing_request_delete.signers.append(me.tid)
         dr.signing_request_delete.quorum_min = len(dr.signing_request_delete.signers)
 
         reservation.json = dr._json
