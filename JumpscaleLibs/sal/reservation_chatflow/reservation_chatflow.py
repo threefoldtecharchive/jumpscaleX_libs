@@ -37,18 +37,21 @@ class Chatflow(j.baseclasses.object):
         if ip_version == "IPv4":
             for node in filter(j.sal.zosv2.nodes_finder.filter_public_ip4, access_nodes):
                 access_nodes_filter.append(node)
+            nodes = set(list(nodes)) - set(access_nodes_filter)
+            nodes = list(nodes)
         else:
             for node in filter(j.sal.zosv2.nodes_finder.filter_public_ip6, access_nodes):
                 access_nodes_filter.append(node)
+            nodes = list(access_nodes_filter)
 
         # to avoid using the same node with different networks
-        nodes = set(list(nodes)) - set(access_nodes_filter)
         nodes_selected = []
-        nodes = list(nodes)
         for i in range(number_of_nodes):
             node = random.choice(nodes)
             while (
-                not j.sal.zosv2.nodes_finder.filter_is_up(node) or node in nodes_selected or node in access_nodes_filter
+                not j.sal.zosv2.nodes_finder.filter_is_up(node)
+                or node in nodes_selected
+                or (node in access_nodes_filter and ip_version == "IPv4")
             ):
                 node = random.choice(nodes)
             nodes_selected.append(node)
