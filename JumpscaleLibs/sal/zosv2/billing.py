@@ -25,14 +25,14 @@ class Billing:
         transaction_hashes = []
         reservation_id = reservation_response.reservation_id
         escrow_informations = reservation_response.escrow_information
-        for escrow in escrow_informations:
-            escrow_address = escrow.escrow_address
-            total_amount = escrow.total_amount / 10e6
-            try:
-                txhash = client.transfer(escrow_address, total_amount, asset=asset, memo_text=str(reservation_id))
-                transaction_hashes.append(txhash)
-            except BadRequestError as e:
-                self._log_error(e)
-                raise(e)
+        total_amount = sum([d.total_amount for d in reservation_response.escrow_information.details])
+        total_amount = total_amount / 10e6
+        escrow_address = reservation_response.escrow_information.address
+        try:
+            txhash = client.transfer(escrow_address, total_amount, asset=asset, memo_text=str(reservation_id))
+            transaction_hashes.append(txhash)
+        except BadRequestError as e:
+            self._log_error(e)
+            raise e
 
         return transaction_hashes
