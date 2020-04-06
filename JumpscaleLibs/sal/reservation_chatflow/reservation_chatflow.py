@@ -97,7 +97,7 @@ class Chatflow(j.baseclasses.object):
         return reservation (Object) , config of network (dict)
         """
         network = j.sal.zosv2.network.create(reservation, ip_range, network_name)
-        network_range = netaddr.IPNetwork(ip_range).ip
+        node_subnets = netaddr.IPNetwork(ip_range).subnet(24)
         network_config = dict()
         access_nodes = j.sal.zosv2.nodes_finder.nodes_search(farm_name="freefarm")
         use_ipv4 = ip_version == "IPv4"
@@ -112,13 +112,8 @@ class Chatflow(j.baseclasses.object):
         else:
             raise j.exceptions.NotFound("Could not find available access node")
 
-        network_range += 256
-        network_node = str(network_range) + "/24"
-        j.sal.zosv2.network.add_node(network, access_node.node_id, network_node)
-
-        network_range += 256
-        network_node = str(network_range) + "/24"
-        wg_quick = j.sal.zosv2.network.add_access(network, access_node.node_id, network_node, ipv4=use_ipv4)
+        j.sal.zosv2.network.add_node(network, access_node.node_id, str(next(node_subnets)))
+        wg_quick = j.sal.zosv2.network.add_access(network, access_node.node_id, str(next(node_subnets)), ipv4=use_ipv4)
 
         network_config["wg"] = wg_quick
         j.sal.fs.writeFile(f"/sandbox/cfg/wireguard/{network_name}.conf", f"{wg_quick}")
