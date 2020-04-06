@@ -1,6 +1,7 @@
 import netaddr
 from Jumpscale import j
 import random
+import time
 
 
 class Chatflow(j.baseclasses.object):
@@ -139,27 +140,42 @@ class Chatflow(j.baseclasses.object):
             deployed_reservation.save()
         return rid
 
+    def network_update(self, bot, network, customer_tid, timeout=60):
+        reservation = j.sal.zosv2.reservation_create()
+        reservation.data_reservation.networks.append(network._ddict)
+        rid = self.reservation_register(reservation, network.expiration, customer_tid)
+        start = j.data.time.epoch
+        while start + timeout > j.data.time.epoch:
+            reservation = self._explorer.reservations.get(rid)
+            if len(reservation.results) >= len(reservation.data_reservation.networks[0].network_resources):
+                return not self._reservation_failed(bot, reservation)
+            time.sleep(1)
+        return not self._reservation_failed(bot, reservation)
+
     def reservation_failed(self, bot, category, resv_id):
-        explorer = j.clients.explorer.explorer
         container_found = False
         trials = 50
         while not container_found:
-            reservation_result = explorer.reservations.get(resv_id).results
+            reservation_result = self._explorer.reservations.get(resv_id).results
             for result in reservation_result:
                 if result.category == category:
                     container_found = True
             trials -= 1
             if trials == 0:
                 break
+            time.sleep(1)
 
-        reservation = explorer.reservations.get(resv_id)
+        reservation = self._explorer.reservations.get(resv_id)
+        return self._reservation_failed(bot, reservation)
+
+    def _reservation_failed(self, bot, reservation):
         failed = j.sal.zosv2.reservation_failed(reservation)
         if failed:
-            res = f"# Sorry your reservation ```{resv_id}``` has failed :\n"
+            res = f"# Sorry your reservation ```{reservation.id}``` has failed :\n"
             for x in reservation.results:
                 if x.state == "ERROR":
                     res += f"\n### {x.category}: ```{x.message}```\n"
-            link = f"{explorer.url}/reservations/{resv_id}"
+            link = f"{self._explorer.url}/reservations/{reservation.id}"
             res += f"<h2> <a href={link}>Full reservation info</a></h2>"
             res = j.tools.jinja2.template_render(text=res)
             bot.md_show(res)
@@ -178,26 +194,20 @@ class Chatflow(j.baseclasses.object):
                     continue
                 names.add(network.name)
                 remaning = expiration - j.data.time.epoch
-                network_name = (
-                    network.name
-                    + " - ends in: "
-                    + j.data.time.secondsToHRDelta(remaning)
-                )
+                network_name = network.name + " - ends in: " + j.data.time.secondsToHRDelta(remaning)
                 network.expiration = expiration
                 network_names[network_name] = network
 
         return network_names
 
-    def add_node_to_network(self, node, network, reservation=None):
+    def add_node_to_network(self, node, network):
         network_resources = network.network_resources
         used_ip_ranges = set()
-        reservation = None
-
         used_networkrange = None
         for network_resource in network_resources:
             if network_resource.node_id == node.node_id:
                 used_networkrange = network_resource.iprange
-                break
+                return False, used_networkrange
             used_ip_ranges.add(network_resource.iprange)
             for peer in network_resource.peers:
                 used_ip_ranges.add(peer.iprange)
@@ -209,16 +219,8 @@ class Chatflow(j.baseclasses.object):
             else:
                 raise j.exceptions.Input("Failed to find free network")
             j.sal.zosv2.network.add_node(network, node.node_id, str(subnet))
-            if reservation is None:
-                reservation = j.sal.zosv2.reservation_create()
-            else:
-                for rnetwork in reservation.data_reservation.networks[:]:
-                    if rnetwork.name == network.name:
-                        reservation.data_reservation.networks.remove(rnetwork)
-                        break
-            reservation.data_reservation.networks.append(network._ddict)
             used_networkrange = str(subnet)
-        return reservation, used_networkrange
+            return True, used_networkrange
 
     def escrow_qr_show(self, bot, reservation_create_resp):
         # Get escrow info for reservation_create_resp dict
