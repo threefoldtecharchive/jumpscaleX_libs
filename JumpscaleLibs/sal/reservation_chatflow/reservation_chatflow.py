@@ -215,8 +215,13 @@ class Chatflow(j.baseclasses.object):
             j.sal.zosv2.network.add_node(network, node.node_id, str(subnet))
             if reservation is None:
                 reservation = j.sal.zosv2.reservation_create()
-            used_networkrange = str(subnet)
+            else:
+                for rnetwork in reservation.data_reservation.networks[:]:
+                    if rnetwork.name == network.name:
+                        reservation.data_reservation.networks.remove(rnetwork)
+                        break
             reservation.data_reservation.networks.append(network._ddict)
+            used_networkrange = str(subnet)
         return reservation, used_networkrange
 
     def escrow_qr_show(self, bot, reservation_create_resp):
