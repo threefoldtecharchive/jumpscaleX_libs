@@ -17,7 +17,7 @@ class CoreTest(j.baseclasses.object_config):
             j.data.types.test()
             # self.schema()
             self.bcbd_test()
-            j.data.nacl.test()
+            # j.data.nacl.test()  TODO add test cases for j.me
             self.configobjects()
 
         self.state = "ok"
