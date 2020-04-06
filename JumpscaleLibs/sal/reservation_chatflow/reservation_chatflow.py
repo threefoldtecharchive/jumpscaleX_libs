@@ -177,10 +177,11 @@ class Chatflow(j.baseclasses.object):
                 if network.name in names:
                     continue
                 names.add(network.name)
+                remaning = expiration - j.data.time.epoch
                 network_name = (
                     network.name
-                    + " - end at: "
-                    + j.data.time.epoch2HRDateTime(expiration, local=True)
+                    + " - ends in: "
+                    + j.data.time.secondsToHRDelta(remaning)
                 )
                 network.expiration = expiration
                 network_names[network_name] = network
