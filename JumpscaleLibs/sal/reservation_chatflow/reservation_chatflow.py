@@ -4,26 +4,82 @@ import random
 import time
 
 
+class Network:
+
+    def __init__(self, network, bot, reservations):
+        self._network = network
+        self.name = network.name
+        self._used_ips = []
+        self._is_dirty = False
+        self._sal = j.sal.reservation_chatflow
+        self._bot = bot
+        self._fill_used_ips(reservations)
+
+    def _fill_used_ips(self, reservations):
+        for reservation in reservations:
+            if reservation.next_action != "DEPLOY":
+                continue
+            for kubernetes in reservation.data_reservation.kubernetes:
+                if kubernetes.network_id == self._network.name:
+                    self._used_ips.append(kubernetes.ipaddress)
+            for container in reservation.data_reservation.containers:
+                for nc in container.network_connection:
+                    if nc.network_id == self._network.name:
+                        self._used_ips.append(nc.ipaddress)
+
+    def add_node(self, node):
+        network_resources = self._network.network_resources
+        used_ip_ranges = set()
+        for network_resource in network_resources:
+            if network_resource.node_id == node.node_id:
+                return
+            used_ip_ranges.add(network_resource.iprange)
+            for peer in network_resource.peers:
+                used_ip_ranges.add(peer.iprange)
+        else:
+            network_range = netaddr.IPNetwork(self._network.iprange)
+            for idx, subnet in enumerate(network_range.subnet(24)):
+                if str(subnet) not in used_ip_ranges:
+                    break
+            else:
+                self._bot.stop("Failed to find free network")
+            j.sal.zosv2.network.add_node(self._network, node.node_id, str(subnet))
+            self._is_dirty = True
+
+    def get_node_range(self, node):
+        for network_resource in self._network.network_resources:
+            if network_resource.node_id == node.node_id:
+                return network_resource.iprange
+        self._bot.stop(f"Node {node.node_id} is not part of network")
+
+    def update(self, tid):
+        if self._is_dirty:
+            reservation = j.sal.zosv2.reservation_create()
+            reservation.data_reservation.networks.append(self._network._ddict)
+            rid = self._sal.reservation_register(reservation, self._network.expiration, tid)
+            return self._sal.reservation_wait(self._bot, rid)
+        return True
+
+    def ask_ip_from_node(self, node, message):
+        ip_range = self.get_node_range(node)
+        freeips = []
+        hosts = netaddr.IPNetwork(ip_range).iter_hosts()
+        next(hosts)  # skip ip used by node
+        for host in hosts:
+            ip = str(host)
+            if ip not in self._used_ips:
+                freeips.append(ip)
+        ip_address = self._bot.drop_down_choice(message, freeips)
+        self._used_ips.append(ip_address)
+        return ip_address
+
+
 class Chatflow(j.baseclasses.object):
     __jslocation__ = "j.sal.reservation_chatflow"
 
     def _init(self, **kwargs):
         j.data.bcdb.get("tfgrid_solutions")
         self._explorer = j.clients.explorer.default
-
-    def get_all_ips(self, ip_range):
-        """
-        ip_range: (String)ip range of network
-        return all available ips of this network
-        """
-        networks = netaddr.IPNetwork(ip_range)
-        ips = []
-        all_ips = list(networks.iter_hosts())
-        for i, ip in enumerate(all_ips):
-            if i == 0 or i == len(all_ips) - 1:
-                continue
-            ips.append(ip.format())
-        return ips
 
     def validate_user(self, user_info):
         if not j.tools.threebot.with_threebotconnect:
@@ -55,20 +111,20 @@ class Chatflow(j.baseclasses.object):
         return nodes_selected
 
     def network_select(self, bot, customer_tid):
-        networks = self.network_list(customer_tid)
+        reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
+        networks = self.network_list(customer_tid, reservations)
         names = []
         for n in networks.keys():
             names.append(n)
         if not names:
             res = "<h2> You don't have any networks, please use the network chatflow to create one</h2>"
             res = j.tools.jinja2.template_render(text=res)
-            bot.md_show(res)
-            return None
+            bot.stop(res)
         while True:
             result = bot.single_choice("Choose a network", names)
             if result not in networks:
                 continue
-            return networks[result]
+            return Network(networks[result], bot, reservations)
 
     def ip_range_get(self, bot):
         """
@@ -161,18 +217,6 @@ class Chatflow(j.baseclasses.object):
             deployed_reservation.save()
         return rid
 
-    def network_update(self, bot, network, customer_tid, timeout=60):
-        reservation = j.sal.zosv2.reservation_create()
-        reservation.data_reservation.networks.append(network._ddict)
-        rid = self.reservation_register(reservation, network.expiration, customer_tid)
-        start = j.data.time.epoch
-        while start + timeout > j.data.time.epoch:
-            reservation = self._explorer.reservations.get(rid)
-            if len(reservation.results) >= len(reservation.data_reservation.networks[0].network_resources):
-                return not self._reservation_failed(bot, reservation)
-            time.sleep(1)
-        return not self._reservation_failed(bot, reservation)
-
     def reservation_wait(self, bot, rid):
         def is_finished(reservation):
             count = 0
@@ -190,9 +234,8 @@ class Chatflow(j.baseclasses.object):
         reservation = self._explorer.reservations.get(rid)
         while True:
             if is_finished(reservation):
-                if not self._reservation_failed(bot, reservation):
-                    return reservation.results
-                return False
+                self._reservation_failed(bot, reservation)
+                return reservation.results
             if is_expired(reservation):
                 res = f"# Sorry your reservation ```{reservation.id}``` failed to deploy in time:\n"
                 for x in reservation.results:
@@ -201,8 +244,7 @@ class Chatflow(j.baseclasses.object):
                 link = f"{self._explorer.url}/reservations/{reservation.id}"
                 res += f"<h2> <a href={link}>Full reservation info</a></h2>"
                 res = j.tools.jinja2.template_render(text=res)
-                bot.md_show(res)
-                return False
+                bot.stop(res)
             time.sleep(1)
             reservation = self._explorer.reservations.get(rid)
 
@@ -216,11 +258,11 @@ class Chatflow(j.baseclasses.object):
             link = f"{self._explorer.url}/reservations/{reservation.id}"
             res += f"<h2> <a href={link}>Full reservation info</a></h2>"
             res = j.tools.jinja2.template_render(text=res)
-            bot.md_show(res)
-        return failed
+            bot.stop(res)
 
-    def network_list(self, tid):
-        reservations = j.sal.zosv2.reservation_list(tid=tid, next_action="DEPLOY")
+    def network_list(self, tid, reservations=None):
+        if not reservations:
+            reservations = j.sal.zosv2.reservation_list(tid=tid, next_action="DEPLOY")
         network_names = dict()
         names = set()
         for reservation in sorted(reservations, key=lambda r: r.id, reverse=True):
@@ -239,28 +281,6 @@ class Chatflow(j.baseclasses.object):
                 network_names[network_name] = network
 
         return network_names
-
-    def add_node_to_network(self, node, network):
-        network_resources = network.network_resources
-        used_ip_ranges = set()
-        used_networkrange = None
-        for network_resource in network_resources:
-            if network_resource.node_id == node.node_id:
-                used_networkrange = network_resource.iprange
-                return False, used_networkrange
-            used_ip_ranges.add(network_resource.iprange)
-            for peer in network_resource.peers:
-                used_ip_ranges.add(peer.iprange)
-        else:
-            network_range = netaddr.IPNetwork(network.iprange)
-            for idx, subnet in enumerate(network_range.subnet(24)):
-                if str(subnet) not in used_ip_ranges:
-                    break
-            else:
-                raise j.exceptions.Input("Failed to find free network")
-            j.sal.zosv2.network.add_node(network, node.node_id, str(subnet))
-            used_networkrange = str(subnet)
-            return True, used_networkrange
 
     def escrow_qr_show(self, bot, reservation_create_resp):
         # Get escrow info for reservation_create_resp dict
