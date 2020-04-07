@@ -1,11 +1,15 @@
 from Jumpscale import j
 
 skip = j.baseclasses.testtools._skip
+from .debounce import debounce
 
 
 class NotebookServerFactory(j.baseclasses.object):
 
     __jslocation__ = "j.servers.notebook"
+
+    def _init(self, **kwargs):
+        self.debounce = debounce
 
     def install(self, force=False):
         """
