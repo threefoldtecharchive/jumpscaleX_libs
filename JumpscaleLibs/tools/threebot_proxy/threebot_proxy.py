@@ -97,7 +97,7 @@ class ThreebotProxy(j.baseclasses.object):
         ciphertext = j.data.serializers.base64.decode(data["data"]["ciphertext"])
 
         try:
-            decrypted = j.me.decrypt(user_pub_key.to_curve25519_public_key(), ciphertext, nonce)
+            decrypted = j.me.encryptor.decrypt(ciphertext, user_pub_key.to_curve25519_public_key(), nonce=nonce)
         except nacl.exceptions.CryptoError:
             return abort(400, "Error decrypting data")
 
