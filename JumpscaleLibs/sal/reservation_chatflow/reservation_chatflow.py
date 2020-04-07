@@ -38,7 +38,7 @@ class Chatflow(j.baseclasses.object):
             raise j.exceptions.Value("Name of logged in user shouldn't be empty")
         return self._explorer.users.get(name=user_info["username"], email=user_info["email"])
 
-    def nodes_get(self, number_of_nodes, farm_id=None, farm_name=None, cru=None, sru=None, mru=None, hru=None):
+    def nodes_get(self, number_of_nodes, farm_id=None, farm_name="freefarm", cru=None, sru=None, mru=None, hru=None):
         # get nodes without public ips
         nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
             farm_id=farm_id, farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru
