@@ -43,6 +43,8 @@ The returned string is the hash of the transaction.
 
 Send 1000 TFT to another address but time locked until within 10 minutes:
 
+> **For locked token support**: install following threebot package: [https://github.com/threefoldfoundation/tft-stellar/tree/master/ThreeBotPackages/unlock-service](https://github.com/threefoldfoundation/tft-stellar/tree/master/ThreeBotPackages/unlock-service)!
+
 ```python
 j.clients.stellar.my_wallet.transfer('<destination address>',"1000", asset="TFT:GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3", locked_until=time.time()+10*60)
 
