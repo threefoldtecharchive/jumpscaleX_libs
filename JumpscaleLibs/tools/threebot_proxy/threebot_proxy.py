@@ -70,7 +70,7 @@ class ThreebotProxy(j.baseclasses.object):
         if res.status_code != 200:
             return abort(400, "Error getting user pub key")
         pub_key = res.json()["publicKey"]
-        user_pub_key = j.data.nacl.verifykey_obj_get(j.data.serializers.base64.decode(pub_key))
+        user_pub_key = j.me.encryptor._verify_key_get(j.data.serializers.base64.decode(pub_key))
 
         # verify data
         signedData = data["signedAttempt"]
@@ -129,7 +129,7 @@ class ThreebotProxy(j.baseclasses.object):
     def login_required(self, func):
         @wraps(func)
         def decorator(*args, **kwargs):
-            if j.tools.threebot.with_threebotconnect:
+            if j.core.myenv.config.get("THREEBOT_CONNECT", False):
                 if not self.session.get("authorized", False):
                     self.session["next_url"] = request.url
                     return redirect(self.login_url)
