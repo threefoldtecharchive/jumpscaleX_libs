@@ -64,7 +64,11 @@ class Chatflow(j.baseclasses.object):
             res = j.tools.jinja2.template_render(text=res)
             bot.md_show(res)
             return None
-        return networks[bot.single_choice("Choose a network", names)]
+        while True:
+            result = bot.single_choice("Choose a network", names)
+            if result not in networks:
+                continue
+            return networks[result]
 
     def ip_range_get(self, bot):
         """
@@ -127,8 +131,25 @@ class Chatflow(j.baseclasses.object):
 
         return network_config
 
-    def reservation_register(self, reservation, expiration, customer_tid):
-        rid = j.sal.zosv2.reservation_register(reservation, expiration, customer_tid=customer_tid)
+    def reservation_register(self, reservation, expiration, customer_tid, expiration_provisioning=300):
+        """
+        Register reservation
+
+        :param reservation: Reservation object to register
+        :type  reservation: object
+        :param expiration: epoch time when the reservation should be canceled automaticly
+        :type  expiration: int
+        :param customer_tid: Id of the customer making the reservation
+        :type  customer_tid: int
+        :param expiration_provisioning: timeout on the deployment of the provisioning in seconds
+        :type  expiration_provisioning: int
+
+        :rtype: int
+        """
+        expiration_provisioning += j.data.time.epoch
+        rid = j.sal.zosv2.reservation_register(
+            reservation, expiration, expiration_provisioning=expiration_provisioning, customer_tid=customer_tid
+        )
         reservation.id = rid
 
         if j.core.myenv.config.get("DEPLOYER") and customer_tid:
@@ -152,21 +173,38 @@ class Chatflow(j.baseclasses.object):
             time.sleep(1)
         return not self._reservation_failed(bot, reservation)
 
-    def reservation_failed(self, bot, category, resv_id):
-        container_found = False
-        trials = 50
-        while not container_found:
-            reservation_result = self._explorer.reservations.get(resv_id).results
-            for result in reservation_result:
-                if result.category == category:
-                    container_found = True
-            trials -= 1
-            if trials == 0:
-                break
-            time.sleep(1)
+    def reservation_wait(self, bot, rid):
+        def is_finished(reservation):
+            count = 0
+            count += len(reservation.data_reservation.volumes)
+            count += len(reservation.data_reservation.zdbs)
+            count += len(reservation.data_reservation.containers)
+            count += len(reservation.data_reservation.kubernetes)
+            for network in reservation.data_reservation.networks:
+                count += len(network.network_resources)
+            return len(reservation.results) >= count
 
-        reservation = self._explorer.reservations.get(resv_id)
-        return self._reservation_failed(bot, reservation)
+        def is_expired(reservation):
+            return reservation.data_reservation.expiration_provisioning < j.data.time.epoch
+
+        reservation = self._explorer.reservations.get(rid)
+        while True:
+            if is_finished(reservation):
+                if not self._reservation_failed(bot, reservation):
+                    return reservation.results
+                return False
+            if is_expired(reservation):
+                res = f"# Sorry your reservation ```{reservation.id}``` failed to deploy in time:\n"
+                for x in reservation.results:
+                    if x.state == "ERROR":
+                        res += f"\n### {x.category}: ```{x.message}```\n"
+                link = f"{self._explorer.url}/reservations/{reservation.id}"
+                res += f"<h2> <a href={link}>Full reservation info</a></h2>"
+                res = j.tools.jinja2.template_render(text=res)
+                bot.md_show(res)
+                return False
+            time.sleep(1)
+            reservation = self._explorer.reservations.get(rid)
 
     def _reservation_failed(self, bot, reservation):
         failed = j.sal.zosv2.reservation_failed(reservation)
@@ -186,6 +224,8 @@ class Chatflow(j.baseclasses.object):
         network_names = dict()
         names = set()
         for reservation in sorted(reservations, key=lambda r: r.id, reverse=True):
+            if reservation.next_action != "DEPLOY":
+                continue
             networks = reservation.data_reservation.networks
             expiration = reservation.data_reservation.expiration_reservation
 
