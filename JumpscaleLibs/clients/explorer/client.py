@@ -22,10 +22,10 @@ class Explorer(JSConfigClient):
 
     def _init(self, **kwargs):
         # load models
-        basepath = "{DIR_CODE}/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/tfgrid/{pkgname}/models"
-        j.data.schema.add_from_path(j.core.tools.text_replace(basepath, {"pkgname": "workloads"}))
-        j.data.schema.add_from_path(j.core.tools.text_replace(basepath, {"pkgname": "phonebook"}))
-        j.data.schema.add_from_path(j.core.tools.text_replace(basepath, {"pkgname": "directory"}))
+        basepath = j.core.tools.text_replace(
+            "{DIR_CODE}/github/threefoldtech/jumpscaleX_libs/JumpscaleLibs/clients/explorer/models/"
+        )
+        j.data.schema.add_from_path(basepath)
         self._session = requests.Session()
         self._session.hooks = dict(response=raise_for_status)
 
