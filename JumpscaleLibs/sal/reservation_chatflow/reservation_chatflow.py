@@ -6,8 +6,9 @@ import time
 
 class Network:
 
-    def __init__(self, network, bot, reservations):
+    def __init__(self, network, expiration, bot, reservations):
         self._network = network
+        self._expiration = expiration
         self.name = network.name
         self._used_ips = []
         self._is_dirty = False
@@ -56,7 +57,7 @@ class Network:
         if self._is_dirty:
             reservation = j.sal.zosv2.reservation_create()
             reservation.data_reservation.networks.append(self._network._ddict)
-            rid = self._sal.reservation_register(reservation, self._network.expiration, tid)
+            rid = self._sal.reservation_register(reservation, self._expiration, tid)
             return self._sal.reservation_wait(self._bot, rid)
         return True
 
@@ -124,7 +125,8 @@ class Chatflow(j.baseclasses.object):
             result = bot.single_choice("Choose a network", names)
             if result not in networks:
                 continue
-            return Network(networks[result], bot, reservations)
+            network, expiration = networks[result]
+            return Network(network, expiration, bot, reservations)
 
     def ip_range_get(self, bot):
         """
@@ -263,24 +265,23 @@ class Chatflow(j.baseclasses.object):
     def network_list(self, tid, reservations=None):
         if not reservations:
             reservations = j.sal.zosv2.reservation_list(tid=tid, next_action="DEPLOY")
-        network_names = dict()
+        networks = dict()
         names = set()
         for reservation in sorted(reservations, key=lambda r: r.id, reverse=True):
             if reservation.next_action != "DEPLOY":
                 continue
-            networks = reservation.data_reservation.networks
+            rnetworks = reservation.data_reservation.networks
             expiration = reservation.data_reservation.expiration_reservation
 
-            for network in networks:
+            for network in rnetworks:
                 if network.name in names:
                     continue
                 names.add(network.name)
                 remaning = expiration - j.data.time.epoch
                 network_name = network.name + " - ends in: " + j.data.time.secondsToHRDelta(remaning)
-                network.expiration = expiration
-                network_names[network_name] = network
+                networks[network_name] = (network, expiration)
 
-        return network_names
+        return networks
 
     def escrow_qr_show(self, bot, reservation_create_resp):
         # Get escrow info for reservation_create_resp dict
