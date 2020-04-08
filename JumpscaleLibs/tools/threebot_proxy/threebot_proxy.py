@@ -124,6 +124,7 @@ class ThreebotProxy(j.baseclasses.object):
         self.session["username"] = username
         self.session["email"] = email
         self.session["authorized"] = True
+        self.session["signedAttempt"] = signedData
         return redirect(self.next_url)
 
     def login_required(self, func):
