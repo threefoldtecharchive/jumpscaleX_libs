@@ -22,6 +22,7 @@ def create_new_wallet():
     wallet_name = j.data.idgenerator.generateXCharID(10)
     wallet = j.clients.stellar.new(wallet_name, network="Test")
     wallet.activate_through_friendbot()
+    wallet.add_trustline("TFT", "GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3")
     return wallet
 
 
