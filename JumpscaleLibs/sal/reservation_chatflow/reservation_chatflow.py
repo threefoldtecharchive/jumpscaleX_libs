@@ -235,8 +235,8 @@ class Chatflow(j.baseclasses.object):
 
         reservation = self._explorer.reservations.get(rid)
         while True:
+            self._reservation_failed(bot, reservation)
             if is_finished(reservation):
-                self._reservation_failed(bot, reservation)
                 return reservation.results
             if is_expired(reservation):
                 res = f"# Sorry your reservation ```{reservation.id}``` failed to deploy in time:\n"
