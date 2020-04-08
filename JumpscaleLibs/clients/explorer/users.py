@@ -38,13 +38,13 @@ class Users:
         return resp.json()["is_valid"]
 
     def update(self, user, identity=None):
-        me = identity if identity else j.myidentities.me
+        me = identity if identity else j.tools.threebot.me.default
         datatosign = ""
         datatosign += f"{user.id}{user.name}{user.email}"
         if user.host:
             datatosign += user.host
         datatosign += f"{user.description}{user.pubkey}"
-        signature = me.encryptor.sign_hex(datatosign.encode("utf8"))
+        signature = me.nacl.sign_hex(datatosign.encode("utf8"))
         data = user._ddict.copy()
         data["sender_signature_hex"] = signature.decode("utf8")
         self._session.put(self._base_url + f"/users/{user.id}", json=data)
