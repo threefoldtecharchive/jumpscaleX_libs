@@ -83,7 +83,7 @@ class Chatflow(j.baseclasses.object):
         self._explorer = j.clients.explorer.default
 
     def validate_user(self, user_info):
-        if not j.tools.threebot.with_threebotconnect:
+        if not j.core.myenv.config.get("THREEBOT_CONNECT", False):
             error_msg = """
             This chatflow is not supported when Threebot is in dev mode.
             To enable Threebot connect : `j.tools.threebot.threebotconnect_disable()`
