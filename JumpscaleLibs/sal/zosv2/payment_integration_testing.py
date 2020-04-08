@@ -190,6 +190,48 @@ def test03_empty_wallet_failed_reservation():
         # later on can define the exact exception and assert on after issue is solved
         zos.billing.payout_farmers(wallet, registered_reservation)
 
+@pytest.mark.skip(reason="https://github.com/threefoldtech/jumpscaleX_libs/issues/163")
+def test04_multi_signing_reservation():
+    """
+    #. Get wallet W1
+    #. create another wallet w2 and make w1 require multisignature using w2
+    #. Create a reservation, should succeed
+    #. Make sure you have enough TFT Tokens that cover the reservation amount
+    #. User should transfer the amount in TFT, w2 signutre should be required
+    #. w2 signs the transcation, Transfer should be completed
+    #. Check if the exact amount left the user wallet, should succeed
+    #. Check the reservation is Done, State should be "OK"
+    """
+
+    # . Get wallet W1
+    wallet = get_funded_wallet()
+
+    # . create another wallet w2 and make w1 require multisignature using w2
+    wallet2 = create_new_wallet()
+    wallet.modify_signing_requirements([wallet2.address], 2)
+
+    # . Create a reservation, should succeed
+    registered_reservation = create_volume_reservation()
+    assert registered_reservation.reservation_id
+
+    # . Make sure you have enough TFT Tokens that cover the reservation amount
+    user_tft_amount = get_wallet_balance(wallet)
+    needed_tft_ammount = amount_paid_to_farmer(registered_reservation)
+    assert user_tft_amount > needed_tft_ammount, "Your wallet need to be filled up"
+
+    # . User should transfer the amount in TFT, w2 signutre should be required
+    p = zos.billing.payout_farmers(wallet, registered_reservation)
+    assert p, "problem during paying"
+
+    # . w2 signs the transcation, then Transfer should be completed
+    wallet2.sign_multisig_transaction(p[0])
+
+    # . Check if the exact amount left the user wallet, should succeed
+    current_tft_amount = get_wallet_balance(wallet)
+    assert "%.2f" % (user_tft_amount - current_tft_amount) == "%.2f" % needed_tft_ammount
+
+    # . Check the reservation is Done, State should be "OK"
+    assert get_reservation_state(registered_reservation.reservation_id) == "Ok", "Nothing deployed"
 
 if __name__ == "__main__":
     if not (WALLET_NAME and WALLET_SECRET):
