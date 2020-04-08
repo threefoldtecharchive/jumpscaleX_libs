@@ -135,7 +135,6 @@ def test01_reservation_success():
     assert get_reservation_state(registered_reservation.reservation_id) == "Ok", "Nothing deployed"
 
 
-@pytest.mark.skip(reason="https://github.com/threefoldtech/zos/issues/686")
 def test02_reservation_fail():
     """
     #. Get wallet 
@@ -196,4 +195,4 @@ if __name__ == "__main__":
     if not (WALLET_NAME and WALLET_SECRET):
         raise ValueError("Please provide WALLET_NAME and WALLET_SECRET ")
 
-    pytest.main(["-x", "payment_testing.py"])
+    pytest.main(["-x", "payment_integration_testing.py"])
