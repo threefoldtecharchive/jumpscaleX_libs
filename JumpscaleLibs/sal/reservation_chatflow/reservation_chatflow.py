@@ -5,7 +5,6 @@ import time
 
 
 class Network:
-
     def __init__(self, network, expiration, bot, reservations):
         self._network = network
         self._expiration = expiration
@@ -148,9 +147,7 @@ class Chatflow(j.baseclasses.object):
             ip_range = str(first_digit) + "." + str(second_digit) + ".0.0/16"
         return ip_range
 
-    def network_create(
-        self, network_name, reservation, ip_range, customer_tid, ip_version, expiration=None,
-    ):
+    def network_create(self, network_name, reservation, ip_range, customer_tid, ip_version, expiration=None):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -321,14 +318,20 @@ class Chatflow(j.baseclasses.object):
                 return solution_name
 
     def solutions_get(self, url):
-        model = j.clients.bcdbmodel.get(url=url, name="tfgrid_solutions")
+        try:
+            model = j.clients.bcdbmodel.get(url=url, name="tfgrid_solutions")
+        except:
+            return []
         solutions = model.find()
         reservations = []
         explorer = j.clients.explorer.explorer
 
         for solution in solutions:
             reservation = explorer.reservations.get(solution.rid)
-            reservations.append(reservation)
+            solution_type = url.replace("tfgrid.solutions.", "").replace(".1", "")
+            reservations.append(
+                {"name": solution.name, "reservation": reservation._ddict_json_hr, "type": solution_type}
+            )
         return reservations
 
     def reservation_cancel_for_solution(self, url, solution_name):
