@@ -22,7 +22,7 @@ class Zosv2(j.baseclasses.object):
         self._volume = VolumesGenerator()
         self._zdb = ZDBGenerator(self._explorer)
         self._kubernetes = K8sGenerator(self._explorer)
-        self._billing = Billing(self._explorer)
+        self._billing = Billing()
         self._gateway = Gateway(self._explorer)
 
     @property
@@ -77,8 +77,8 @@ class Zosv2(j.baseclasses.object):
         :param expiration_provisioning: timestamp of the date when to reservation should be provisionned
                                         if the reservation is not provisioning before this time, it will never be provionned
         :type expiration_provisioning: int, optional
-        :return: reservation ID
-        :rtype: int
+        :return: reservation create result
+        :rtype: tfgrid.workloads.reservation.create.1
         """
         me = identity if identity else j.tools.threebot.me.default
         if me.tid == 0:
@@ -103,8 +103,7 @@ class Zosv2(j.baseclasses.object):
         reservation.json = dr._json
         reservation.customer_signature = me.nacl.sign_hex(reservation.json.encode())
 
-        id = self._explorer.reservations.create(reservation)
-        return id
+        return self._explorer.reservations.create(reservation)
 
     def reservation_accept(self, reservation, identity=None):
         """
@@ -288,18 +287,28 @@ class Zosv2(j.baseclasses.object):
 
         :param reservation_create_resp: reservation create object, returned from reservation_register
         :type reservation_create_resp: tfgrid.workloads.reservation.create.1
-        :return: escrow encoded for QR code usage e.g [{'escrow_address': 'GACMBAK2IWHGNTAG5WOVELJWUTPOXA2QY2Y23PAXNRKOYFTCBWICXNDO', 'total_amount': 0.586674, 'farmer_id': 10, 'qrcode': 'tft:GACMBAK2IWHGNTAG5WOVELJWUTPOXA2QY2Y23PAXNRKOYFTCBWICXNDO?amount=0.586674&message=Grid resources fees for farmer 10&sender=me'}]
-        :rtype: str
+        :return:  payment info (escrow_address,[farmer_payments],total_amount,escrow encoded for QR code usage e.g [{'escrow_address': 'GACMBAK2IWHGNTAG5WOVELJWUTPOXA2QY2Y23PAXNRKOYFTCBWICXNDO', 'total_amount': 0.586674, 'farmer_id': 10, 'qrcode': 'tft:GACMBAK2IWHGNTAG5WOVELJWUTPOXA2QY2Y23PAXNRKOYFTCBWICXNDO?amount=0.586674&message=Grid resources fees for farmer 10&sender=me'}])
+        :rtype: dict
         """
+
         PAYMENT_MSG_TEMPLATE = "Grid resources fees for farmer {}"
-        results = []
-        for escrow in reservation_create_resp.escrow_information:
-            d = escrow._ddict
-            escrow_address = escrow.escrow_address
-            total_amount = escrow.total_amount / 10e6
-            farmer_id = escrow.farmer_id
-            d["total_amount"] = total_amount
-            # should we include farmer id in the message?
-            d["qrcode"] = self._escrow_to_qrcode(escrow_address, total_amount, PAYMENT_MSG_TEMPLATE.format(farmer_id))
-            results.append(d)
-        return results
+        farmer_payments = []
+        escrow_address = reservation_create_resp.escrow_information.address
+        total_amount = 0
+        for detail in reservation_create_resp.escrow_information.details:
+            farmer_id = detail.farmer_id
+            farmer_amount = detail.total_amount / 10e6
+
+            total_amount += farmer_amount
+
+            farmer_payments.append({"farmer_id": farmer_id, "total_amount": farmer_amount})
+
+        qrcode = self._escrow_to_qrcode(escrow_address, total_amount, PAYMENT_MSG_TEMPLATE.format(farmer_id))
+
+        info = {}
+        info["escrow_address"] = escrow_address
+        info["farmer_payments"] = farmer_payments
+        info["total_amount"] = total_amount
+        info["qrcode"] = qrcode
+
+        return info
