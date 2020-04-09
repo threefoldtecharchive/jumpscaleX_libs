@@ -86,7 +86,7 @@ class Chatflow(j.baseclasses.object):
         if not j.core.myenv.config.get("THREEBOT_CONNECT", False):
             error_msg = """
             This chatflow is not supported when Threebot is in dev mode.
-            To enable Threebot connect : `j.me.encryptor.tools.threebotconnect_disable()`
+            To enable Threebot connect : `j.tools.threebot.threebotconnect_disable()`
             """
             raise j.exceptions.Runtime(error_msg)
         if not user_info["email"]:
