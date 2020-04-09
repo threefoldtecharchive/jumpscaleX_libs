@@ -245,7 +245,6 @@ class Chatflow(j.baseclasses.object):
                         res += f"\n### {x.category}: ```{x.message}```\n"
                 link = f"{self._explorer.url}/reservations/{reservation.id}"
                 res += f"<h2> <a href={link}>Full reservation info</a></h2>"
-                res = j.tools.jinja2.template_render(text=res)
                 bot.stop(res)
             time.sleep(1)
             reservation = self._explorer.reservations.get(rid)
@@ -259,7 +258,6 @@ class Chatflow(j.baseclasses.object):
                     res += f"\n### {x.category}: ```{x.message}```\n"
             link = f"{self._explorer.url}/reservations/{reservation.id}"
             res += f"<h2> <a href={link}>Full reservation info</a></h2>"
-            res = j.tools.jinja2.template_render(text=res)
             bot.stop(res)
 
     def network_list(self, tid, reservations=None):
