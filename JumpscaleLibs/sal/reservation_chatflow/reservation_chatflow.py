@@ -202,9 +202,11 @@ class Chatflow(j.baseclasses.object):
         :rtype: int
         """
         expiration_provisioning += j.data.time.epoch
-        rid = j.sal.zosv2.reservation_register(
+        reservation_create = j.sal.zosv2.reservation_register(
             reservation, expiration, expiration_provisioning=expiration_provisioning, customer_tid=customer_tid
         )
+        rid = reservation_create.reservation_id
+        escrescrow_information = reservation_create.escrow_information
         reservation.id = rid
 
         if j.core.myenv.config.get("DEPLOYER") and customer_tid:
@@ -282,21 +284,28 @@ class Chatflow(j.baseclasses.object):
         # Get escrow info for reservation_create_resp dict
         escrow_info = j.sal.zosv2.reservation_escrow_information_with_qrcodes(reservation_create_resp)
 
-        # view all qrcodes
-        for i, escrow in enumerate(escrow_info):
-            message_text = f"""
-### escrow address :
-{escrow['escrow_address']} \n
-### amount to be paid :
-{escrow['total_amount']}
+        escrow_address = escrow_info["escrow_address"]
+        farmer_payments = escrow_info["farmer_payments"]
+        total_amount = escrow_info["total_amount"]
+        qrcode = escrow_info["qrcode"]
+
+        message_text = f"""
+<h4> Escrow address: </h4>  {escrow_address} \n
+<h4> Total amount: </h4>  {total_amount} \n
+
+<h4>Payment details:</h4> \n
 """
-            msg = j.tools.jinja2.template_render(text=message_text)
-            bot.qrcode_show(
-                escrow["qrcode"],
-                title=f"Scan the following with your application or enter the information below manually to proceed with payment #{i+1}",
-                msg=msg,
-                scale=4,
-            )
+        for payment in farmer_payments:
+            message_text += f"""
+Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
+"""
+
+        bot.qrcode_show(
+            qrcode,
+            title=f"Scan the following with your application or enter the information below manually to proceed with the payment",
+            msg=message_text,
+            scale=4,
+        )
 
     def reservation_save(self, rid, name, url):
         rsv_model = j.clients.bcdbmodel.get(url=url, name="tfgrid_solutions")
