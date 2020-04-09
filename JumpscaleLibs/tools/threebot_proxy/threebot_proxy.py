@@ -139,7 +139,7 @@ class ThreebotProxy(j.baseclasses.object):
 
 
 class ThreebotProxyFactory(j.baseclasses.factory):
-    __jslocation__ = "j.tools.threebotlogin_proxy"
+    __jslocation__ = "j.me.encryptor.toolslogin_proxy"
 
     def get(self, app, login_url):
         return ThreebotProxy(app, login_url)
