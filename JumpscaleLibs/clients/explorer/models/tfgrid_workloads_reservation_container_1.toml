@@ -38,6 +38,6 @@ public_ip6 = (B)
 
 @url = tfgrid.workloads.reservation.container.capacity.1
 # Number of vCPU
-cpu = (I) 
+cpu = (I)
 # memory in MiB
 memory = (I)

@@ -49,9 +49,12 @@ epoch = (T)
 
 @url = tfgrid.workloads.reservation.create.1
 reservation_id = (I)
-escrow_information = (LO) !tfgrid.workloads.reservation.escrow.1
+escrow_information = (O) !tfgrid.workloads.reservation.escrow.1
 
 @url = tfgrid.workloads.reservation.escrow.1
-farmer_id = (I)
-escrow_address = (S)
+address = (S)
+details = (LO) !tfgrid.workloads.reservation.escrow.detail.1
+
+@url = tfgrid.workloads.reservation.escrow.detail.1
+farmer_id  = (I)
 total_amount = (I)
