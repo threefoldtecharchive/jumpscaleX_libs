@@ -172,12 +172,12 @@ def test02_reservation_fail():
     assert check_if_wallet_refunded(wallet, user_tft_amount, timeout=60)
 
 
-@pytest.mark.skip(reason="https://github.com/threefoldtech/jumpscaleX_libs/issues/156")
 def test03_empty_wallet_failed_reservation():
     """
     #. Create new wallet with zero TFT, should succeed
     #. Create a reservation, reservation state should be "pay"
-    #. User should pay the farmer, should fail with no enough amount
+    #. User should pay the farmer, should fail with "transaction failed"
+    #. Make sure reservation didn't happen
     """
     # . Create new wallet with zero TFT, should succeed
     wallet = create_new_wallet()
@@ -186,10 +186,16 @@ def test03_empty_wallet_failed_reservation():
     registered_reservation = create_volume_reservation()
     assert registered_reservation.reservation_id
 
-    # . User should pay the farmer, should fail with no enough amount
-    with pytest.raises(Exception):
-        # later on can define the exact exception and assert on after issue is solved
+    # . User should pay the farmer, should fail with "transaction failed"
+    with pytest.raises(Exception) as e:
         zos.billing.payout_farmers(wallet, registered_reservation)
+        assert e.value.status == 400
+        assert e.value.title == "Transaction Failed"
+
+    # . Make sure reservation didn't happen
+    result = get_reservation_result(registered_reservation.reservation_id, timeout=15)
+    assert not result
+
 
 @pytest.mark.skip(reason="https://github.com/threefoldtech/jumpscaleX_libs/issues/163")
 def test04_multi_signing_reservation():
