@@ -10,7 +10,6 @@ resource_prices = (LO) !tfgrid.directory.node.resource.price.1
 # original /48 allocation of the farm
 prefix_zero = (iprange)
 
-
 @url = tfgrid.directory.wallet_address.1
 asset = (S)
 address = (S)

@@ -80,9 +80,7 @@ class Zosv2(j.baseclasses.object):
         :return: reservation create result
         :rtype: tfgrid.workloads.reservation.create.1
         """
-        me = identity if identity else j.tools.threebot.me.default
-        if me.tid == 0:
-            raise RuntimeError("Make sure to initialize your idenity see `j.tools.threebot.init_my_threebot()`")
+        me = identity if identity else j.myidentities.me
         reservation.customer_tid = me.tid
 
         if expiration_provisioning is None:
@@ -101,7 +99,7 @@ class Zosv2(j.baseclasses.object):
         dr.signing_request_delete.quorum_min = len(dr.signing_request_delete.signers)
 
         reservation.json = dr._json
-        reservation.customer_signature = me.nacl.sign_hex(reservation.json.encode())
+        reservation.customer_signature = me.encryptor.sign_hex(reservation.json.encode())
 
         return self._explorer.reservations.create(reservation)
 
@@ -117,10 +115,10 @@ class Zosv2(j.baseclasses.object):
         :return: returns true if not error,raise an exception otherwise
         :rtype: bool
         """
-        me = identity if identity else j.tools.threebot.me.default
+        me = identity if identity else j.myidentities.me
 
         reservation.json = reservation.data_reservation._json
-        signature = me.nacl.sign_hex(reservation.json.encode())
+        signature = me.encryptor.sign_hex(reservation.json.encode())
         # TODO: missing sign_farm
         # return self._explorer.reservations.sign_farmer(reservation.id, me.tid, signature)
 
@@ -161,16 +159,16 @@ class Zosv2(j.baseclasses.object):
         :return: true if the reservation has been cancelled successfully
         :rtype: bool
         """
-        me = identity if identity else j.tools.threebot.me.default
+        me = identity if identity else j.myidentities.me
 
         reservation = self.reservation_get(reservation_id)
-        payload = j.data.nacl.payload_build(reservation.id, reservation.json.encode())
-        signature = me.nacl.sign_hex(payload)
+        payload = j.me.encryptor.payload_build(reservation.id, reservation.json.encode())
+        signature = me.encryptor.sign_hex(payload)
 
         return self._explorer.reservations.sign_delete(reservation_id=reservation_id, tid=me.tid, signature=signature)
 
     def reservation_list(self, tid=None, next_action=None):
-        tid = tid if tid else j.tools.threebot.me.default.tid
+        tid = tid if tid else j.myidentities.me.tid
         return self._explorer.reservations.list(customer_tid=tid, next_action=next_action)
 
     def reservation_store(self, reservation, path):
@@ -199,7 +197,7 @@ class Zosv2(j.baseclasses.object):
         return reservation_model.new(datadict=r)
 
     def reservation_live(self, expired=False, cancelled=False, identity=None):
-        me = identity if identity else j.tools.threebot.me.default
+        me = identity if identity else j.myidentities.me
         rs = self._explorer.reservations.list()
 
         now = j.data.time.epoch

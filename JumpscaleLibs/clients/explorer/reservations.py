@@ -36,7 +36,9 @@ class Reservations:
                 raise j.exceptions.Input("next_action should be of type int")
         return next_action
 
-    def iter(self, customer_tid=None, next_action=None, ):
+    def iter(
+        self, customer_tid=None, next_action=None,
+    ):
         query = {}
         if customer_tid:
             query["customer_tid"] = customer_tid
