@@ -206,7 +206,7 @@ class Chatflow(j.baseclasses.object):
             reservation, expiration, expiration_provisioning=expiration_provisioning, customer_tid=customer_tid
         )
         rid = reservation_create.reservation_id
-        escrescrow_information = reservation_create.escrow_information
+        escrow_information = reservation_create.escrow_information
         reservation.id = rid
 
         if j.core.myenv.config.get("DEPLOYER") and customer_tid:
