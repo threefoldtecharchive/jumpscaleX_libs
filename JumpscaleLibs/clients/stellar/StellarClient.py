@@ -389,7 +389,7 @@ class StellarClient(JSConfigClient):
             if fund_transaction:
                 transaction = self._transaction_fund_client.fund_transaction(transaction=transaction)
 
-        transaction = stellar_sdk.TransactionEnvelope.from_xdr(transaction, _NETWORK_PASSPHRASES[str(self.network)])
+        transaction = TransactionEnvelope.from_xdr(transaction, _NETWORK_PASSPHRASES[str(self.network)])
         transaction.sign(source_keypair)
 
         try:
@@ -398,14 +398,17 @@ class StellarClient(JSConfigClient):
             self._log_info("Transaction hash: {}".format(tx_hash))
             return tx_hash
         except BadRequestError as e:
-            for op in e.extras['result_codes']['operations']:
-                if op == "op_underfunded":
-                    raise e
-                # if op_bad_auth is returned then we assume the transaction needs more signatures 
-                # so we return the transaction as xdr
-                elif op == "op_bad_auth":
-                    self._log_info("Transaction might need additional signatures in order to send")
-                    return transaction.to_xdr()
+            result_codes = e.extras.get("result_codes")
+            operations = result_codes.get("operations")
+            if operations is not None:
+                for op in operations:
+                    if op == "op_underfunded":
+                        raise e
+                    # if op_bad_auth is returned then we assume the transaction needs more signatures 
+                    # so we return the transaction as xdr
+                    elif op == "op_bad_auth":
+                        self._log_info("Transaction might need additional signatures in order to send")
+                        return transaction.to_xdr()
             raise e
 
     def list_transactions(self, address=None):
