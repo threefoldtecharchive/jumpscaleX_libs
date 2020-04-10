@@ -91,7 +91,7 @@ class Sheet(j.baseclasses.object):
     ):
         """
         @param ttype int,perc,float,empty,str
-        @param aggregate= T,A,MIN,MAX
+        @param aggregate= T,A,MIN,MAX,SUM
         @param values is array of values to insert
         @param defval is default value for each col
         @param round is only valid for float e.g. 2 after comma

@@ -528,6 +528,18 @@ class Row(j.baseclasses.object):
         return i
 
     @property
+    def values_xy(self):
+        """
+        return [x],[y] values
+        """
+        start = self.window_month_start
+        nr = self.window_month_period
+        self.clean()
+        xx = [x for x in range(start, start + nr)]
+        yy = self.cells[start : start + nr]
+        return xx, yy
+
+    @property
     def values_all(self):
         self.clean()
         return self.cells
