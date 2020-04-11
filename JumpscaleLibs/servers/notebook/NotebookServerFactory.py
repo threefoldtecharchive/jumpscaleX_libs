@@ -120,8 +120,7 @@ class NotebookServerFactory(j.baseclasses.object):
             cmd = self.get_cmd(path=path, background=background, voila=voila, base_url=base_url, ip=ip, port=port)
             cmd = j.servers.startupcmd.get(pname, cmd_start=cmd)
             cmd.stop()
-        else:
-            raise Exception("Calling stop is not allowed if not running in background")
+        j.sal.process.killProcessByName("jupyter-lab")
 
     @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/105")
     def test(self):
