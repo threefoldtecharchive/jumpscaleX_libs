@@ -21,5 +21,8 @@ class ExplorerClientFactory(JSConfigs):
         if not self._explorer:
             addr = j.core.myenv.config.get("EXPLORER_ADDR", "localhost")
             url = f"https://{addr}/explorer"
-            self._explorer = j.baseclasses.object_config_collection_testtools.get(self, name="explorer", url=url)
+
+            # please don't restore it it will get assertion error as obj._schema not equal schema
+            # at: https://github.com/threefoldtech/jumpscaleX_core/issues/718
+            self._explorer = self.get(name="explorer", url=url)
         return self._explorer
