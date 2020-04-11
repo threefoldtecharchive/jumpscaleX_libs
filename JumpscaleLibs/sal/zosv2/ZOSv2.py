@@ -80,7 +80,7 @@ class Zosv2(j.baseclasses.object):
         :return: reservation create result
         :rtype: tfgrid.workloads.reservation.create.1
         """
-        me = identity if identity else j.myidentities.me
+        me = identity if identity else j.me
         reservation.customer_tid = me.tid
 
         if expiration_provisioning is None:
