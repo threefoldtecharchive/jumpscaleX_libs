@@ -1,5 +1,6 @@
 import netaddr
 from Jumpscale import j
+from Jumpscale.servers.gedis.GedisChatBot import StopChatFlow
 import random
 import time
 
@@ -99,14 +100,19 @@ class Chatflow(j.baseclasses.object):
         nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
             farm_id=farm_id, farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru
         )  # Choose free farm
+        nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, nodes)
 
         # to avoid using the same node with different networks
         nodes = list(nodes)
         nodes_selected = []
         for i in range(number_of_nodes):
-            node = random.choice(nodes)
-            while not j.sal.zosv2.nodes_finder.filter_is_up(node) or node in nodes_selected:
+            try:
                 node = random.choice(nodes)
+                while node in nodes_selected:
+                    node = random.choice(nodes)
+            except IndexError:
+                raise StopChatFlow("Failed to find resources for this reservation")
+            nodes.remove(node)
             nodes_selected.append(node)
         return nodes_selected
 
