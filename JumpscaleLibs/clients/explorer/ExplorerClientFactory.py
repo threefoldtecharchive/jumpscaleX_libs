@@ -10,6 +10,10 @@ class ExplorerClientFactory(JSConfigs):
 
     def _init(self, **kwargs):
         self._explorer = None
+        basepath = j.core.tools.text_replace(
+            "{DIR_CODE}/github/threefoldtech/jumpscaleX_libs/JumpscaleLibs/clients/explorer/models/"
+        )
+        j.data.schema.add_from_path(basepath)
 
     def default_addr_set(self, value):
         j.core.myenv.config["EXPLORER_ADDR"] = value

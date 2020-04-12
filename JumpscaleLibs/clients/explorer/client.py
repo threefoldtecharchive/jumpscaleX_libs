@@ -22,10 +22,6 @@ class Explorer(JSConfigClient):
 
     def _init(self, **kwargs):
         # load models
-        basepath = j.core.tools.text_replace(
-            "{DIR_CODE}/github/threefoldtech/jumpscaleX_libs/JumpscaleLibs/clients/explorer/models/"
-        )
-        j.data.schema.add_from_path(basepath)
         self._session = requests.Session()
         self._session.hooks = dict(response=raise_for_status)
 
