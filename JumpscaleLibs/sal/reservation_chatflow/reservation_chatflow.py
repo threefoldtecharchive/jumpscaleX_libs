@@ -3,6 +3,7 @@ from Jumpscale import j
 from Jumpscale.servers.gedis.GedisChatBot import StopChatFlow
 import random
 import time
+import json
 
 
 class Network:
@@ -313,11 +314,13 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
             scale=4,
         )
 
-    def reservation_save(self, rid, name, url):
+    def reservation_save(self, rid, name, url, form_info=None):
+        form_info = form_info or []
         rsv_model = j.clients.bcdbmodel.get(url=url, name="tfgrid_solutions")
         reservation = rsv_model.new()
         reservation.rid = rid
         reservation.name = name
+        reservation.form_info = form_info
         reservation.save()
 
     def solution_name_add(self, bot, model):
@@ -345,7 +348,12 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
             reservation = explorer.reservations.get(solution.rid)
             solution_type = url.replace("tfgrid.solutions.", "").replace(".1", "")
             reservations.append(
-                {"name": solution.name, "reservation": reservation._ddict_json_hr, "type": solution_type}
+                {
+                    "name": solution.name,
+                    "reservation": reservation._ddict_json_hr,
+                    "type": solution_type,
+                    "form_info": json.dumps(solution.form_info),
+                }
             )
         return reservations
 
