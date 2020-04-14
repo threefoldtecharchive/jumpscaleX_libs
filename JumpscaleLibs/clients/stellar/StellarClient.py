@@ -374,7 +374,7 @@ class StellarClient(JSConfigClient):
             source_account=source_account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee
         )
         transaction_builder.append_payment_op(
-            destination=destination_address, amount=str(amount), asset_code=asset, asset_issuer=issuer
+            destination=destination_address, amount=str(amount), asset_code=asset, asset_issuer=issuer, source=source_public_key
         )
         transaction_builder.set_timeout(30)
         if memo_text is not None:
@@ -388,6 +388,7 @@ class StellarClient(JSConfigClient):
         if asset == "TFT" or asset == "FreeTFT":
             if fund_transaction:
                 transaction = self._transaction_fund_client.fund_transaction(transaction=transaction)
+                transaction = transaction.transaction_xdr
 
         transaction = TransactionEnvelope.from_xdr(transaction, _NETWORK_PASSPHRASES[str(self.network)])
         transaction.sign(source_keypair)
