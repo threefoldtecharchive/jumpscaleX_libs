@@ -34,7 +34,7 @@ from .transaction import TransactionSummary, Effect
 JSConfigClient = j.baseclasses.object_config
 
 
-_UNLOCKHASH_TRANSACTIONS_SERVICES = {"TEST": "testnet.threefold.io", "STD": "threefold.io"}
+_THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES = {"TEST": "testnet.threefold.io", "STD": "threefold.io"}
 _HORIZON_NETWORKS = {"TEST": "https://horizon-testnet.stellar.org", "STD": "https://horizon.stellar.org"}
 _NETWORK_PASSPHRASES = {"TEST": Network.TESTNET_NETWORK_PASSPHRASE, "STD": Network.PUBLIC_NETWORK_PASSPHRASE}
 
@@ -62,6 +62,7 @@ class StellarClient(JSConfigClient):
         self.address = kp.public_key
         self.preauth_txs = {}
         self._unlock_service_client_ = None
+        self._transaction_fund_client_ = None
 
     @property
     def _unlock_service_client(self):
@@ -73,19 +74,43 @@ class StellarClient(JSConfigClient):
             gedis_client_name = "unlock_service_{}".format(str(self.network))
             if j.clients.gedis.exists(gedis_client_name):
                 c = j.clients.gedis.get(gedis_client_name)
-                if str(c.host) != _UNLOCKHASH_TRANSACTIONS_SERVICES[str(self.network)]:
+                if str(c.host) != _THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES[str(self.network)]:
                     j.clients.gedis.delete(gedis_client_name)
 
             if not j.clients.gedis.exists(gedis_client_name):
                 c = j.clients.gedis.new(
                     gedis_client_name,
-                    host=_UNLOCKHASH_TRANSACTIONS_SERVICES[str(self.network)],
+                    host=_THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES[str(self.network)],
                     port=8901,
                     package_name="threefoldfoundation.unlock_service",
                 )
 
             self._unlock_service_client_ = c.actors.unlock_service
         return self._unlock_service_client_
+
+    @property
+    def _transaction_fund_client(self):
+        """
+        lazy loading of the unlock service client
+        """
+
+        if self._transaction_fund_client_ is None:
+            gedis_client_name = "transactionfunding_service_{}".format(str(self.network))
+            if j.clients.gedis.exists(gedis_client_name):
+                c = j.clients.gedis.get(gedis_client_name)
+                if str(c.host) != _THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES[str(self.network)]:
+                    j.clients.gedis.delete(gedis_client_name)
+
+            if not j.clients.gedis.exists(gedis_client_name):
+                c = j.clients.gedis.new(
+                    gedis_client_name,
+                    host=_THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES[str(self.network)],
+                    port=8901,
+                    package_name="threefoldfoundation.transactionfunding_service",
+                )
+
+            self._transaction_fund_client_ = c.actors.transactionfunding_service
+        return self._transaction_fund_client_
 
     def set_unlock_transaction(self, unlock_transaction):
         """
@@ -307,7 +332,7 @@ class StellarClient(JSConfigClient):
             self.log_debug(e)
             raise e
 
-    def transfer(self, destination_address, amount, asset="XLM", locked_until=None, memo_text=None, memo_hash=None):
+    def transfer(self, destination_address, amount, asset="XLM", locked_until=None, memo_text=None, memo_hash=None, fund_transaction=True):
         """Transfer assets to another address
         :param destination_address: address of the destination.
         :type destination_address: str
@@ -323,6 +348,8 @@ class StellarClient(JSConfigClient):
         :type: Union[str, bytes]
         :param memo_hash: optional memo hash to add to the transaction, A 32 byte hash
         :type: Union[str, bytes]
+        :param fund_transaction: use the threefoldfoundation transaction funding service
+        :type: fund_transaction: bool
         """
         issuer = None
         self._log_info("Sending {} {} to {}".format(amount, asset, destination_address))
@@ -347,7 +374,7 @@ class StellarClient(JSConfigClient):
             source_account=source_account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee
         )
         transaction_builder.append_payment_op(
-            destination=destination_address, amount=str(amount), asset_code=asset, asset_issuer=issuer
+            destination=destination_address, amount=str(amount), asset_code=asset, asset_issuer=issuer, source=source_public_key
         )
         transaction_builder.set_timeout(30)
         if memo_text is not None:
@@ -356,7 +383,14 @@ class StellarClient(JSConfigClient):
             transaction_builder.add_hash_memo(memo_hash)
 
         transaction = transaction_builder.build()
+        transaction = transaction.to_xdr()
 
+        if asset == "TFT" or asset == "FreeTFT":
+            if fund_transaction:
+                transaction = self._transaction_fund_client.fund_transaction(transaction=transaction)
+                transaction = transaction.transaction_xdr
+
+        transaction = TransactionEnvelope.from_xdr(transaction, _NETWORK_PASSPHRASES[str(self.network)])
         transaction.sign(source_keypair)
 
         try:
@@ -365,14 +399,17 @@ class StellarClient(JSConfigClient):
             self._log_info("Transaction hash: {}".format(tx_hash))
             return tx_hash
         except BadRequestError as e:
-            for op in e.extras['result_codes']['operations']:
-                if op == "op_underfunded":
-                    raise e
-                # if op_bad_auth is returned then we assume the transaction needs more signatures 
-                # so we return the transaction as xdr
-                elif op == "op_bad_auth":
-                    self._log_info("Transaction might need additional signatures in order to send")
-                    return transaction.to_xdr()
+            result_codes = e.extras.get("result_codes")
+            operations = result_codes.get("operations")
+            if operations is not None:
+                for op in operations:
+                    if op == "op_underfunded":
+                        raise e
+                    # if op_bad_auth is returned then we assume the transaction needs more signatures 
+                    # so we return the transaction as xdr
+                    elif op == "op_bad_auth":
+                        self._log_info("Transaction might need additional signatures in order to send")
+                        return transaction.to_xdr()
             raise e
 
     def list_transactions(self, address=None):
