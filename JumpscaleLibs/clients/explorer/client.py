@@ -34,9 +34,9 @@ class Explorer(JSConfigClient):
     @property
     def gateway(self):
         if self._gateway is None:
-            parsedurl = urlparse(self.url)
+            gatewayhost = urlparse(self.url).hostname.replace("explorer", "gateway")
             gedisclient = j.clients.gedis.get(
-                name=f"{self.name}_gateway", host=parsedurl.hostname, package_name="tfgrid.gateway"
+                name=f"{self.name}_gateway", host=gatewayhost, package_name="tfgrid.gateway"
             )
             self._gateway = gedisclient.actors.gateway
         return self._gateway
