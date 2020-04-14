@@ -461,13 +461,13 @@ class Sheet(j.baseclasses.object):
             max_size = 0
             # walk over all values, find max length & pad & round
             for key in keys:
-                str_length = len(r[key][x])
+                str_length = len(str(r[key][x]))
                 if str_length > max_size:
                     max_size = str_length
 
             # walk over all values,
             for key in keys:
-                r[key][x] = j.core.text.padleft(r[key][x], max_size)
+                r[key][x] = j.core.text.padleft(str(r[key][x]), max_size)
 
         return r
 
