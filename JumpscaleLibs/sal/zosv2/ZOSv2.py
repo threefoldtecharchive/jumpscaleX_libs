@@ -63,7 +63,13 @@ class Zosv2(j.baseclasses.object):
         return self._explorer.reservations.new()
 
     def reservation_register(
-        self, reservation, expiration_date, identity=None, expiration_provisioning=None, customer_tid=None
+        self,
+        reservation,
+        expiration_date,
+        identity=None,
+        expiration_provisioning=None,
+        customer_tid=None,
+        currencies=["TFT"],
     ):
         """
         register a reservation in BCDB
@@ -77,6 +83,8 @@ class Zosv2(j.baseclasses.object):
         :param expiration_provisioning: timestamp of the date when to reservation should be provisionned
                                         if the reservation is not provisioning before this time, it will never be provionned
         :type expiration_provisioning: int, optional
+        :param currencies: list of currency asset code you want pay the reservation with
+        :type: currencies: list of string
         :return: reservation create result
         :rtype: tfgrid.workloads.reservation.create.1
         """
@@ -87,6 +95,7 @@ class Zosv2(j.baseclasses.object):
             expiration_provisioning = j.data.time.epoch + (3600 * 24 * 365)
 
         dr = reservation.data_reservation
+        dr.currencies = currencies
 
         dr.expiration_provisioning = expiration_provisioning
         dr.expiration_reservation = expiration_date
