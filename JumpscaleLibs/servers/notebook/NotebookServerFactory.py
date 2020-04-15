@@ -97,7 +97,8 @@ class NotebookServerFactory(j.baseclasses.object):
     def get_cmd(self, path=None, background=False, voila=False, base_url=None, ip="0.0.0.0", port=8005):
 
         if not voila:
-            cmd = "jupyter lab --NotebookApp.allow_remote_access=True --NotebookApp.token=''"
+            cmd = "jupyter serverextension enable --py jupyterlab_code_formatter;"
+            cmd += "jupyter lab --NotebookApp.allow_remote_access=True --NotebookApp.token=''"
             cmd += f" --NotebookApp.password='' --ip={ip} --port={port} --allow-root"
         else:
             cmd = f"voila --Voila.ip={ip}  --Voila.port={port}"
