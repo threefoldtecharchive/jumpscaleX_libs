@@ -35,6 +35,8 @@ domain_delegates = (LO) !tfgrid.workloads.reservation.gateway.delegate.1
 expiration_provisioning = (T)
 #till whe is reservation valid
 expiration_reservation = (T)
+# list of currency the user is able to pay with
+currencies = (LS)
 
 @url = tfgrid.workloads.reservation.signing.request.1
 #part of the reservation.data, because should never be possible to delete this
@@ -57,6 +59,7 @@ escrow_information = (O) !tfgrid.workloads.reservation.escrow.1
 
 @url = tfgrid.workloads.reservation.escrow.1
 address = (S)
+asset = (S) # the token asset code of the currency the reservation needs to be paid with
 details = (LO) !tfgrid.workloads.reservation.escrow.detail.1
 
 @url = tfgrid.workloads.reservation.escrow.detail.1
