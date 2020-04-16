@@ -23,6 +23,7 @@ except (ModuleNotFoundError, ImportError):
 
 from stellar_sdk import Server, Keypair, TransactionBuilder, Network, TransactionEnvelope, strkey
 from stellar_sdk.exceptions import BadRequestError
+from stellar_sdk import Account as stellarAccount
 from urllib import parse
 import time
 import decimal
@@ -39,6 +40,24 @@ _HORIZON_NETWORKS = {"TEST": "https://horizon-testnet.stellar.org", "STD": "http
 _NETWORK_PASSPHRASES = {"TEST": Network.TESTNET_NETWORK_PASSPHRASE, "STD": Network.PUBLIC_NETWORK_PASSPHRASE}
 
 
+class Account(stellarAccount):
+    def __init__(self, account_id: str, sequence: int, wallet) -> None:
+        stellarAccount.__init__(self, account_id, sequence)
+        self.wallet = wallet
+
+    def increment_sequence_number(self) -> None:
+        """
+        Increments sequence number in this object by one.
+        """
+        stellarAccount.increment_sequence_number(self)
+        self.wallet.sequence = self.sequence
+        self.wallet.sequencedate = int(time.time())
+    
+    @property
+    def last_created_sequence_is_used(self):
+         return self.wallet.sequence <= self.sequence 
+
+
 class StellarClient(JSConfigClient):
     """
     Stellar client object
@@ -50,7 +69,8 @@ class StellarClient(JSConfigClient):
         network** = "STD,TEST" (E)
         address = (S)
         secret = (S)
-        preauth_txs = (dict)
+        sequence = 0 (I64)
+        sequencedate = 0 (T)
         """
 
     def _init(self, **kwargs):
@@ -60,9 +80,17 @@ class StellarClient(JSConfigClient):
         else:
             kp = Keypair.from_secret(self.secret)
         self.address = kp.public_key
-        self.preauth_txs = {}
         self._unlock_service_client_ = None
         self._transaction_fund_client_ = None
+
+    def _get_horizon_server(self):
+        return Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
+
+    def load_account(self) -> Account:
+        horizonServer = self._get_horizon_server()
+        saccount = horizonServer.load_account(str(self.address))
+        jsx_account = Account(saccount.account_id, saccount.sequence, self)
+        return jsx_account
 
     @property
     def _unlock_service_client(self):
@@ -123,9 +151,6 @@ class StellarClient(JSConfigClient):
         unlock_hash = strkey.StrKey.encode_pre_auth_tx(tx_hash)
 
         self._unlock_service_client.create_unlockhash_transaction(unlock_hash=unlock_hash, transaction_xdr=txe.to_xdr())
-
-    def _get_horizon_server(self):
-        return Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
 
     def _get_free_balances(self, address=None):
         if address is None:
@@ -253,9 +278,9 @@ class StellarClient(JSConfigClient):
         :type assetcode: str
         """
         server = self._get_horizon_server()
-        source = Keypair.from_secret(self.secret)
+        source_keypair = Keypair.from_secret(self.secret)
 
-        source_account = server.load_account(account_id=source.public_key)
+        source_account = self.load_account()
 
         base_fee = server.fetch_base_fee()
         transaction = (
@@ -267,7 +292,7 @@ class StellarClient(JSConfigClient):
             .append_create_account_op(destination=destination_address, starting_balance=starting_balance)
             .build()
         )
-        transaction.sign(source)
+        transaction.sign(source_keypair)
         try:
             response = server.submit_transaction(transaction)
             self._log_info("Transaction hash: {}".format(response["hash"]))
@@ -363,12 +388,10 @@ class StellarClient(JSConfigClient):
         if locked_until is not None:
             return self._transfer_locked_tokens(destination_address, amount, asset, issuer, locked_until)
 
-        server = self._get_horizon_server()
         source_keypair = Keypair.from_secret(self.secret)
-        source_public_key = source_keypair.public_key
-        source_account = server.load_account(source_public_key)
-
-        base_fee = server.fetch_base_fee()
+        source_account = self.load_account()
+        horizon_server = self._get_horizon_server()
+        base_fee = horizon_server.fetch_base_fee()
 
         transaction_builder = TransactionBuilder(
             source_account=source_account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee
@@ -394,7 +417,7 @@ class StellarClient(JSConfigClient):
         transaction.sign(source_keypair)
 
         try:
-            response = server.submit_transaction(transaction)
+            response = horizon_server.submit_transaction(transaction)
             tx_hash = response["hash"]
             self._log_info("Transaction hash: {}".format(tx_hash))
             return tx_hash
@@ -494,8 +517,8 @@ class StellarClient(JSConfigClient):
         escrow_kp = Keypair.random()
 
         # minimum account balance as described at https://www.stellar.org/developers/guides/concepts/fees.html#minimum-account-balance
-        server = self._get_horizon_server()
-        base_fee = server.fetch_base_fee()
+        horizon_server = self._get_horizon_server()
+        base_fee = horizon_server.fetch_base_fee()
         base_reserve = 0.5
         minimum_account_balance = (2 + 1 + 3) * base_reserve  # 1 trustline and 3 signers
         required_XLM = minimum_account_balance + base_fee * 0.0000001 * 3
@@ -522,8 +545,8 @@ class StellarClient(JSConfigClient):
         return preauth_tx.to_xdr()
 
     def _create_unlock_transaction(self, escrow_kp, unlock_time):
-        server = self._get_horizon_server()
-        escrow_account = server.load_account(escrow_kp.public_key)
+        horizon_server = self._get_horizon_server()
+        escrow_account = horizon_server.load_account(escrow_kp.public_key)
         escrow_account.increment_sequence_number()
         tx = (
             TransactionBuilder(escrow_account)
@@ -535,8 +558,11 @@ class StellarClient(JSConfigClient):
         return tx
 
     def _set_account_signers(self, address, public_key_signer, preauth_tx_hash, signer_kp):
-        server = self._get_horizon_server()
-        account = server.load_account(address)
+        horizon_server = self._get_horizon_server()
+        if address == self.address:
+            account = self.load_account()
+        else:
+            account = horizon_server.load_account(address)
         tx = (
             TransactionBuilder(account)
             .append_pre_auth_tx_signer(preauth_tx_hash, 1)
@@ -546,7 +572,7 @@ class StellarClient(JSConfigClient):
         )
 
         tx.sign(signer_kp)
-        response = server.submit_transaction(tx)
+        response = horizon_server.submit_transaction(tx)
         self._log_info(response)
         self._log_info(
             "Set the signers of {address} to {pk_signer} and {preauth_hash_signer}".format(
@@ -571,8 +597,7 @@ class StellarClient(JSConfigClient):
                 "Number of public_keys must be 1 less than the signature count in order to set the signature count"
             )
 
-        server = self._get_horizon_server()
-        account = server.load_account(self.address)
+        account = self.load_account()
         source_keypair = Keypair.from_secret(self.secret)
 
         transaction_builder = TransactionBuilder(account)
@@ -589,8 +614,9 @@ class StellarClient(JSConfigClient):
         tx = transaction_builder.build()
         tx.sign(source_keypair)
 
+        horizon_server = self._get_horizon_server()
         try:
-            response = server.submit_transaction(tx)
+            response = horizon_server.submit_transaction(tx)
             self._log_info(response)
             self._log_info(
                 "Set the signers of {address} to require {signature_count} signers".format(
@@ -627,13 +653,15 @@ class StellarClient(JSConfigClient):
         :param public_key_signer: public key of an account
         :type public_key_signer: str
         """
-        server = self._get_horizon_server()
-        account = server.load_account(self.address)
+
+        account = self.load_account()
         tx = TransactionBuilder(account).append_ed25519_public_key_signer(public_key_signer, 0).build()
 
         source_keypair = Keypair.from_secret(self.secret)
 
         tx.sign(source_keypair)
+
+        server = self._get_horizon_server()
         try:
             response = server.submit_transaction(tx)
             self._log_info(response)
