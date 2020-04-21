@@ -18,7 +18,10 @@ class ExplorerClientFactory(JSConfigs):
     def default_addr_set(self, value):
         j.core.myenv.config["EXPLORER_ADDR"] = value
         j.core.myenv.config_save()
-        self._explorer = None
+        if self._explorer:
+            url = f"https://{value}/explorer"
+            self._explorer = self.get(name="explorer", url=url, reload=True)
+            self._explorer._init()  # force reload
 
     @property
     def default(self):
