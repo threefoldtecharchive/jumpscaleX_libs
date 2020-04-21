@@ -1,9 +1,11 @@
 @url = tfgrid.workloads.reservation.workload.1
 workload_id = (S)
 user = (S)
-type = "zdb,container,volume,network,kubernetes" (E)
+type = "zdb,container,volume,network,kubernetes,proxie,reserve_proxie,subdomain,domain_delegate" (E)
 content = (dict)
 created = (T)
 duration = (I)
 signature = (S)
 to_delete = (B)
+
+
