@@ -8,7 +8,7 @@ from .node_finder import NodeFinder
 from .volumes import VolumesGenerator
 from .zdb import ZDBGenerator
 from .billing import Billing
-from .gateway import Gateway
+from .gateway import GatewayGenerator
 
 
 class Zosv2(j.baseclasses.object):
@@ -23,7 +23,7 @@ class Zosv2(j.baseclasses.object):
         self._zdb = ZDBGenerator(self._explorer)
         self._kubernetes = K8sGenerator(self._explorer)
         self._billing = Billing()
-        self._gateway = Gateway(self._explorer)
+        self._gateway = GatewayGenerator()
 
     @property
     def network(self):
@@ -44,6 +44,10 @@ class Zosv2(j.baseclasses.object):
     @property
     def kubernetes(self):
         return self._kubernetes
+
+    @property
+    def gateway(self):
+        return self._gateway
 
     @property
     def nodes_finder(self):
