@@ -10,16 +10,26 @@ class ExplorerClientFactory(JSConfigs):
 
     def _init(self, **kwargs):
         self._explorer = None
+        basepath = j.core.tools.text_replace(
+            "{DIR_CODE}/github/threefoldtech/jumpscaleX_libs/JumpscaleLibs/clients/explorer/models/"
+        )
+        j.data.schema.add_from_path(basepath)
 
     def default_addr_set(self, value):
         j.core.myenv.config["EXPLORER_ADDR"] = value
         j.core.myenv.config_save()
-        self._explorer = None
+        if self._explorer:
+            url = f"https://{value}/explorer"
+            self._explorer = self.get(name="explorer", url=url, reload=True)
+            self._explorer._init()  # force reload
 
     @property
     def default(self):
         if not self._explorer:
             addr = j.core.myenv.config.get("EXPLORER_ADDR", "localhost")
             url = f"https://{addr}/explorer"
-            self._explorer = j.baseclasses.object_config_collection_testtools.get(self, name="explorer", url=url)
+
+            # please don't restore it it will get assertion error as obj._schema not equal schema
+            # at: https://github.com/threefoldtech/jumpscaleX_core/issues/718
+            self._explorer = self.get(name="explorer", url=url)
         return self._explorer

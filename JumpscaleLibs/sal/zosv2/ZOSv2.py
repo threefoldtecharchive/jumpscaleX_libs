@@ -2,14 +2,12 @@ import netaddr
 from Jumpscale import j
 
 from .container import ContainerGenerator
-from .id import _next_workload_id
 from .kubernetes import K8sGenerator
 from .network import NetworkGenerator
 from .node_finder import NodeFinder
 from .volumes import VolumesGenerator
 from .zdb import ZDBGenerator
 from .billing import Billing
-from .resource import ResourceParser
 from .gateway import Gateway
 
 
@@ -24,9 +22,8 @@ class Zosv2(j.baseclasses.object):
         self._volume = VolumesGenerator()
         self._zdb = ZDBGenerator(self._explorer)
         self._kubernetes = K8sGenerator(self._explorer)
-        self._billing = Billing(self._explorer)
-        # TODO: gateway is not implemented in bcdb_mock
-        # self._gateway = Gateway(self._explorer)
+        self._billing = Billing()
+        self._gateway = Gateway(self._explorer)
 
     @property
     def network(self):
@@ -70,7 +67,7 @@ class Zosv2(j.baseclasses.object):
     ):
         """
         register a reservation in BCDB
-        
+
         :param reservation: reservation object
         :type reservation:  tfgrid.workloads.reservation.1
         :param expiration_date: timestamp of the date when to expiration should expire
@@ -80,10 +77,10 @@ class Zosv2(j.baseclasses.object):
         :param expiration_provisioning: timestamp of the date when to reservation should be provisionned
                                         if the reservation is not provisioning before this time, it will never be provionned
         :type expiration_provisioning: int, optional
-        :return: reservation ID
-        :rtype: int
+        :return: reservation create result
+        :rtype: tfgrid.workloads.reservation.create.1
         """
-        me = identity if identity else j.tools.threebot.me.default
+        me = identity if identity else j.me
         reservation.customer_tid = me.tid
 
         if expiration_provisioning is None:
@@ -97,20 +94,20 @@ class Zosv2(j.baseclasses.object):
         dr.signing_request_provision.quorum_min = 0
 
         # make the reservation cancellable by the user that registered it
-        dr.signing_request_delete.signers.append(me.tid)
+        if me.tid not in dr.signing_request_delete.signers:
+            dr.signing_request_delete.signers.append(me.tid)
         dr.signing_request_delete.quorum_min = len(dr.signing_request_delete.signers)
 
         reservation.json = dr._json
-        reservation.customer_signature = me.nacl.sign_hex(reservation.json.encode())
+        reservation.customer_signature = me.encryptor.sign_hex(reservation.json.encode())
 
-        id = self._explorer.reservations.create(reservation)
-        return id
+        return self._explorer.reservations.create(reservation)
 
     def reservation_accept(self, reservation, identity=None):
         """
         A farmer need to use this function to notify he accepts to deploy the reservation
         on his node
-        
+
         :param reservation: reservation object
         :type reservation:  tfgrid.workloads.reservation.1
         :param identity: identity to use
@@ -118,10 +115,10 @@ class Zosv2(j.baseclasses.object):
         :return: returns true if not error,raise an exception otherwise
         :rtype: bool
         """
-        me = identity if identity else j.tools.threebot.me.default
+        me = identity if identity else j.myidentities.me
 
         reservation.json = reservation.data_reservation._json
-        signature = me.nacl.sign_hex(reservation.json.encode())
+        signature = me.encryptor.sign_hex(reservation.json.encode())
         # TODO: missing sign_farm
         # return self._explorer.reservations.sign_farmer(reservation.id, me.tid, signature)
 
@@ -154,7 +151,7 @@ class Zosv2(j.baseclasses.object):
         you can only cancel your own reservation
         Once a reservation is cancelled, it is marked as to be deleted in BCDB
         the 0-OS node then detects it an will decomission the workloads from the reservation
-        
+
         :param reservation_id: reservation id
         :type reservation_id: int
         :param identity: identity to use
@@ -162,18 +159,17 @@ class Zosv2(j.baseclasses.object):
         :return: true if the reservation has been cancelled successfully
         :rtype: bool
         """
-        me = identity if identity else j.tools.threebot.me.default
+        me = identity if identity else j.myidentities.me
 
         reservation = self.reservation_get(reservation_id)
-        payload = j.data.nacl.payload_build(reservation.id, reservation.json.encode())
-        signature = me.nacl.sign_hex(payload)
+        payload = j.me.encryptor.payload_build(reservation.id, reservation.json.encode())
+        signature = me.encryptor.sign_hex(payload)
 
         return self._explorer.reservations.sign_delete(reservation_id=reservation_id, tid=me.tid, signature=signature)
 
-    def reservation_list(self, tid=None):
-        tid = tid if tid else j.tools.threebot.me.default.tid
-        result = self._explorer.reservations.list()
-        return list(filter(lambda r: r.customer_tid == tid, result))
+    def reservation_list(self, tid=None, next_action=None):
+        tid = tid if tid else j.myidentities.me.tid
+        return self._explorer.reservations.list(customer_tid=tid, next_action=next_action)
 
     def reservation_store(self, reservation, path):
         """
@@ -201,7 +197,7 @@ class Zosv2(j.baseclasses.object):
         return reservation_model.new(datadict=r)
 
     def reservation_live(self, expired=False, cancelled=False, identity=None):
-        me = identity if identity else j.tools.threebot.me.default
+        me = identity if identity else j.myidentities.me
         rs = self._explorer.reservations.list()
 
         now = j.data.time.epoch
@@ -245,3 +241,72 @@ class Zosv2(j.baseclasses.object):
                     continue
 
                 print(f"network name:{network.name} iprage:{network.iprange}")
+
+    def reservation_failed(self, reservation):
+        """
+        checks if reservation failed.
+        :param reservation: reservation object
+        :type reservation: tfgrid.workloads.reservation.1
+        :return: true if the reservation has any of its results in state ERROR.
+        :rtype: bool
+        """
+        return any(map(lambda x: x == "ERROR", [x.state for x in reservation.results]))
+
+    def reservation_ok(self, reservation):
+        """
+        checks if reservation succeeded.
+        :param reservation: reservation object
+        :type reservation: tfgrid.workloads.reservation.1
+        :return: true if the reservation has all of its results in state OK.
+        :rtype: bool
+        """
+
+        return all(map(lambda x: x == "OK", [x.state for x in reservation.results]))
+
+    def _escrow_to_qrcode(self, escrow_address, total_amount, message="Grid resources fees"):
+        """
+        Converts escrow info to qrcode
+        :param escrow_address: escrow address
+        :type escrow_address: str
+        :param total_amount: total amount of the escrow
+        :type total_amount: float
+        :param message: message encoded in the qr code
+        :type message: str
+
+        :return: escrow encoded for QR code usage
+        :rtype: str
+        """
+        qrcode = f"tft:{escrow_address}?amount={total_amount}&message={message}&sender=me"
+        return qrcode
+
+    def reservation_escrow_information_with_qrcodes(self, reservation_create_resp):
+        """
+        Extracts escrow information from reservation create response as a dict and adds qrcode to it
+
+        :param reservation_create_resp: reservation create object, returned from reservation_register
+        :type reservation_create_resp: tfgrid.workloads.reservation.create.1
+        :return:  payment info (escrow_address,[farmer_payments],total_amount,escrow encoded for QR code usage e.g [{'escrow_address': 'GACMBAK2IWHGNTAG5WOVELJWUTPOXA2QY2Y23PAXNRKOYFTCBWICXNDO', 'total_amount': 0.586674, 'farmer_id': 10, 'qrcode': 'tft:GACMBAK2IWHGNTAG5WOVELJWUTPOXA2QY2Y23PAXNRKOYFTCBWICXNDO?amount=0.586674&message=Grid resources fees for farmer 10&sender=me'}])
+        :rtype: dict
+        """
+
+        PAYMENT_MSG_TEMPLATE = "Grid resources fees for farmer {}"
+        farmer_payments = []
+        escrow_address = reservation_create_resp.escrow_information.address
+        total_amount = 0
+        for detail in reservation_create_resp.escrow_information.details:
+            farmer_id = detail.farmer_id
+            farmer_amount = detail.total_amount / 10e6
+
+            total_amount += farmer_amount
+
+            farmer_payments.append({"farmer_id": farmer_id, "total_amount": farmer_amount})
+
+        qrcode = self._escrow_to_qrcode(escrow_address, total_amount, PAYMENT_MSG_TEMPLATE.format(farmer_id))
+
+        info = {}
+        info["escrow_address"] = escrow_address
+        info["farmer_payments"] = farmer_payments
+        info["total_amount"] = total_amount
+        info["qrcode"] = qrcode
+
+        return info

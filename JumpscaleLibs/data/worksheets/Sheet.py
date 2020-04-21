@@ -22,32 +22,63 @@ class Sheet(j.baseclasses.object):
             self.headers = headers
             self.nrcols = len(self.headers)
 
-        self.rows = {}
+        self.rows = j.baseclasses.dict()
         self.rowNames = []
 
-    # def _obj2dict(self):
-    # ddict={}
-    # ddict["name"]=self.name
-    # ddict["headers"]=self.headers
-    # ddict["nrcols"]=self.nrcols
-    # ddict["rows"]=[item.obj2dict() for item in self.rows]
-    # return ddict
+    def clean(self):
+        for row in self.rows.values():
+            row.clean()
 
-    def _dict2obj(self, dict):
+    def export_(self):
+        ddict = {}
+        ddict["name"] = self.name
+        ddict["headers"] = self.headers
+        ddict["period"] = self.period
+        ddict["nrcols"] = self.nrcols
+        ddict["rows"] = {}
+        for key, item in self.rows.items():
+            ddict["rows"][key] = item.export_()
+        return ddict
+
+    def import_(self, dict):
         self.name = dict["name"]
         self.headers = dict["headers"]
         self.nrcols = dict["nrcols"]
-        slf.period = dict["period"]
+        self.period = dict["period"]
         for key in list(dict["rows"].keys()):
             item = dict["rows"][key]
-            row = j.tools.code.dict2object(Row(), item)
+            row = Row(sheet=self)
+            row.import_(item)
             self.rows[row.name] = row
+
+    def copy(self, name, row, ttype=None, aggregate=None, description="", defval=None, empty=False):
+        if not ttype:
+            ttype = row.ttype
+
+        if not aggregate:
+            aggregate = row.aggregate_type
+
+        row = self.addRow(
+            name=name,
+            ttype=ttype,
+            aggregate=aggregate,
+            groupname=row.groupname,
+            description=description,
+            groupdescr=row.groupdescr,
+            nrcols=row.nrcols,
+            values=row.cells,
+        )
+
+        if empty:
+            row.empty()
+
+        return row
 
     def addRow(
         self,
         name,
         ttype="float",
-        aggregate="T",
+        aggregate="SUM",
         description="",
         groupname="",
         groupdescr="",
@@ -56,35 +87,39 @@ class Sheet(j.baseclasses.object):
         values=[],
         defval=None,
         nrfloat=None,
+        empty=False,
     ):
         """
         @param ttype int,perc,float,empty,str
-        @param aggregate= T,A,MIN,MAX
+        @param aggregate= T,A,MIN,MAX,SUM
         @param values is array of values to insert
         @param defval is default value for each col
         @param round is only valid for float e.g. 2 after comma
         """
         if nrcols is None:
             nrcols = self.nrcols
-        if ttype == "float" and nrfloat is None:
+        if (ttype == "float" or isinstance(ttype, j.data.types._float)) and nrfloat is None:
             nrfloat = 2
         row = Row(
-            name,
-            ttype,
-            nrcols,
-            aggregate,
+            name=name,
+            ttype=ttype,
+            nrcols=nrcols,
+            aggregate=aggregate,
             description=description,
             groupname=groupname,
             groupdescr=groupdescr,
-            format=format,
             defval=defval,
             nrfloat=nrfloat,
+            sheet=self,
         )
         self.rows[name] = row
         self.rowNames.append(name)
         if values != []:
             for x in range(nrcols):
                 self.setCell(name, x, values[x])
+            row.clean()
+        if empty:
+            row.empty()
         return self.rows[name]
 
     # def renting(self,row,interest,nrmonths):
@@ -403,10 +438,70 @@ class Sheet(j.baseclasses.object):
         newRow = self.applyFunctionOnValuesFromRows(rownames, mult, newRow)
         return newRow
 
+    def text_dict(self, period="B", aggregate_type="S"):
+        """
+        returns a dict
+
+        dict[key]=list of values of equal string size & rounded
+        """
+        keys = [i for i in self.rows.keys()]
+        keys.sort()
+        r = {}
+        max_size = {}
+
+        for key in keys:
+            row = self.rows[key]
+            r[key] = row.aggregate(period=period, aggregate_type=aggregate_type, text=True)
+
+        nrcols = len(r[keys[0]])
+
+        for x in range(nrcols):
+            # go over the rows
+            # now per col find the max size
+            max_size = 0
+            # walk over all values, find max length & pad & round
+            for key in keys:
+                str_length = len(str(r[key][x]))
+                if str_length > max_size:
+                    max_size = str_length
+
+            # walk over all values,
+            for key in keys:
+                r[key][x] = j.core.text.padleft(str(r[key][x]), max_size)
+
+        return r
+
+    def text_formatted(self, period="B", aggregate_type=None, exclude=None):
+
+        if not exclude:
+            exclude = []
+
+        r = self.text_dict(period=period, aggregate_type=aggregate_type)
+
+        out = ""
+        keys = [i for i in self.rows.keys()]
+        keys.sort()
+
+        # find max size of key
+        l = 0
+        for key in keys:
+            if len(key) > l:
+                l = len(key)
+
+        for key in keys:
+            if key in exclude:
+                continue
+            key2 = j.core.text.pad(key, l)
+            res2 = "| ".join(r[key])
+            out += f" - {key2} {res2}\n"
+
+        return out
+
     def __str__(self):
-        result = ""
-        for row in self.rows:
-            result += "%s\n" % row
-        return result
+        return self.text_formatted(period="B", aggregate_type=None)
+        # result = ""
+        # for row in self.rows.values():
+        #     result += "%s\n" % row
+        # return result
 
     __repr__ = __str__

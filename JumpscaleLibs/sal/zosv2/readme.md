@@ -37,10 +37,10 @@ wg_config = zos.network.add_access(network, node.node_id, "172.24.100.0/24", ipv
 
 expiration = j.data.time.epoch + (3600 * 24 * 365)
 # register the reservation
-rid = zos.reservation_register(r, expiration)
+registered_reservation = zos.reservation_register(r, expiration)
 time.sleep(5)
 # inspect the result of the reservation provisioning
-result = zos.reservation_result(rid)
+result = zos.reservation_result(registered_reservation.reservation_id)
 
 print("wireguard configuration")
 print(wg_config)
@@ -102,10 +102,10 @@ zos.container.create(reservation=r,
 # reserve until now + (x) seconds
 expiration = j.data.time.epoch + (10*60)
 # register the reservation
-rid = zos.reservation_register(r, expiration)
+registered_reservation = zos.reservation_register(r, expiration)
 time.sleep(5)
 # inspect the result of the reservation provisioning
-result = zos.reservation_result(rid)
+result = zos.reservation_result(registered_reservation.reservation_id)
 
 print("provisioning result")
 print(result)
@@ -148,10 +148,10 @@ worker = zos.kubernetes.add_worker(
 
 expiration = j.data.time.epoch + (3600 * 24 * 365)
 # register the reservation
-rid = zos.reservation_register(r, expiration)
+registered_reservation = zos.reservation_register(r, expiration)
 time.sleep(120)
 # inspect the result of the reservation provisioning
-result = zos.reservation_result(rid)
+result = zos.reservation_result(registered_reservation.reservation_id)
 
 print("provisioning result")
 print(result)
@@ -181,15 +181,16 @@ zos.zdb.create(
 
 expiration = j.data.time.epoch + (3600 * 24)
 # register the reservation
-rid = zos.reservation_register(r, expiration)
+registered_reservation = zos.reservation_register(r, expiration)
 time.sleep(5)
 # inspect the result of the reservation provisioning
-result = zos.reservation_result(rid)
+result = zos.reservation_result(registered_reservation.reservation_id)
 
 print("provisioning result")
 print(result)
 ```
 
+## Example : deploy minio container
 
 ```python
 password = "supersecret"
@@ -199,21 +200,27 @@ nodes = zos.nodes_finder.nodes_search(sru=10)
 nodes = list(filter(zos.nodes_finder.filter_is_up,nodes))
 nodes = nodes[:3]
 
-# create a reservation
-r = zos.reservation_create()
+# find a node where to run the minio container itself
+# make sure this node is part of your overlay network
+nodes = zos.nodes_finder.nodes_search(sru=10)
+nodes = list(filter(zos.nodes_finder.filter_is_up,nodes))
+minio_node = nodes[0]
+
+# create a reservation for the 0-DBs
+reservation_storage = zos.reservation_create()
 # reservation some 0-db namespaces
 for node in nodes:
     zos.zdb.create(
-        reservation=r,
+        reservation=reservation_storage,
         node_id=node.node_id,
         size=10,
         mode='seq',
         password='supersecret',
         disk_type="SSD",
         public=False)
-
-rid = zos.reservation_register(r, j.data.time.epoch+(60*60))
-results = zos.reservation_result(rid)
+volume = zos.volume.create(reservation_storage,minio_node.node_id,size=10,type='SSD')
+zdb_rid = zos.reservation_register(reservation_storage, j.data.time.epoch+(60*60))
+results = zos.reservation_result(zdb_rid)
 
 # read the IP address of the 0-db namespaces after they are deployed
 # we will need these IPs when creating the minio container
@@ -223,18 +230,16 @@ for result in results:
     cfg = f"{data['Namespace']}:{password}@[{data['IP']}]:{data['Port']}"
     namespace_config.append(cfg)
 
-# find a node where to run the minio container itself
-# make sure this node is part of your overlay network
-nodes = zos.nodes_finder.nodes_search(sru=10)
-nodes = list(filter(zos.nodes_finder.filter_is_up,nodes))
-minio_node = nodes[0]
 
+# create a reservation for the minio container
+reservation_container = zos.reservation_create()
 
-zos.container.create(reservation=r,
+container = zos.container.create(
+    reservation=reservation_container,
     node_id="72CP8QPhMSpF7MbSvNR1TYZFbTnbRiuyvq5xwcoRNAib",
     network_name='zaibon_testnet_0', # this assume this network is already provisioned on the node
     ip_address='172.24.2.15',
-    flist='https://hub.grid.tf/azmy.3bot/minio.flist',
+    flist='https://hub.grid.tf/tf-official-apps/minio-2020-01-25T02-50-51Z.flist',
     entrypoint='/bin/entrypoint',
     cpu=2,
     memory=2048,
@@ -246,6 +251,45 @@ zos.container.create(reservation=r,
         "SECRET_KEY":"passwordpassword",
     })
 
-rid = zos.reservation_register(r, j.data.time.epoch+(60*60))
-results = zos.reservation_result(rid)
+zos.volume.attach_existing(
+    container=container,
+    volume_id=f'{zdb_rid}-{volume.workload_id}',
+    mount_point='/data')
+
+
+registered_reservation = zos.reservation_register(reservation_container, j.data.time.epoch+(60*60))
+results = zos.reservation_result(registered_reservation.reservation_id)
+```
+
+## Payment of a reservation
+
+```python
+import time
+
+explorer = j.clients.explorer.get(name="local")
+client = j.clients.stellar.get(name="client", network="TEST")
+
+# if you don't have a trustline to the issuer of TFT on stellar
+# trustline for testnet
+client.add_trustline("TFT", "GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3")
+
+# trustline for production
+client.add_trustline("TFT", "GBOVQKJYHXRR3DX6NOX2RRYFRCUMSADGDESTDNBDS6CDVLGVESRTAC47")
+
+zos = j.sal.zosv2
+
+# create a reservation
+r = zos.reservation_create()
+
+zos.volume.create(r, "72CP8QPhMSpF7MbSvNR1TYZFbTnbRiuyvq5xwcoRNAib", size=1, type='SSD')
+expiration = j.data.time.epoch + (3600 * 24 * 365)
+# register the reservation
+registered_reservation = zos.reservation_register(r, expiration)
+time.sleep(5)
+# inspect the result of the reservation provisioning
+result = zos.reservation_result(registered_reservation.reservation_id)
+
+print(result)
+# payout farmer
+zos.billing.payout_farmers(client, registered_reservation)
 ```

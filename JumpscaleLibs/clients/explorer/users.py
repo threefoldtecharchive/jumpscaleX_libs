@@ -5,9 +5,6 @@ class Users:
     def __init__(self, session, url):
         self._session = session
         self._base_url = url
-        j.data.schema.add_from_path(
-            "/sandbox/code/github/threefoldtech/jumpscaleX_threebot/ThreeBotPackages/tfgrid/phonebook/models"
-        )
         self._model = j.data.schema.get_from_url("tfgrid.phonebook.user.1")
 
     def list(self, name=None, email=None):
@@ -40,11 +37,20 @@ class Users:
         resp = self._session.post(url, json=data)
         return resp.json()["is_valid"]
 
-    def update(self, user):
-        resp = self._session.put(self._base_url + "/users", json=user._ddict)
+    def update(self, user, identity=None):
+        me = identity if identity else j.myidentities.me
+        datatosign = ""
+        datatosign += f"{user.id}{user.name}{user.email}"
+        if user.host:
+            datatosign += user.host
+        datatosign += f"{user.description}{user.pubkey}"
+        signature = me.encryptor.sign_hex(datatosign.encode("utf8"))
+        data = user._ddict.copy()
+        data["sender_signature_hex"] = signature.decode("utf8")
+        self._session.put(self._base_url + f"/users/{user.id}", json=data)
 
     def get(self, tid=None, name=None, email=None):
-        if tid != None:
+        if tid is not None:
             resp = self._session.get(self._base_url + f"/users/{tid}")
             return self._model.new(datadict=resp.json())
 

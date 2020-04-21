@@ -43,6 +43,8 @@ The returned string is the hash of the transaction.
 
 Send 1000 TFT to another address but time locked until within 10 minutes:
 
+> **For locked token support**: install following threebot package: [https://github.com/threefoldfoundation/tft-stellar/tree/master/ThreeBotPackages/unlock-service](https://github.com/threefoldfoundation/tft-stellar/tree/master/ThreeBotPackages/unlock-service)!
+
 ```python
 j.clients.stellar.my_wallet.transfer('<destination address>',"1000", asset="TFT:GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3", locked_until=time.time()+10*60)
 
@@ -118,3 +120,35 @@ j.clients.stellar.testwallet.get_transaction_effects('9c6888ea3d461aff4605246e9e
 ```
 
 As with `list_transactions`, an optional address can be supllied if the wanted transaction effects are not for the current wallet address.
+
+## Multisignature Transactions
+
+First convert your account to a multisignature account:
+
+In this example we create a multisignature account with 1 other wallet with 2 signatures that are needed in order to transfer funds.
+
+```python
+
+JSX> j.clients.stellar.my_wallet.modify_signing_requirements([otherwallet.address], 2)
+
+# transfer funds to a destination. Now transfer will return a transaction in xdr which needs to be signed
+JSX> tx_xdr = j.clients.stellar.my_wallet.transfer(destination_address, "5")
+
+# second signer to the multisig account needs to sign this transaction xdr in order to submit the transaction to the Stellar network.
+# in case there are more than 2 signers the ouput of this function also needs to be signed by the other signers of the multisignature account.
+JSX> j.clients.stellar.other_wallet.sign_multisig_transaction(tx_xdr)
+```
+
+If you need to remove a signer from a multisignature account:
+
+```python
+
+JSX> tx = j.clients.stellar.my_wallet.modify_signing_requirements([], 1)
+
+# second signer to the multisig account needs to sign this transaction xdr in order to submit the transaction to the Stellar network.
+# in case there are more than 2 signers the ouput of this function also needs to be signed by the other signers of the multisignature account.
+JSX> j.clients.stellar.other_wallet.sign_multisig_transaction(tx_xdr)
+
+# last step is to remove the signer from the account
+JSX> j.clients.stellar.my_wallet.remove_signer(other_wallet.address)
+```

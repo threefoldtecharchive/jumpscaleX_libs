@@ -6,6 +6,13 @@ import asyncore
 import argparse
 from email.parser import Parser
 
+try:
+    from logbook import Logger
+except:
+    from Jumpscale import j
+
+    j.builders.runtimes.python3.pip_package_install("logbook")
+
 from logbook import Logger
 
 

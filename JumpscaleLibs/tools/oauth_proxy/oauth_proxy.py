@@ -20,7 +20,7 @@ class OauthProxy(j.baseclasses.object):
         self.app = SessionMiddleware(app, session_opts)
         self.client = client
         self.login_url = login_url
-        self.nacl = j.data.nacl.default
+        self.nacl = j.me.encryptor
         self.verify_key = binascii.unhexlify(client.verify_key)
 
     @property

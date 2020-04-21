@@ -20,9 +20,10 @@ _session_opts = {"session.type": "file", "session.data_dir": "./data", "session.
 
 
 class ThreebotProxy(j.baseclasses.object):
-    def __init__(self, app):
+    def __init__(self, app, login_url):
         self.app = SessionMiddleware(app, _session_opts)
-        self.nacl = j.data.nacl.default
+        self.nacl = j.me.encryptor
+        self.login_url = login_url
 
     @property
     def session(self):
@@ -69,7 +70,7 @@ class ThreebotProxy(j.baseclasses.object):
         if res.status_code != 200:
             return abort(400, "Error getting user pub key")
         pub_key = res.json()["publicKey"]
-        user_pub_key = j.data.nacl.verifykey_obj_get(j.data.serializers.base64.decode(pub_key))
+        user_pub_key = j.me.encryptor._verify_key_get(j.data.serializers.base64.decode(pub_key))
 
         # verify data
         signedData = data["signedAttempt"]
@@ -96,7 +97,7 @@ class ThreebotProxy(j.baseclasses.object):
         ciphertext = j.data.serializers.base64.decode(data["data"]["ciphertext"])
 
         try:
-            decrypted = self.nacl.decryptAsymmetric(user_pub_key.to_curve25519_public_key(), ciphertext, nonce)
+            decrypted = j.me.encryptor.decrypt(ciphertext, user_pub_key.to_curve25519_public_key(), nonce=nonce)
         except nacl.exceptions.CryptoError:
             return abort(400, "Error decrypting data")
 
@@ -123,14 +124,16 @@ class ThreebotProxy(j.baseclasses.object):
         self.session["username"] = username
         self.session["email"] = email
         self.session["authorized"] = True
+        self.session["signedAttempt"] = signedData
         return redirect(self.next_url)
 
     def login_required(self, func):
         @wraps(func)
         def decorator(*args, **kwargs):
-            if not self.session.get("authorized", False):
-                self.session["next_url"] = request.url
-                return redirect(self.login_url)
+            if j.core.myenv.config.get("THREEBOT_CONNECT", False):
+                if not self.session.get("authorized", False):
+                    self.session["next_url"] = request.url
+                    return redirect(self.login_url)
             return func(*args, **kwargs)
 
         return decorator
@@ -139,5 +142,5 @@ class ThreebotProxy(j.baseclasses.object):
 class ThreebotProxyFactory(j.baseclasses.factory):
     __jslocation__ = "j.tools.threebotlogin_proxy"
 
-    def get(self, app):
-        return ThreebotProxy(app)
+    def get(self, app, login_url):
+        return ThreebotProxy(app, login_url)

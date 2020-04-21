@@ -23,6 +23,7 @@ except (ModuleNotFoundError, ImportError):
 
 from stellar_sdk import Server, Keypair, TransactionBuilder, Network, TransactionEnvelope, strkey
 from stellar_sdk.exceptions import BadRequestError
+from stellar_sdk import Account as stellarAccount
 from urllib import parse
 import time
 import decimal
@@ -33,9 +34,28 @@ from .transaction import TransactionSummary, Effect
 
 JSConfigClient = j.baseclasses.object_config
 
-_UNLOCKHASH_TRANSACTIONS_SERVICES = {"TEST": "localhost"}
+
+_THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES = {"TEST": "testnet.threefold.io", "STD": "threefold.io"}
 _HORIZON_NETWORKS = {"TEST": "https://horizon-testnet.stellar.org", "STD": "https://horizon.stellar.org"}
 _NETWORK_PASSPHRASES = {"TEST": Network.TESTNET_NETWORK_PASSPHRASE, "STD": Network.PUBLIC_NETWORK_PASSPHRASE}
+
+
+class Account(stellarAccount):
+    def __init__(self, account_id: str, sequence: int, wallet) -> None:
+        stellarAccount.__init__(self, account_id, sequence)
+        self.wallet = wallet
+
+    def increment_sequence_number(self) -> None:
+        """
+        Increments sequence number in this object by one.
+        """
+        stellarAccount.increment_sequence_number(self)
+        self.wallet.sequence = self.sequence
+        self.wallet.sequencedate = int(time.time())
+    
+    @property
+    def last_created_sequence_is_used(self):
+         return self.wallet.sequence <= self.sequence 
 
 
 class StellarClient(JSConfigClient):
@@ -49,7 +69,8 @@ class StellarClient(JSConfigClient):
         network** = "STD,TEST" (E)
         address = (S)
         secret = (S)
-        preauth_txs = (dict)
+        sequence = 0 (I64)
+        sequencedate = 0 (T)
         """
 
     def _init(self, **kwargs):
@@ -59,8 +80,17 @@ class StellarClient(JSConfigClient):
         else:
             kp = Keypair.from_secret(self.secret)
         self.address = kp.public_key
-        self.preauth_txs = {}
         self._unlock_service_client_ = None
+        self._transaction_fund_client_ = None
+
+    def _get_horizon_server(self):
+        return Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
+
+    def load_account(self) -> Account:
+        horizonServer = self._get_horizon_server()
+        saccount = horizonServer.load_account(str(self.address))
+        jsx_account = Account(saccount.account_id, saccount.sequence, self)
+        return jsx_account
 
     @property
     def _unlock_service_client(self):
@@ -69,18 +99,46 @@ class StellarClient(JSConfigClient):
         """
 
         if self._unlock_service_client_ is None:
-            try:
+            gedis_client_name = "unlock_service_{}".format(str(self.network))
+            if j.clients.gedis.exists(gedis_client_name):
+                c = j.clients.gedis.get(gedis_client_name)
+                if str(c.host) != _THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES[str(self.network)]:
+                    j.clients.gedis.delete(gedis_client_name)
+
+            if not j.clients.gedis.exists(gedis_client_name):
                 c = j.clients.gedis.new(
-                    "unlock_service",
-                    host=_UNLOCKHASH_TRANSACTIONS_SERVICES[str(self.network)],
+                    gedis_client_name,
+                    host=_THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES[str(self.network)],
                     port=8901,
                     package_name="threefoldfoundation.unlock_service",
                 )
-            except Exception:
-                c = j.clients.gedis.get("unlock_service")
 
             self._unlock_service_client_ = c.actors.unlock_service
         return self._unlock_service_client_
+
+    @property
+    def _transaction_fund_client(self):
+        """
+        lazy loading of the unlock service client
+        """
+
+        if self._transaction_fund_client_ is None:
+            gedis_client_name = "transactionfunding_service_{}".format(str(self.network))
+            if j.clients.gedis.exists(gedis_client_name):
+                c = j.clients.gedis.get(gedis_client_name)
+                if str(c.host) != _THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES[str(self.network)]:
+                    j.clients.gedis.delete(gedis_client_name)
+
+            if not j.clients.gedis.exists(gedis_client_name):
+                c = j.clients.gedis.new(
+                    gedis_client_name,
+                    host=_THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES[str(self.network)],
+                    port=8901,
+                    package_name="threefoldfoundation.transactionfunding_service",
+                )
+
+            self._transaction_fund_client_ = c.actors.transactionfunding_service
+        return self._transaction_fund_client_
 
     def set_unlock_transaction(self, unlock_transaction):
         """
@@ -92,12 +150,7 @@ class StellarClient(JSConfigClient):
         tx_hash = txe.hash()
         unlock_hash = strkey.StrKey.encode_pre_auth_tx(tx_hash)
 
-        self._unlock_service_client.create_unlockhash_transaction(
-            unlock_hash=escrow_kp.public_key, transaction_xdr=preauth_tx.to_xdr()
-        )
-
-    def _get_horizon_server(self):
-        return Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
+        self._unlock_service_client.create_unlockhash_transaction(unlock_hash=unlock_hash, transaction_xdr=txe.to_xdr())
 
     def _get_free_balances(self, address=None):
         if address is None:
@@ -225,9 +278,9 @@ class StellarClient(JSConfigClient):
         :type assetcode: str
         """
         server = self._get_horizon_server()
-        source = Keypair.from_secret(self.secret)
+        source_keypair = Keypair.from_secret(self.secret)
 
-        source_account = server.load_account(account_id=source.public_key)
+        source_account = self.load_account()
 
         base_fee = server.fetch_base_fee()
         transaction = (
@@ -239,13 +292,13 @@ class StellarClient(JSConfigClient):
             .append_create_account_op(destination=destination_address, starting_balance=starting_balance)
             .build()
         )
-        transaction.sign(source)
+        transaction.sign(source_keypair)
         try:
             response = server.submit_transaction(transaction)
             self._log_info("Transaction hash: {}".format(response["hash"]))
             self._log_info(response)
         except BadRequestError as e:
-            self.log_debug(e)
+            self._log_debug(e)
 
     def add_trustline(self, asset_code, issuer, secret=None):
         """Create a trustline to an asset.
@@ -304,7 +357,7 @@ class StellarClient(JSConfigClient):
             self.log_debug(e)
             raise e
 
-    def transfer(self, destination_address, amount, asset="XLM", locked_until=None, memo_text=None, memo_hash=None):
+    def transfer(self, destination_address, amount, asset="XLM", locked_until=None, memo_text=None, memo_hash=None, fund_transaction=True):
         """Transfer assets to another address
         :param destination_address: address of the destination.
         :type destination_address: str
@@ -320,6 +373,8 @@ class StellarClient(JSConfigClient):
         :type: Union[str, bytes]
         :param memo_hash: optional memo hash to add to the transaction, A 32 byte hash
         :type: Union[str, bytes]
+        :param fund_transaction: use the threefoldfoundation transaction funding service
+        :type: fund_transaction: bool
         """
         issuer = None
         self._log_info("Sending {} {} to {}".format(amount, asset, destination_address))
@@ -333,18 +388,16 @@ class StellarClient(JSConfigClient):
         if locked_until is not None:
             return self._transfer_locked_tokens(destination_address, amount, asset, issuer, locked_until)
 
-        server = self._get_horizon_server()
         source_keypair = Keypair.from_secret(self.secret)
-        source_public_key = source_keypair.public_key
-        source_account = server.load_account(source_public_key)
-
-        base_fee = server.fetch_base_fee()
+        source_account = self.load_account()
+        horizon_server = self._get_horizon_server()
+        base_fee = horizon_server.fetch_base_fee()
 
         transaction_builder = TransactionBuilder(
             source_account=source_account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee
         )
         transaction_builder.append_payment_op(
-            destination=destination_address, amount=str(amount), asset_code=asset, asset_issuer=issuer
+            destination=destination_address, amount=str(amount), asset_code=asset, asset_issuer=issuer, source=source_public_key
         )
         transaction_builder.set_timeout(30)
         if memo_text is not None:
@@ -353,16 +406,33 @@ class StellarClient(JSConfigClient):
             transaction_builder.add_hash_memo(memo_hash)
 
         transaction = transaction_builder.build()
+        transaction = transaction.to_xdr()
 
+        if asset == "TFT" or asset == "FreeTFT":
+            if fund_transaction:
+                transaction = self._transaction_fund_client.fund_transaction(transaction=transaction)
+                transaction = transaction.transaction_xdr
+
+        transaction = TransactionEnvelope.from_xdr(transaction, _NETWORK_PASSPHRASES[str(self.network)])
         transaction.sign(source_keypair)
 
         try:
-            response = server.submit_transaction(transaction)
+            response = horizon_server.submit_transaction(transaction)
             tx_hash = response["hash"]
             self._log_info("Transaction hash: {}".format(tx_hash))
             return tx_hash
         except BadRequestError as e:
-            self._log_debug(e)
+            result_codes = e.extras.get("result_codes")
+            operations = result_codes.get("operations")
+            if operations is not None:
+                for op in operations:
+                    if op == "op_underfunded":
+                        raise e
+                    # if op_bad_auth is returned then we assume the transaction needs more signatures 
+                    # so we return the transaction as xdr
+                    elif op == "op_bad_auth":
+                        self._log_info("Transaction might need additional signatures in order to send")
+                        return transaction.to_xdr()
             raise e
 
     def list_transactions(self, address=None):
@@ -447,8 +517,8 @@ class StellarClient(JSConfigClient):
         escrow_kp = Keypair.random()
 
         # minimum account balance as described at https://www.stellar.org/developers/guides/concepts/fees.html#minimum-account-balance
-        server = self._get_horizon_server()
-        base_fee = server.fetch_base_fee()
+        horizon_server = self._get_horizon_server()
+        base_fee = horizon_server.fetch_base_fee()
         base_reserve = 0.5
         minimum_account_balance = (2 + 1 + 3) * base_reserve  # 1 trustline and 3 signers
         required_XLM = minimum_account_balance + base_fee * 0.0000001 * 3
@@ -475,8 +545,8 @@ class StellarClient(JSConfigClient):
         return preauth_tx.to_xdr()
 
     def _create_unlock_transaction(self, escrow_kp, unlock_time):
-        server = self._get_horizon_server()
-        escrow_account = server.load_account(escrow_kp.public_key)
+        horizon_server = self._get_horizon_server()
+        escrow_account = horizon_server.load_account(escrow_kp.public_key)
         escrow_account.increment_sequence_number()
         tx = (
             TransactionBuilder(escrow_account)
@@ -488,8 +558,11 @@ class StellarClient(JSConfigClient):
         return tx
 
     def _set_account_signers(self, address, public_key_signer, preauth_tx_hash, signer_kp):
-        server = self._get_horizon_server()
-        account = server.load_account(address)
+        horizon_server = self._get_horizon_server()
+        if address == self.address:
+            account = self.load_account()
+        else:
+            account = horizon_server.load_account(address)
         tx = (
             TransactionBuilder(account)
             .append_pre_auth_tx_signer(preauth_tx_hash, 1)
@@ -499,10 +572,100 @@ class StellarClient(JSConfigClient):
         )
 
         tx.sign(signer_kp)
-        response = server.submit_transaction(tx)
+        response = horizon_server.submit_transaction(tx)
         self._log_info(response)
         self._log_info(
             "Set the signers of {address} to {pk_signer} and {preauth_hash_signer}".format(
                 address=address, pk_signer=public_key_signer, preauth_hash_signer=preauth_tx_hash
             )
         )
+
+    def modify_signing_requirements(self, public_keys_signers, signature_count, low_treshold=1, high_treshold=2):
+        """modify_signing_requirements sets to amount of signatures required for the creation of multisig account. It also adds
+        the public keys of the signer to this account
+        :param public_keys_signers: list of public keys of signers.
+        :type public_keys_signers: list
+        :param signature_count: amount of signatures requires to transfer funds.
+        :type signature_count: str
+        :param low_treshold: amount of signatures required for low security operations (transaction processing, allow trust, bump sequence)
+        :type low_treshold: str
+        :param high_treshold: amount of signatures required for high security operations (set options, account merge)
+        :type: str
+        """
+        if len(public_keys_signers) != signature_count - 1:
+            raise Exception(
+                "Number of public_keys must be 1 less than the signature count in order to set the signature count"
+            )
+
+        account = self.load_account()
+        source_keypair = Keypair.from_secret(self.secret)
+
+        transaction_builder = TransactionBuilder(account)
+        # set the signing options
+        transaction_builder.append_set_options_op(
+            low_threshold=low_treshold, med_threshold=signature_count, high_threshold=high_treshold
+        )
+
+        # For every public key given, add it as a signer to this account
+        for public_key_signer in public_keys_signers:
+            transaction_builder.append_ed25519_public_key_signer(public_key_signer, 1)
+
+        transaction_builder.set_timeout(30)
+        tx = transaction_builder.build()
+        tx.sign(source_keypair)
+
+        horizon_server = self._get_horizon_server()
+        try:
+            response = horizon_server.submit_transaction(tx)
+            self._log_info(response)
+            self._log_info(
+                "Set the signers of {address} to require {signature_count} signers".format(
+                    address=self.address, signature_count=signature_count
+                )
+            )
+        except BadRequestError:
+            self._log_info("Transaction need additional signatures in order to send")
+            return tx.to_xdr()
+
+    def sign_multisig_transaction(self, tx_xdr):
+        """sign_multisig_transaction signs a transaction xdr and tries to submit it to the network
+        if it fails it returns the signed transaction xdr
+
+        :param tx_xdr: transaction to sign in xdr format.
+        :type tx_xdr: str
+        """
+        server = self._get_horizon_server()
+        source_keypair = Keypair.from_secret(self.secret)
+        tx = TransactionEnvelope.from_xdr(tx_xdr, _NETWORK_PASSPHRASES[str(self.network)])
+        tx.sign(source_keypair)
+
+        try:
+            response = server.submit_transaction(tx)
+            self._log_info(response)
+            self._log_info("Multisig tx signed and sent")
+        except BadRequestError:
+            self._log_info("Transaction need additional signatures in order to send")
+            return tx.to_xdr()
+
+    def remove_signer(self, public_key_signer):
+        """remove_signer removes a public key as a signer from the source account
+
+        :param public_key_signer: public key of an account
+        :type public_key_signer: str
+        """
+
+        account = self.load_account()
+        tx = TransactionBuilder(account).append_ed25519_public_key_signer(public_key_signer, 0).build()
+
+        source_keypair = Keypair.from_secret(self.secret)
+
+        tx.sign(source_keypair)
+
+        server = self._get_horizon_server()
+        try:
+            response = server.submit_transaction(tx)
+            self._log_info(response)
+            self._log_info("Multisig tx signed and sent")
+        except BadRequestError:
+            self._log_info("Transaction need additional signatures in order to send")
+            return tx.to_xdr()

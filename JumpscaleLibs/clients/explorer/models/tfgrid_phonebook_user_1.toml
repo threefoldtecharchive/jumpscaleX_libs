@@ -1,0 +1,8 @@
+@url = tfgrid.phonebook.user.1
+@acl = false
+name** = ""                              #e.g. kristof.ibiza or kristof.3bot
+email** = ""                             #optional, not required
+pubkey = ""                             #public key of the 3bot
+host = ""                             #how to reach the digitalme (3bot)
+description = ""                        #optional
+signature = ""                          #proof that content is ok, is on id+name+email+pubkey+ipaddress+description

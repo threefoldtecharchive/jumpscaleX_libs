@@ -1,0 +1,5 @@
+@url = tfgrid.deployed_reservation.1
+#reservation object that has been deployed through the current machine
+reservation_id = (I)
+#tid of the logged in user that creates/pays for the reservation
+customer_tid  = (I)

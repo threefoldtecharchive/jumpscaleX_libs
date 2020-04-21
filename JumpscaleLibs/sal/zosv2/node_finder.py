@@ -53,11 +53,10 @@ class NodeFinder:
         :rtype: list
         """
         if farm_name:
-            try:
-                farm = self._farms.get(name=farm_name)
-                farm_id = farm.id
-            except:
-                return []
+            farms = self._farms.list(name=farm_name)
+            if len(farms) != 1:
+                raise j.exceptions.NotFound(f"Could not find farm with name {farm_name}")
+            farm_id = farms[0].id
 
         return self._nodes.list(farm_id=farm_id, country=country, city=city, cru=cru, sru=sru, mru=mru, hru=hru)
 
