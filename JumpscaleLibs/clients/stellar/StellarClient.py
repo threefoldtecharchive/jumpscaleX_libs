@@ -11,24 +11,18 @@ try:
         Keypair,
         TransactionBuilder,
         Network,
-        Signer,
-        Asset,
-        operation,
-        Transaction,
         TransactionEnvelope,
+        strkey
     )
     from stellar_sdk.exceptions import BadRequestError
 except (ModuleNotFoundError, ImportError):
     j.builders.runtimes.python3.pip_package_install("stellar_sdk")
+    from stellar_sdk import Server, Keypair, TransactionBuilder, Network, TransactionEnvelope, strkey
 
-from stellar_sdk import Server, Keypair, TransactionBuilder, Network, TransactionEnvelope, strkey
-from stellar_sdk.exceptions import BadRequestError
 from stellar_sdk import Account as stellarAccount
 from urllib import parse
 import time
-import decimal
 import math
-import base64
 from .balance import Balance, EscrowAccount, AccountBalances
 from .transaction import TransactionSummary, Effect
 
@@ -38,6 +32,16 @@ JSConfigClient = j.baseclasses.object_config
 _THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES = {"TEST": "testnet.threefold.io", "STD": "threefold.io"}
 _HORIZON_NETWORKS = {"TEST": "https://horizon-testnet.stellar.org", "STD": "https://horizon.stellar.org"}
 _NETWORK_PASSPHRASES = {"TEST": Network.TESTNET_NETWORK_PASSPHRASE, "STD": Network.PUBLIC_NETWORK_PASSPHRASE}
+_NETWORK_KNOWN_TRUSTS = {
+    "TEST": {
+        "TFT": "GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3",
+        "FreeTFT": "GBLDUINEFYTF7XEE7YNWA3JQS4K2VD37YU7I2YAE7R5AHZDKQXSS2J6R",
+    },
+    "STD": {
+        "TFT": "GBOVQKJYHXRR3DX6NOX2RRYFRCUMSADGDESTDNBDS6CDVLGVESRTAC47",
+        "FreeTFT": "GCBGS5TFE2BPPUVY55ZPEMWWGR6CLQ7T6P46SOFGHXEBJ34MSP6HVEUT",
+    },
+}
 
 
 class Account(stellarAccount):
@@ -52,10 +56,10 @@ class Account(stellarAccount):
         stellarAccount.increment_sequence_number(self)
         self.wallet.sequence = self.sequence
         self.wallet.sequencedate = int(time.time())
-    
+
     @property
     def last_created_sequence_is_used(self):
-         return self.wallet.sequence <= self.sequence 
+        return self.wallet.sequence <= self.sequence
 
 
 class StellarClient(JSConfigClient):
@@ -309,6 +313,18 @@ class StellarClient(JSConfigClient):
         """
         self._change_trustline(asset_code, issuer, secret=secret)
 
+    def add_known_trustline(self, asset_code):
+        """
+        Will add a trustline known by threefold for chosen asset_code
+
+        :param asset_code: code of the asset. For example: 'FreeTFT', 'TFT', ...
+        :type asset_code: str
+        """
+        issuer = _NETWORK_KNOWN_TRUSTS.get(str(self.network), {}).get(asset_code)
+        if not issuer:
+            raise j.exceptions.NotFound(f"We do not provide a known issuers for {asset_code} on network {self.network}")
+        self._change_trustline(asset_code, issuer)
+
     def delete_trustline(self, asset_code, issuer, secret=None):
         """Deletes a trustline
         :param asset_code: code of the asset. For example: 'BTC', 'XRP', ...
@@ -357,7 +373,16 @@ class StellarClient(JSConfigClient):
             self.log_debug(e)
             raise e
 
-    def transfer(self, destination_address, amount, asset="XLM", locked_until=None, memo_text=None, memo_hash=None, fund_transaction=True):
+    def transfer(
+        self,
+        destination_address,
+        amount,
+        asset="XLM",
+        locked_until=None,
+        memo_text=None,
+        memo_hash=None,
+        fund_transaction=True,
+    ):
         """Transfer assets to another address
         :param destination_address: address of the destination.
         :type destination_address: str
@@ -397,7 +422,11 @@ class StellarClient(JSConfigClient):
             source_account=source_account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee
         )
         transaction_builder.append_payment_op(
-            destination=destination_address, amount=str(amount), asset_code=asset, asset_issuer=issuer, source=source_public_key
+            destination=destination_address,
+            amount=str(amount),
+            asset_code=asset,
+            asset_issuer=issuer,
+            source=source_public_key,
         )
         transaction_builder.set_timeout(30)
         if memo_text is not None:
@@ -428,7 +457,7 @@ class StellarClient(JSConfigClient):
                 for op in operations:
                     if op == "op_underfunded":
                         raise e
-                    # if op_bad_auth is returned then we assume the transaction needs more signatures 
+                    # if op_bad_auth is returned then we assume the transaction needs more signatures
                     # so we return the transaction as xdr
                     elif op == "op_bad_auth":
                         self._log_info("Transaction might need additional signatures in order to send")
