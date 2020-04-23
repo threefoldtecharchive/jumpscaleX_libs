@@ -6,14 +6,7 @@ from Jumpscale import j
 from Jumpscale.clients.http.HttpClient import HTTPError
 
 try:
-    from stellar_sdk import (
-        Server,
-        Keypair,
-        TransactionBuilder,
-        Network,
-        TransactionEnvelope,
-        strkey
-    )
+    from stellar_sdk import Server, Keypair, TransactionBuilder, Network, TransactionEnvelope, strkey
     from stellar_sdk.exceptions import BadRequestError
 except (ModuleNotFoundError, ImportError):
     j.builders.runtimes.python3.pip_package_install("stellar_sdk")
@@ -426,7 +419,7 @@ class StellarClient(JSConfigClient):
             amount=str(amount),
             asset_code=asset,
             asset_issuer=issuer,
-            source=source_account.source_public_key,
+            source=source_keypair.public_key,
         )
         transaction_builder.set_timeout(30)
         if memo_text is not None:
