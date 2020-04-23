@@ -247,7 +247,6 @@ class Chatflow(j.baseclasses.object):
             currencies=[currency],
         )
         rid = reservation_create.reservation_id
-        escrow_information = reservation_create.escrow_information
         reservation.id = rid
 
         if j.core.myenv.config.get("DEPLOYER") and customer_tid:

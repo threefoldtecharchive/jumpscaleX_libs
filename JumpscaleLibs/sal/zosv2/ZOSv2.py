@@ -301,8 +301,6 @@ class Zosv2(j.baseclasses.object):
         :return:  payment info (escrow_address,[farmer_payments],total_amount,escrow encoded for QR code usage e.g [{'escrow_address': 'GACMBAK2IWHGNTAG5WOVELJWUTPOXA2QY2Y23PAXNRKOYFTCBWICXNDO', 'total_amount': 0.586674, 'farmer_id': 10, 'qrcode': 'tft:GACMBAK2IWHGNTAG5WOVELJWUTPOXA2QY2Y23PAXNRKOYFTCBWICXNDO?amount=0.586674&message=Grid resources fees for farmer 10&sender=me'}])
         :rtype: dict
         """
-
-        PAYMENT_MSG_TEMPLATE = "Grid resources fees for farmer {}"
         farmer_payments = []
         escrow_address = reservation_create_resp.escrow_information.address
         escrow_asset = reservation_create_resp.escrow_information.asset
@@ -315,7 +313,9 @@ class Zosv2(j.baseclasses.object):
 
             farmer_payments.append({"farmer_id": farmer_id, "total_amount": farmer_amount})
 
-        qrcode = self._escrow_to_qrcode(escrow_address, escrow_asset, total_amount, PAYMENT_MSG_TEMPLATE.format(farmer_id))
+        qrcode = self._escrow_to_qrcode(
+            escrow_address, escrow_asset.split(":")[0], total_amount, str(reservation_create_resp.reservation_id)
+        )
 
         info = {}
         info["escrow_address"] = escrow_address
