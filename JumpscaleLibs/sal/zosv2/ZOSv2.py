@@ -305,6 +305,7 @@ class Zosv2(j.baseclasses.object):
         PAYMENT_MSG_TEMPLATE = "Grid resources fees for farmer {}"
         farmer_payments = []
         escrow_address = reservation_create_resp.escrow_information.address
+        escrow_asset = reservation_create_resp.escrow_information.asset
         total_amount = 0
         for detail in reservation_create_resp.escrow_information.details:
             farmer_id = detail.farmer_id
@@ -318,6 +319,7 @@ class Zosv2(j.baseclasses.object):
 
         info = {}
         info["escrow_address"] = escrow_address
+        info["escrow_asset"] = escrow_asset
         info["farmer_payments"] = farmer_payments
         info["total_amount"] = total_amount
         info["qrcode"] = qrcode
