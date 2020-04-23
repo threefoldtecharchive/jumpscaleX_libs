@@ -2,6 +2,7 @@ import netaddr
 from Jumpscale import j
 from Jumpscale.servers.gedis.GedisChatBot import StopChatFlow
 import random
+import requests
 import time
 import json
 
@@ -116,6 +117,21 @@ class Chatflow(j.baseclasses.object):
             nodes.remove(node)
             nodes_selected.append(node)
         return nodes_selected
+
+    def validate_node(self, nodeid, query=None):
+        try:
+            node = self._explorer.nodes.get(nodeid)
+        except requests.exceptions.HTTPError:
+            raise j.exceptions.NotFound(f"Node {nodeid} doesn't exists please enter a valid nodeid")
+        if not j.sal.zosv2.nodes_finder.filter_is_up(node):
+            raise j.exceptions.NotFound(f"Node {nodeid} doesn't seem to be up please choose another nodeid")
+
+        if query:
+            for unit, value in query.items():
+                freevalue = getattr(node.total_resources, unit) - getattr(node.used_resources, unit)
+                if freevalue < value:
+                    raise j.exceptions.Value(f"Node {nodeid} does not have enough available resources for this request, please choose another one")
+        return node
 
     def network_select(self, bot, customer_tid):
         reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
