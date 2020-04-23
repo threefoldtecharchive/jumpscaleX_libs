@@ -97,9 +97,13 @@ class Chatflow(j.baseclasses.object):
             raise j.exceptions.Value("Name of logged in user shouldn't be empty")
         return self._explorer.users.get(name=user_info["username"], email=user_info["email"])
 
-    def nodes_get(self, number_of_nodes, farm_id=None, farm_name="freefarm", cru=None, sru=None, mru=None, hru=None):
+    def nodes_get(
+        self, number_of_nodes, farm_id=None, farm_name=None, cru=None, sru=None, mru=None, hru=None, currency="TFT"
+    ):
         # get nodes without public ips
-        nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(farm_id=farm_id, cru=cru, sru=sru, mru=mru, hru=hru)
+        nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
+            farm_id=farm_id, farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
+        )
         nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, nodes)
 
         # to avoid using the same node with different networks
@@ -128,7 +132,9 @@ class Chatflow(j.baseclasses.object):
             for unit, value in query.items():
                 freevalue = getattr(node.total_resources, unit) - getattr(node.used_resources, unit)
                 if freevalue < value:
-                    raise j.exceptions.Value(f"Node {nodeid} does not have enough available resources for this request, please choose another one")
+                    raise j.exceptions.Value(
+                        f"Node {nodeid} does not have enough available resources for this request, please choose another one"
+                    )
         return node
 
     def network_select(self, bot, customer_tid):
@@ -207,7 +213,7 @@ class Chatflow(j.baseclasses.object):
 
         return network_config
 
-    def reservation_register(self, reservation, expiration, customer_tid, expiration_provisioning=1000):
+    def reservation_register(self, reservation, expiration, customer_tid, expiration_provisioning=1000, currency=None):
         """
         Register reservation
 
@@ -225,7 +231,11 @@ class Chatflow(j.baseclasses.object):
         """
         expiration_provisioning += j.data.time.epoch
         reservation_create = j.sal.zosv2.reservation_register(
-            reservation, expiration, expiration_provisioning=expiration_provisioning, customer_tid=customer_tid
+            reservation,
+            expiration,
+            expiration_provisioning=expiration_provisioning,
+            customer_tid=customer_tid,
+            currencies=[currency],
         )
         rid = reservation_create.reservation_id
         escrow_information = reservation_create.escrow_information
