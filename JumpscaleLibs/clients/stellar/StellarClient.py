@@ -426,7 +426,7 @@ class StellarClient(JSConfigClient):
             amount=str(amount),
             asset_code=asset,
             asset_issuer=issuer,
-            source=source_public_key,
+            source=source_account.source_public_key,
         )
         transaction_builder.set_timeout(30)
         if memo_text is not None:
