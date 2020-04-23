@@ -55,11 +55,17 @@ class Network:
                 return network_resource.iprange
         self._bot.stop(f"Node {node.node_id} is not part of network")
 
-    def update(self, tid):
+    def update(self, tid, currency=None):
         if self._is_dirty:
             reservation = j.sal.zosv2.reservation_create()
             reservation.data_reservation.networks.append(self._network._ddict)
-            rid = self._sal.reservation_register(reservation, self._expiration, tid)
+            reservation_create = self._sal.reservation_register(reservation, self._expiration, tid, currency=currency)
+            rid = reservation_create.reservation_id
+            wallet = j.sal.reservation_chatflow.payments_show(self._bot, reservation_create)
+            if wallet:
+                j.sal.zosv2.billing.payout_farmers(wallet, reservation_create)
+
+            j.sal.reservation_chatflow.payment_wait(self._bot, rid)
             return self._sal.reservation_wait(self._bot, rid)
         return True
 
@@ -174,7 +180,9 @@ class Chatflow(j.baseclasses.object):
             ip_range = str(first_digit) + "." + str(second_digit) + ".0.0/16"
         return ip_range
 
-    def network_create(self, network_name, reservation, ip_range, customer_tid, ip_version, expiration=None):
+    def network_create(
+        self, network_name, reservation, ip_range, customer_tid, ip_version, expiration=None, currency=None
+    ):
         """
         bot: Gedis chatbot object from chatflow
         reservation: reservation object from schema
@@ -207,9 +215,10 @@ class Chatflow(j.baseclasses.object):
 
         # register the reservation
         expiration = expiration or j.data.time.epoch + (60 * 60 * 24)
-        rid = self.reservation_register(reservation, expiration, customer_tid).reservation_id
+        reservation_create = self.reservation_register(reservation, expiration, customer_tid, currency=currency)
 
-        network_config["rid"] = rid
+        network_config["rid"] = reservation_create.reservation_id
+        network_config["reservation_create"] = reservation_create
 
         return network_config
 
@@ -357,7 +366,7 @@ class Chatflow(j.baseclasses.object):
         where a QR code is viewed for the user to scan and continue with their payment
         :rtype: wallet in case a wallet is used
         """
-        if not (reservation_create_resp.escrow_information or reservation_create_resp.escrow_information.details):
+        if not (reservation_create_resp.escrow_information and reservation_create_resp.escrow_information.details):
             return
         escrow_info = j.sal.zosv2.reservation_escrow_information_with_qrcodes(reservation_create_resp)
 
