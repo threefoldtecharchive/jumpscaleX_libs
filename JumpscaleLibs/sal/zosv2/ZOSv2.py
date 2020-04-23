@@ -67,7 +67,13 @@ class Zosv2(j.baseclasses.object):
         return self._explorer.reservations.new()
 
     def reservation_register(
-        self, reservation, expiration_date, identity=None, expiration_provisioning=None, customer_tid=None
+        self,
+        reservation,
+        expiration_date,
+        identity=None,
+        expiration_provisioning=None,
+        customer_tid=None,
+        currencies=["TFT"],
     ):
         """
         register a reservation in BCDB
@@ -81,6 +87,8 @@ class Zosv2(j.baseclasses.object):
         :param expiration_provisioning: timestamp of the date when to reservation should be provisionned
                                         if the reservation is not provisioning before this time, it will never be provionned
         :type expiration_provisioning: int, optional
+        :param currencies: list of currency asset code you want pay the reservation with
+        :type: currencies: list of string
         :return: reservation create result
         :rtype: tfgrid.workloads.reservation.create.1
         """
@@ -91,6 +99,7 @@ class Zosv2(j.baseclasses.object):
             expiration_provisioning = j.data.time.epoch + (3600 * 24 * 365)
 
         dr = reservation.data_reservation
+        dr.currencies = currencies
 
         dr.expiration_provisioning = expiration_provisioning
         dr.expiration_reservation = expiration_date
@@ -267,7 +276,7 @@ class Zosv2(j.baseclasses.object):
 
         return all(map(lambda x: x == "OK", [x.state for x in reservation.results]))
 
-    def _escrow_to_qrcode(self, escrow_address, total_amount, message="Grid resources fees"):
+    def _escrow_to_qrcode(self, escrow_address, escrow_asset, total_amount, message="Grid resources fees"):
         """
         Converts escrow info to qrcode
         :param escrow_address: escrow address
@@ -280,7 +289,7 @@ class Zosv2(j.baseclasses.object):
         :return: escrow encoded for QR code usage
         :rtype: str
         """
-        qrcode = f"tft:{escrow_address}?amount={total_amount}&message={message}&sender=me"
+        qrcode = f"{escrow_asset}:{escrow_address}?amount={total_amount}&message={message}&sender=me"
         return qrcode
 
     def reservation_escrow_information_with_qrcodes(self, reservation_create_resp):
@@ -292,10 +301,9 @@ class Zosv2(j.baseclasses.object):
         :return:  payment info (escrow_address,[farmer_payments],total_amount,escrow encoded for QR code usage e.g [{'escrow_address': 'GACMBAK2IWHGNTAG5WOVELJWUTPOXA2QY2Y23PAXNRKOYFTCBWICXNDO', 'total_amount': 0.586674, 'farmer_id': 10, 'qrcode': 'tft:GACMBAK2IWHGNTAG5WOVELJWUTPOXA2QY2Y23PAXNRKOYFTCBWICXNDO?amount=0.586674&message=Grid resources fees for farmer 10&sender=me'}])
         :rtype: dict
         """
-
-        PAYMENT_MSG_TEMPLATE = "Grid resources fees for farmer {}"
         farmer_payments = []
         escrow_address = reservation_create_resp.escrow_information.address
+        escrow_asset = reservation_create_resp.escrow_information.asset
         total_amount = 0
         for detail in reservation_create_resp.escrow_information.details:
             farmer_id = detail.farmer_id
@@ -305,10 +313,13 @@ class Zosv2(j.baseclasses.object):
 
             farmer_payments.append({"farmer_id": farmer_id, "total_amount": farmer_amount})
 
-        qrcode = self._escrow_to_qrcode(escrow_address, total_amount, PAYMENT_MSG_TEMPLATE.format(farmer_id))
+        qrcode = self._escrow_to_qrcode(
+            escrow_address, escrow_asset.split(":")[0], total_amount, str(reservation_create_resp.reservation_id)
+        )
 
         info = {}
         info["escrow_address"] = escrow_address
+        info["escrow_asset"] = escrow_asset
         info["farmer_payments"] = farmer_payments
         info["total_amount"] = total_amount
         info["qrcode"] = qrcode
