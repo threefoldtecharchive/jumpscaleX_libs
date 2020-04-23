@@ -19,17 +19,19 @@ class ExplorerClientFactory(JSConfigs):
         j.core.myenv.config["EXPLORER_ADDR"] = value
         j.core.myenv.config_save()
         if self._explorer:
-            url = f"https://{value}/explorer"
-            self._explorer = self.get(name="explorer", url=url, reload=True)
+            self._explorer = self.get(name="explorer", url=self._get_url(value), reload=True)
             self._explorer._init()  # force reload
+
+    def _get_url(self, addr):
+        proto = "http" if ":" in addr else "https"
+        return f"{proto}://{addr}/explorer"
 
     @property
     def default(self):
         if not self._explorer:
             addr = j.core.myenv.config.get("EXPLORER_ADDR", "localhost")
-            url = f"https://{addr}/explorer"
 
             # please don't restore it it will get assertion error as obj._schema not equal schema
             # at: https://github.com/threefoldtech/jumpscaleX_core/issues/718
-            self._explorer = self.get(name="explorer", url=url)
+            self._explorer = self.get(name="explorer", url=self._get_url(addr))
         return self._explorer
