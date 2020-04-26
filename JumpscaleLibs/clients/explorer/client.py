@@ -24,6 +24,7 @@ class Explorer(JSConfigClient):
 
     def _init(self, **kwargs):
         # load models
+        self.url = self.url.rstrip("/")
         self._session = requests.Session()
         self._session.hooks = dict(response=raise_for_status)
 
