@@ -17,9 +17,10 @@ class Network:
         self._sal = j.sal.reservation_chatflow
         self._bot = bot
         self._fill_used_ips(reservations)
-        network_node_id = network.network_resources[0].node_id
-        if j.clients.explorer.default.nodes.get(network_node_id).free_to_use:
-            self.currency = "FreeTFT"
+
+        currencies = reservations[0].data_reservation.currencies
+        if currencies:
+            self.currency = currencies[0]
         else:
             self.currency = "TFT"
 
@@ -337,13 +338,13 @@ class Chatflow(j.baseclasses.object):
                 continue
             rnetworks = reservation.data_reservation.networks
             expiration = reservation.data_reservation.expiration_reservation
-
+            currency = reservation.data_reservation.currencies[0]
             for network in rnetworks:
                 if network.name in names:
                     continue
                 names.add(network.name)
                 remaning = expiration - j.data.time.epoch
-                network_name = network.name + " - ends in: " + j.data.time.secondsToHRDelta(remaning)
+                network_name = network.name + f" ({currency}) - ends in: " + j.data.time.secondsToHRDelta(remaning)
                 networks[network_name] = (network, expiration)
 
         return networks
