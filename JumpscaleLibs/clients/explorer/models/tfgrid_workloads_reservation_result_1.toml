@@ -3,6 +3,7 @@
 category = "zdb,container,network,volume,kubernetes" (E)
 workload_id = (S)
 data_json = (json)
+metadata = (S)
 #signature of the data (is e.g. json) by the zos node who deployed
 signature = (bytes)
 state = "error,ok,deleted" (E)
