@@ -461,7 +461,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         explorer = j.clients.explorer.explorer
 
         for solution in solutions:
-            if solution.explorer != explorer.url:
+            if solution.explorer and solution.explorer != explorer.url:
                 continue
             reservation = explorer.reservations.get(solution.rid)
             solution_type = url.replace("tfgrid.solutions.", "").replace(".1", "")
