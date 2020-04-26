@@ -434,6 +434,9 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         reservation.rid = rid
         reservation.name = name
         reservation.form_info = form_info
+
+        explorer = j.clients.explorer.explorer
+        reservation.explorer = explorer.url
         reservation.save()
 
     def solution_name_add(self, bot, model):
@@ -458,6 +461,8 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         explorer = j.clients.explorer.explorer
 
         for solution in solutions:
+            if solution.explorer != explorer.url:
+                continue
             reservation = explorer.reservations.get(solution.rid)
             solution_type = url.replace("tfgrid.solutions.", "").replace(".1", "")
             reservations.append(
