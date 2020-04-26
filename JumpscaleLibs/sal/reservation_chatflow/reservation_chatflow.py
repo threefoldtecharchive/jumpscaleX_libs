@@ -17,6 +17,11 @@ class Network:
         self._sal = j.sal.reservation_chatflow
         self._bot = bot
         self._fill_used_ips(reservations)
+        network_node_id = network.network_resources[0].node_id
+        if j.clients.explorer.default.nodes.get(network_node_id).free_to_use:
+            self.currency = "FreeTFT"
+        else:
+            self.currency = "TFT"
 
     def _fill_used_ips(self, reservations):
         for reservation in reservations:
