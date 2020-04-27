@@ -397,8 +397,10 @@ class Chatflow(j.baseclasses.object):
         where a QR code is viewed for the user to scan and continue with their payment
         :rtype: wallet in case a wallet is used
         """
+        payment = {"wallet": None, "free": False}
         if not (reservation_create_resp.escrow_information and reservation_create_resp.escrow_information.details):
-            return
+            payment["free"] = True
+            return payment
         escrow_info = j.sal.zosv2.reservation_escrow_information_with_qrcodes(reservation_create_resp)
 
         escrow_address = escrow_info["escrow_address"]
@@ -426,10 +428,10 @@ Billing details:
             if result == "3bot app":
                 reservation = self._explorer.reservations.get(rid)
                 self.escrow_qr_show(bot, reservation_create_resp, reservation.data_reservation.expiration_provisioning)
-                return
+                return payment
             else:
-                wallet = wallets[result]
-                return wallet
+                payment["wallet"] = wallets[result]
+                return payment
 
     def escrow_qr_show(self, bot, reservation_create_resp, expiration_provisioning):
         """
