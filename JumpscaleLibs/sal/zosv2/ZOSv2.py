@@ -323,5 +323,6 @@ class Zosv2(j.baseclasses.object):
         info["farmer_payments"] = farmer_payments
         info["total_amount"] = total_amount
         info["qrcode"] = qrcode
+        info["reservationid"] = reservation_create_resp.reservation_id
 
         return info

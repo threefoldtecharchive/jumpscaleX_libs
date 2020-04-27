@@ -417,12 +417,14 @@ Billing details:
         escrow_asset = escrow_info["escrow_asset"]
         farmer_payments = escrow_info["farmer_payments"]
         total_amount = escrow_info["total_amount"]
+        reservationid = escrow_info["reservationid"]
         qrcode = escrow_info["qrcode"]
 
         message_text = f"""
 <h4> Escrow address: </h4>  {escrow_address} \n
 <h4> Escrow asset: </h4>  {escrow_asset} \n
 <h4> Total amount: </h4>  {total_amount} \n
+<h4> Reservation id: </h4>  {reservationid} \n
 
 <h4>Payment details:</h4> \n
 """
@@ -433,7 +435,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
 
         bot.qrcode_show(
             qrcode,
-            title=f"Scan the following with your application or enter the information below manually and proceed with the payment",
+            title=f"Scan the following with your application (do not change the message) or enter the information below manually and proceed with the payment make sure to add the reservationid as memo_text",
             msg=message_text,
             scale=4,
             update=True,
