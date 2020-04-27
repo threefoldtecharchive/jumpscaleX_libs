@@ -53,6 +53,9 @@ class NodeFinder:
             if currency and currency == "FreeTFT" and not node.free_to_use:
                 continue
 
+            if currency and currency != "FreeTFT" and node.free_to_use:
+                continue
+
             yield node
 
     def nodes_search(

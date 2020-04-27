@@ -56,11 +56,13 @@ class Network:
                 return network_resource.iprange
         self._bot.stop(f"Node {node.node_id} is not part of network")
 
-    def update(self, tid, currency=None):
+    def update(self, tid, currency=None, bot=None):
         if self._is_dirty:
             reservation = j.sal.zosv2.reservation_create()
             reservation.data_reservation.networks.append(self._network._ddict)
-            reservation_create = self._sal.reservation_register(reservation, self._expiration, tid, currency=currency)
+            reservation_create = self._sal.reservation_register(
+                reservation, self._expiration, tid, currency=currency, bot=bot
+            )
             rid = reservation_create.reservation_id
             wallet = j.sal.reservation_chatflow.payments_show(self._bot, reservation_create)
             if wallet:
@@ -182,7 +184,7 @@ class Chatflow(j.baseclasses.object):
         return ip_range
 
     def network_create(
-        self, network_name, reservation, ip_range, customer_tid, ip_version, expiration=None, currency=None
+        self, network_name, reservation, ip_range, customer_tid, ip_version, expiration=None, currency=None, bot=None
     ):
         """
         bot: Gedis chatbot object from chatflow
@@ -203,8 +205,9 @@ class Chatflow(j.baseclasses.object):
         else:
             nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip6
         for node in filter(nodefilter, access_nodes):
-            access_node = node
-            break
+            if (currency == "FreeTFT" and node.free_to_use) or (currency != "FreeTFT" and not node.free_to_use):
+                access_node = node
+                break
         else:
             raise j.exceptions.NotFound("Could not find available access node")
 
@@ -216,14 +219,18 @@ class Chatflow(j.baseclasses.object):
 
         # register the reservation
         expiration = expiration or j.data.time.epoch + (60 * 60 * 24)
-        reservation_create = self.reservation_register(reservation, expiration, customer_tid, currency=currency)
+        reservation_create = self.reservation_register(
+            reservation, expiration, customer_tid, currency=currency, bot=bot
+        )
 
         network_config["rid"] = reservation_create.reservation_id
         network_config["reservation_create"] = reservation_create
 
         return network_config
 
-    def reservation_register(self, reservation, expiration, customer_tid, expiration_provisioning=1000, currency=None):
+    def reservation_register(
+        self, reservation, expiration, customer_tid, expiration_provisioning=1000, currency=None, bot=None
+    ):
         """
         Register reservation
 
@@ -240,13 +247,17 @@ class Chatflow(j.baseclasses.object):
         :rtype: Obj
         """
         expiration_provisioning += j.data.time.epoch
-        reservation_create = j.sal.zosv2.reservation_register(
-            reservation,
-            expiration,
-            expiration_provisioning=expiration_provisioning,
-            customer_tid=customer_tid,
-            currencies=[currency],
-        )
+        try:
+            reservation_create = j.sal.zosv2.reservation_register(
+                reservation,
+                expiration,
+                expiration_provisioning=expiration_provisioning,
+                customer_tid=customer_tid,
+                currencies=[currency],
+            )
+        except requests.HTTPError as e:
+            bot.stop("The following error occured:  " + e.response.content.decode("utf-8"))
+
         rid = reservation_create.reservation_id
         reservation.id = rid
 
