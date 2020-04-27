@@ -19,12 +19,7 @@ class Network:
         self._sal = j.sal.reservation_chatflow
         self._bot = bot
         self._fill_used_ips(reservations)
-
-        currencies = reservations[0].data_reservation.currencies
-        if currencies:
-            self.currency = currencies[0]
-        else:
-            self.currency = "TFT"
+        self.currency = j.sal.reservation_chatflow.currency_get(reservations[0])
 
     def _fill_used_ips(self, reservations):
         for reservation in reservations:
@@ -63,11 +58,13 @@ class Network:
                 return network_resource.iprange
         self._bot.stop(f"Node {node.node_id} is not part of network")
 
-    def update(self, tid, currency=None):
+    def update(self, tid, currency=None, bot=None):
         if self._is_dirty:
             reservation = j.sal.zosv2.reservation_create()
             reservation.data_reservation.networks.append(self._network._ddict)
-            reservation_create = self._sal.reservation_register(reservation, self._expiration, tid, currency=currency)
+            reservation_create = self._sal.reservation_register(
+                reservation, self._expiration, tid, currency=currency, bot=bot
+            )
             rid = reservation_create.reservation_id
             wallet = j.sal.reservation_chatflow.payments_show(self._bot, reservation_create)
             if wallet:
@@ -190,7 +187,7 @@ class Chatflow(j.baseclasses.object):
         return ip_range
 
     def network_create(
-        self, network_name, reservation, ip_range, customer_tid, ip_version, expiration=None, currency=None
+        self, network_name, reservation, ip_range, customer_tid, ip_version, expiration=None, currency=None, bot=None
     ):
         """
         bot: Gedis chatbot object from chatflow
@@ -211,8 +208,9 @@ class Chatflow(j.baseclasses.object):
         else:
             nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip6
         for node in filter(nodefilter, access_nodes):
-            access_node = node
-            break
+            if (currency == "FreeTFT" and node.free_to_use) or (currency != "FreeTFT" and not node.free_to_use):
+                access_node = node
+                break
         else:
             raise j.exceptions.NotFound("Could not find available access node")
 
@@ -224,14 +222,18 @@ class Chatflow(j.baseclasses.object):
 
         # register the reservation
         expiration = expiration or j.data.time.epoch + (60 * 60 * 24)
-        reservation_create = self.reservation_register(reservation, expiration, customer_tid, currency=currency)
+        reservation_create = self.reservation_register(
+            reservation, expiration, customer_tid, currency=currency, bot=bot
+        )
 
         network_config["rid"] = reservation_create.reservation_id
         network_config["reservation_create"] = reservation_create
 
         return network_config
 
-    def reservation_register(self, reservation, expiration, customer_tid, expiration_provisioning=1000, currency=None):
+    def reservation_register(
+        self, reservation, expiration, customer_tid, expiration_provisioning=1000, currency=None, bot=None
+    ):
         """
         Register reservation
 
@@ -248,13 +250,17 @@ class Chatflow(j.baseclasses.object):
         :rtype: Obj
         """
         expiration_provisioning += j.data.time.epoch
-        reservation_create = j.sal.zosv2.reservation_register(
-            reservation,
-            expiration,
-            expiration_provisioning=expiration_provisioning,
-            customer_tid=customer_tid,
-            currencies=[currency],
-        )
+        try:
+            reservation_create = j.sal.zosv2.reservation_register(
+                reservation,
+                expiration,
+                expiration_provisioning=expiration_provisioning,
+                customer_tid=customer_tid,
+                currencies=[currency],
+            )
+        except requests.HTTPError as e:
+            bot.stop("The following error occured:  " + e.response.content.decode("utf-8"))
+
         rid = reservation_create.reservation_id
         reservation.id = rid
 
@@ -308,7 +314,7 @@ class Chatflow(j.baseclasses.object):
             if reservation.next_action != "PAY":
                 return
             if is_expired(reservation):
-                res = f"# Sorry your reservation ```{reservation.id}``` failed to deploy in time:\n"
+                res = f"# Failed to wait for payment for reservation:```{reservation.id}```:\n"
                 for x in reservation.results:
                     if x.state == "ERROR":
                         res += f"\n### {x.category}: ```{x.message}```\n"
@@ -331,6 +337,17 @@ class Chatflow(j.baseclasses.object):
             j.sal.zosv2.reservation_cancel(reservation.id)
             bot.stop(res)
 
+    def currency_get(self, reservation):
+        currencies = reservation.data_reservation.currencies
+        if currencies:
+            return currencies[0]
+        elif reservation.data_reservation.networks and reservation.data_reservation.networks[0].network_resources:
+            node_id = reservation.data_reservation.networks[0].network_resources[0].node_id
+            if j.clients.explorer.default.nodes.get(node_id).free_to_use:
+                return "FreeTFT"
+
+        return "TFT"
+
     def network_list(self, tid, reservations=None):
         if not reservations:
             reservations = j.sal.zosv2.reservation_list(tid=tid, next_action="DEPLOY")
@@ -341,7 +358,7 @@ class Chatflow(j.baseclasses.object):
                 continue
             rnetworks = reservation.data_reservation.networks
             expiration = reservation.data_reservation.expiration_reservation
-            currency = reservation.data_reservation.currencies[0]
+            currency = self.currency_get(reservation)
             for network in rnetworks:
                 if network.name in names:
                     continue
@@ -414,12 +431,14 @@ Billing details:
         escrow_asset = escrow_info["escrow_asset"]
         farmer_payments = escrow_info["farmer_payments"]
         total_amount = escrow_info["total_amount"]
+        reservationid = escrow_info["reservationid"]
         qrcode = escrow_info["qrcode"]
 
         message_text = f"""
 <h4> Escrow address: </h4>  {escrow_address} \n
 <h4> Escrow asset: </h4>  {escrow_asset} \n
 <h4> Total amount: </h4>  {total_amount} \n
+<h4> Reservation id: </h4>  {reservationid} \n
 
 <h4>Payment details:</h4> \n
 """
@@ -430,7 +449,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
 
         bot.qrcode_show(
             qrcode,
-            title=f"Scan the following with your application or enter the information below manually and proceed with the payment",
+            title=f"Scan the following with your application (do not change the message) or enter the information below manually and proceed with the payment make sure to add the reservationid as memo_text",
             msg=message_text,
             scale=4,
             update=True,
@@ -585,3 +604,12 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         metadata["form_info"]["Entry point"] = reservation.data_reservation.containers[0].entrypoint
         metadata["form_info"]["IP Address"] = reservation.data_reservation.containers[0].network_connection[0].ipaddress
         return metadata
+        
+    def network_get(self, bot, customer_tid, name):
+        reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
+        networks = self.network_list(customer_tid, reservations)
+        for key in networks.keys():
+            network, expiration = networks[key]
+            if network.name == name:
+                return Network(network, expiration, bot, reservations)
+

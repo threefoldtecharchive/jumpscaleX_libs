@@ -65,4 +65,4 @@ details = (LO) !tfgrid.workloads.reservation.escrow.detail.1
 
 @url = tfgrid.workloads.reservation.escrow.detail.1
 farmer_id  = (I)
-total_amount = (I)
+total_amount = (I64)
