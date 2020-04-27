@@ -19,7 +19,8 @@ class Balance(object):
             asset_code = response_balance["asset_code"]
             asset_issuer = response_balance["asset_issuer"]
         return Balance(balance, asset_code, asset_issuer)
-
+    
+    @property
     def is_native(self):
         return self.asset_code == "XLM" and self.asset_issuer is None
 
