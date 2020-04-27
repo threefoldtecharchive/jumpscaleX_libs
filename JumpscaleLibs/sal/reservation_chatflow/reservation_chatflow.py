@@ -5,8 +5,7 @@ import random
 import requests
 import time
 import json
-import nacl
-from pyblake2 import blake2b
+import base64
 
 
 class Network:
@@ -478,30 +477,14 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         reservation.explorer = explorer.url
         return reservation
 
-    def reservation_metadata_add(self, reservation, metadata, pub_key):
+    def reservation_metadata_add(self, reservation, metadata):
         meta_json = metadata._json
-
-        key = blake2b(digest_size=16)
-        key.update(pub_key.encode())
-        key = key.hexdigest()
-        box = nacl.secret.SecretBox(key.encode())
-        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
-        encrypted_metadata = box.encrypt(meta_json.encode(), nonce, encoder=nacl.encoding.HexEncoder).decode()
-
+        encrypted_metadata = base64.b85encode(j.me.encryptor.encrypt(meta_json.encode())).decode()
         reservation.metadata = encrypted_metadata
         return reservation
 
-    def reservation_metadata_decrypt(self, metadata_encrypted, pub_key):
-
-        key = blake2b(digest_size=16)
-        key.update(pub_key.encode())
-        key = key.hexdigest()
-        box = nacl.secret.SecretBox(key.encode())
-        dycrypted_metadata = box.decrypt(
-            ciphertext=metadata_encrypted.encode(), encoder=nacl.encoding.HexEncoder
-        ).decode()
-
-        return dycrypted_metadata
+    def reservation_metadata_decrypt(self, metadata_encrypted):
+        return j.me.encryptor.decrypt(base64.b85decode(metadata_encrypted.encode())).decode()
 
     def solution_name_add(self, bot, model):
         name_exists = False
@@ -562,12 +545,14 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
 
         explorer = j.clients.explorer.explorer
         customer_tid = j.me.tid
-        pub_key = explorer.users.get(customer_tid).pubkey
         reservations = explorer.reservations.list(customer_tid, "DEPLOY")
         for reservation in reservations:
             if reservation.metadata:
-                metadata = self.reservation_metadata_decrypt(reservation.metadata, pub_key)
-                metadata = json.loads(metadata)
+                try:
+                    metadata = self.reservation_metadata_decrypt(reservation.metadata)
+                    metadata = json.loads(metadata)
+                except:
+                    continue
                 solution_type = metadata["form_info"]["chatflow"]
                 metadata["form_info"].pop("chatflow")
                 if solution_type == "ubuntu":
@@ -604,7 +589,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         metadata["form_info"]["Entry point"] = reservation.data_reservation.containers[0].entrypoint
         metadata["form_info"]["IP Address"] = reservation.data_reservation.containers[0].network_connection[0].ipaddress
         return metadata
-        
+
     def network_get(self, bot, customer_tid, name):
         reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
         networks = self.network_list(customer_tid, reservations)
@@ -612,4 +597,3 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
             network, expiration = networks[key]
             if network.name == name:
                 return Network(network, expiration, bot, reservations)
-
