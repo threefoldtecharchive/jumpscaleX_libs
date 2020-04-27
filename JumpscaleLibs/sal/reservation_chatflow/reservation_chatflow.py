@@ -306,7 +306,7 @@ class Chatflow(j.baseclasses.object):
             time.sleep(1)
             reservation = self._explorer.reservations.get(rid)
 
-    def payment_wait(self, bot, rid):
+    def payment_wait(self, bot, rid, threebot_app=False, reservation_create_resp=None):
         # wait to check payment is actually done next_action changed from:PAY
         def is_expired(reservation):
             return reservation.data_reservation.expiration_provisioning < j.data.time.epoch
@@ -324,7 +324,9 @@ class Chatflow(j.baseclasses.object):
                 res += f"<h2> <a href={link}>Full reservation info</a></h2>"
                 j.sal.zosv2.reservation_cancel(rid)
                 bot.stop(res)
-            time.sleep(1)
+            if threebot_app and reservation_create_resp:
+                self.escrow_qr_show(bot, reservation_create_resp, reservation.data_reservation.expiration_provisioning)
+            time.sleep(5)
             reservation = self._explorer.reservations.get(rid)
 
     def _reservation_failed(self, bot, reservation):
@@ -400,6 +402,7 @@ class Chatflow(j.baseclasses.object):
         escrow_address = escrow_info["escrow_address"]
         escrow_asset = escrow_info["escrow_asset"]
         total_amount = escrow_info["total_amount"]
+        rid = reservation_create_resp.reservation_id
 
         wallets = self.wallets_list()
         wallet_names = []
@@ -419,24 +422,30 @@ Billing details:
             if result not in wallet_names:
                 continue
             if result == "3bot app":
-                self.escrow_qr_show(bot, escrow_info)
+                reservation = self._explorer.reservations.get(rid)
+                self.escrow_qr_show(bot, reservation_create_resp, reservation.data_reservation.expiration_provisioning)
                 return
             else:
                 wallet = wallets[result]
                 return wallet
 
-    def escrow_qr_show(self, bot, escrow_info):
+    def escrow_qr_show(self, bot, reservation_create_resp, expiration_provisioning):
         """
         Show in chatflow the QR code with the details of the escrow information for payment
         """
+        escrow_info = j.sal.zosv2.reservation_escrow_information_with_qrcodes(reservation_create_resp)
         escrow_address = escrow_info["escrow_address"]
         escrow_asset = escrow_info["escrow_asset"]
         farmer_payments = escrow_info["farmer_payments"]
         total_amount = escrow_info["total_amount"]
         reservationid = escrow_info["reservationid"]
         qrcode = escrow_info["qrcode"]
+        remaning_time = j.data.time.secondsToHRDelta(expiration_provisioning - j.data.time.epoch)
 
         message_text = f"""
+Scan the QR code with your application (do not change the message) or enter the information below manually and proceed with the payment make sure to add the reservationid as memo_text.
+<p>If no payment is made in {remaning_time} the reservation will be canceled</p>
+
 <h4> Escrow address: </h4>  {escrow_address} \n
 <h4> Escrow asset: </h4>  {escrow_asset} \n
 <h4> Total amount: </h4>  {total_amount} \n
@@ -449,13 +458,7 @@ Billing details:
 Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
 """
 
-        bot.qrcode_show(
-            qrcode,
-            title=f"Scan the following with your application (do not change the message) or enter the information below manually and proceed with the payment make sure to add the reservationid as memo_text",
-            msg=message_text,
-            scale=4,
-            update=True,
-        )
+        bot.qrcode_show(qrcode, title=f"Please make your payment", msg=message_text, scale=4, update=True)
 
     def reservation_save(self, rid, name, url, form_info=None):
         form_info = form_info or []
