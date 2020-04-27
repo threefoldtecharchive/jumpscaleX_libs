@@ -579,6 +579,8 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                 )
             else:
                 solution_type = self.solution_type_check(reservation)
+                if solution_type == "unknown":
+                    continue
                 self.reservation_save(reservation.id, f"unknow_{reservation.id}", urls[solution_type], form_info={})
 
     def solution_ubuntu_info_get(self, metadata, reservation):
@@ -626,8 +628,10 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
             return "network"
         elif kubernetes != []:
             return "kubernetes"
-        elif "ubuntu" in containers[0].flist:
-            return "ubuntu"
-        elif "minio" in containers[0].flist:
-            return "minio"
-        return "flist"
+        elif len(containers) != 0:
+            if "ubuntu" in containers[0].flist:
+                return "ubuntu"
+            elif "minio" in containers[0].flist:
+                return "minio"
+            return "flist"
+        return "unknow"
