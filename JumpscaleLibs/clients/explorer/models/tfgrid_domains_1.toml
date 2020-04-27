@@ -1,0 +1,8 @@
+@url = tfgrid.domains.delegate.1
+gateway = (O) !tfgrid.directory.gateway.1
+domain = (S)
+
+@url = tfgrid.domains.sub.1
+gateway_id = (O) !tfgrid.directory.gateway.1
+subdomain = (S)
+domain = (S)
