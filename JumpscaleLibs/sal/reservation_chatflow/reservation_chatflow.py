@@ -487,3 +487,12 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         for solution in solutions:
             j.sal.zosv2.reservation_cancel(solution.rid)
             solution.delete()
+
+    def network_get(self, bot, customer_tid, name):
+        reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
+        networks = self.network_list(customer_tid, reservations)
+        for key in networks.keys():
+            network, expiration = networks[key]
+            if network.name == name:
+                return Network(network, expiration, bot, reservations)
+
