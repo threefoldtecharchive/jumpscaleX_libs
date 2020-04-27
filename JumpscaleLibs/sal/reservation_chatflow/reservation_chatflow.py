@@ -65,11 +65,16 @@ class Network:
                 reservation, self._expiration, tid, currency=currency, bot=bot
             )
             rid = reservation_create.reservation_id
-            wallet = j.sal.reservation_chatflow.payments_show(self._bot, reservation_create)
-            if wallet:
-                j.sal.zosv2.billing.payout_farmers(wallet, reservation_create)
-
-            j.sal.reservation_chatflow.payment_wait(self._bot, rid)
+            payment = j.sal.reservation_chatflow.payments_show(self._bot, reservation_create)
+            if payment["free"]:
+                pass
+            elif payment["wallet"]:
+                j.sal.zosv2.billing.payout_farmers(payment["wallet"], reservation_create)
+                j.sal.reservation_chatflow.payment_wait(bot, rid, threebot_app=False)
+            else:
+                j.sal.reservation_chatflow.payment_wait(
+                    bot, rid, threebot_app=True, reservation_create_resp=reservation_create
+                )
             return self._sal.reservation_wait(self._bot, rid)
         return True
 
