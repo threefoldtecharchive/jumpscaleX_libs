@@ -5,6 +5,7 @@ from .container import ContainerGenerator
 from .kubernetes import K8sGenerator
 from .network import NetworkGenerator
 from .node_finder import NodeFinder
+from .gateway_finder import GatewayFinder
 from .volumes import VolumesGenerator
 from .zdb import ZDBGenerator
 from .billing import Billing
@@ -17,6 +18,7 @@ class Zosv2(j.baseclasses.object):
     def _init(self, **kwargs):
         self._explorer = j.clients.explorer.default
         self._nodes_finder = NodeFinder(self._explorer)
+        self._gateways_finder = GatewayFinder(self._explorer)
         self._network = NetworkGenerator(self._explorer)
         self._container = ContainerGenerator()
         self._volume = VolumesGenerator()
@@ -52,6 +54,10 @@ class Zosv2(j.baseclasses.object):
     @property
     def nodes_finder(self):
         return self._nodes_finder
+
+    @property
+    def gateways_finder(self):
+        return self._gateways_finder
 
     @property
     def billing(self):
