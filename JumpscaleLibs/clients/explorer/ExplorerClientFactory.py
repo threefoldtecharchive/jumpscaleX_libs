@@ -19,7 +19,10 @@ class ExplorerClientFactory(JSConfigs):
         j.core.myenv.config["EXPLORER_ADDR"] = value
         j.core.myenv.config_save()
         if self._explorer:
-            self._explorer = self.get(name="explorer", url=self._get_url(value), reload=True)
+            # update in bcdb
+            self.get(name="explorer", url=self._get_url(value), reload=True)._init()
+            # update existing instance
+            self._explorer.url = self._get_url(value)
             self._explorer._init()  # force reload
 
     def _get_url(self, addr):
