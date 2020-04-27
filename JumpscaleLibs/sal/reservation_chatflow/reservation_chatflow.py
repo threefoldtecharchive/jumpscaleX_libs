@@ -300,7 +300,7 @@ class Chatflow(j.baseclasses.object):
             if reservation.next_action != "PAY":
                 return
             if is_expired(reservation):
-                res = f"# Sorry your reservation ```{reservation.id}``` failed to deploy in time:\n"
+                res = f"# Failed to wait for payment for reservation:```{reservation.id}```:\n"
                 for x in reservation.results:
                     if x.state == "ERROR":
                         res += f"\n### {x.category}: ```{x.message}```\n"
