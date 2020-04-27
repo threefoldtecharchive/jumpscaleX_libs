@@ -17,12 +17,7 @@ class Network:
         self._sal = j.sal.reservation_chatflow
         self._bot = bot
         self._fill_used_ips(reservations)
-
-        currencies = reservations[0].data_reservation.currencies
-        if currencies:
-            self.currency = currencies[0]
-        else:
-            self.currency = "TFT"
+        self.currency = j.sal.reservation_chatflow.currency_get(reservations[0])
 
     def _fill_used_ips(self, reservations):
         for reservation in reservations:
@@ -328,6 +323,17 @@ class Chatflow(j.baseclasses.object):
             j.sal.zosv2.reservation_cancel(reservation.id)
             bot.stop(res)
 
+    def currency_get(self, reservation):
+        currencies = reservation.data_reservation.currencies
+        if currencies:
+            return currencies[0]
+        elif reservation.data_reservation.networks and reservation.data_reservation.networks[0].network_resources:
+            node_id = reservation.data_reservation.networks[0].network_resources[0].node_id
+            if j.clients.explorer.default.nodes.get(node_id).free_to_use:
+                return "FreeTFT"
+
+        return "TFT"
+
     def network_list(self, tid, reservations=None):
         if not reservations:
             reservations = j.sal.zosv2.reservation_list(tid=tid, next_action="DEPLOY")
@@ -338,7 +344,7 @@ class Chatflow(j.baseclasses.object):
                 continue
             rnetworks = reservation.data_reservation.networks
             expiration = reservation.data_reservation.expiration_reservation
-            currency = reservation.data_reservation.currencies[0]
+            currency = self.currency_get(reservation)
             for network in rnetworks:
                 if network.name in names:
                     continue
