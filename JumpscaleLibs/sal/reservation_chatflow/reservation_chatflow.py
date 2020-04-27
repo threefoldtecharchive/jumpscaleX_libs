@@ -5,6 +5,7 @@ import random
 import requests
 import time
 import json
+import base64
 
 
 class Network:
@@ -92,6 +93,7 @@ class Chatflow(j.baseclasses.object):
     def _init(self, **kwargs):
         j.data.bcdb.get("tfgrid_solutions")
         self._explorer = j.clients.explorer.default
+        self.solutions_explorer_get()
 
     def validate_user(self, user_info):
         if not j.core.myenv.config.get("THREEBOT_CONNECT", False):
@@ -472,6 +474,26 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         reservation.explorer = explorer.url
         reservation.save()
 
+    def solution_model_get(self, name, url, form_info=None):
+        form_info = form_info or []
+        rsv_model = j.clients.bcdbmodel.get(url=url, name="tfgrid_solutions")
+        reservation = rsv_model.new()
+        reservation.name = name
+        reservation.form_info = form_info
+
+        explorer = j.clients.explorer.explorer
+        reservation.explorer = explorer.url
+        return reservation
+
+    def reservation_metadata_add(self, reservation, metadata):
+        meta_json = metadata._json
+        encrypted_metadata = base64.b85encode(j.me.encryptor.encrypt(meta_json.encode())).decode()
+        reservation.metadata = encrypted_metadata
+        return reservation
+
+    def reservation_metadata_decrypt(self, metadata_encrypted):
+        return j.me.encryptor.decrypt(base64.b85decode(metadata_encrypted.encode())).decode()
+
     def solution_name_add(self, bot, model):
         name_exists = False
         while not name_exists:
@@ -514,6 +536,67 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         for solution in solutions:
             j.sal.zosv2.reservation_cancel(solution.rid)
             solution.delete()
+
+    def solutions_explorer_get(self):
+        urls = {
+            "ubuntu": "tfgrid.solutions.ubuntu.1",
+            "flist": "tfgrid.solutions.flist.1",
+            "minio": "tfgrid.solutions.minio.1",
+            "kubernetes": "tfgrid.solutions.kubernetes.1",
+            "network": "tfgrid.solutions.network.1",
+        }
+
+        for _, url in urls.items():
+            models = j.clients.bcdbmodel.get(url=url, name="tfgrid_solutions")
+            for model in models.find():
+                models.delete(model)
+
+        explorer = j.clients.explorer.explorer
+        customer_tid = j.me.tid
+        reservations = explorer.reservations.list(customer_tid, "DEPLOY")
+        for reservation in reservations:
+            if reservation.metadata:
+                try:
+                    metadata = self.reservation_metadata_decrypt(reservation.metadata)
+                    metadata = json.loads(metadata)
+                except:
+                    continue
+                solution_type = metadata["form_info"]["chatflow"]
+                metadata["form_info"].pop("chatflow")
+                if solution_type == "ubuntu":
+                    metadata = self.solution_ubuntu_info_get(metadata, reservation)
+                elif solution_type == "flist":
+                    metadata = self.solution_flist_info_get(metadata, reservation)
+                self.reservation_save(
+                    reservation.id, metadata["name"], urls[solution_type], form_info=metadata["form_info"]
+                )
+
+    def solution_ubuntu_info_get(self, metadata, reservation):
+        envs = reservation.data_reservation.containers[0].environment
+        env_variable = ""
+        metadata["form_info"]["Public key"] = envs["pub_key"].strip(" ")
+        envs.pop("pub_key")
+        metadata["form_info"]["CPU"] = reservation.data_reservation.containers[0].capacity.cpu
+        metadata["form_info"]["Memory"] = reservation.data_reservation.containers[0].capacity.memory
+        for key, value in envs.items():
+            env_variable += f"{key}={value},"
+        metadata["form_info"]["Env variables"] = str(env_variable)
+        metadata["form_info"]["IP Address"] = reservation.data_reservation.containers[0].network_connection[0].ipaddress
+        return metadata
+
+    def solution_flist_info_get(self, metadata, reservation):
+        envs = reservation.data_reservation.containers[0].environment
+        env_variable = ""
+        for key, value in envs.items():
+            env_variable += f"{key}={value}, "
+        metadata["form_info"]["CPU"] = reservation.data_reservation.containers[0].capacity.cpu
+        metadata["form_info"]["Memory"] = reservation.data_reservation.containers[0].capacity.memory
+        metadata["form_info"]["Env variables"] = str(env_variable)
+        metadata["form_info"]["Flist link"] = reservation.data_reservation.containers[0].flist
+        metadata["form_info"]["Interactive"] = reservation.data_reservation.containers[0].interactive
+        metadata["form_info"]["Entry point"] = reservation.data_reservation.containers[0].entrypoint
+        metadata["form_info"]["IP Address"] = reservation.data_reservation.containers[0].network_connection[0].ipaddress
+        return metadata
 
     def network_get(self, bot, customer_tid, name):
         reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
