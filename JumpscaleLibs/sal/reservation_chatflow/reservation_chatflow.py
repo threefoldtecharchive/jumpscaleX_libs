@@ -129,7 +129,7 @@ class Chatflow(j.baseclasses.object):
             nodes_selected.append(node)
         return nodes_selected
 
-    def validate_node(self, nodeid, query=None):
+    def validate_node(self, nodeid, query=None, currency=None):
         try:
             node = self._explorer.nodes.get(nodeid)
         except requests.exceptions.HTTPError:
@@ -137,6 +137,11 @@ class Chatflow(j.baseclasses.object):
         if not j.sal.zosv2.nodes_finder.filter_is_up(node):
             raise j.exceptions.NotFound(f"Node {nodeid} doesn't seem to be up please choose another nodeid")
 
+        if currency:
+            if (currency == "FreeTFT" and not node.free_to_use) or (currency != "FreeTFT" and node.free_to_use):
+                raise j.exceptions.Value(
+                    f"The specified node ({nodeid}) should support the same type of currency as the network you are using ({currency})"
+                )
         if query:
             for unit, value in query.items():
                 freevalue = getattr(node.total_resources, unit) - getattr(node.used_resources, unit)
@@ -256,7 +261,7 @@ class Chatflow(j.baseclasses.object):
                 currencies=[currency],
             )
         except requests.HTTPError as e:
-            bot.stop("The following error occured:  " + e.response.content.decode("utf-8"))
+            bot.stop("The following error occured:  " + e.response.text)
 
         rid = reservation_create.reservation_id
         reservation.id = rid
@@ -514,4 +519,3 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
             network, expiration = networks[key]
             if network.name == name:
                 return Network(network, expiration, bot, reservations)
-
