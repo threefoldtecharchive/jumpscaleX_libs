@@ -491,7 +491,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         reservation.metadata = encrypted_metadata
         return reservation
 
-    def reservation_metadata_get(self, metadata_encrypted, pub_key):
+    def reservation_metadata_decrypt(self, metadata_encrypted, pub_key):
 
         key = blake2b(digest_size=16)
         key.update(pub_key.encode())
@@ -566,7 +566,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         reservations = explorer.reservations.list(customer_tid, "DEPLOY")
         for reservation in reservations:
             if reservation.metadata:
-                metadata = self.reservation_metadata_get(reservation.metadata, pub_key)
+                metadata = self.reservation_metadata_decrypt(reservation.metadata, pub_key)
                 metadata = json.loads(metadata)
                 solution_type = metadata["form_info"]["chatflow"]
                 metadata["form_info"].pop("chatflow")
