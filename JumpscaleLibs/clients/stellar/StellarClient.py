@@ -3,41 +3,45 @@ Stellar Client
 """
 
 from Jumpscale import j
-from Jumpscale.clients.http.HttpClient import HTTPError
+import requests
 
 try:
-    from stellar_sdk import (
-        Server,
-        Keypair,
-        TransactionBuilder,
-        Network,
-        Signer,
-        Asset,
-        operation,
-        Transaction,
-        TransactionEnvelope,
-    )
+    from stellar_sdk import Server, Keypair, TransactionBuilder, Network, TransactionEnvelope, strkey
     from stellar_sdk.exceptions import BadRequestError
 except (ModuleNotFoundError, ImportError):
     j.builders.runtimes.python3.pip_package_install("stellar_sdk")
+    from stellar_sdk import Server, Keypair, TransactionBuilder, Network, TransactionEnvelope, strkey
 
-from stellar_sdk import Server, Keypair, TransactionBuilder, Network, TransactionEnvelope, strkey
-from stellar_sdk.exceptions import BadRequestError
 from stellar_sdk import Account as stellarAccount
 from urllib import parse
 import time
-import decimal
 import math
-import base64
 from .balance import Balance, EscrowAccount, AccountBalances
 from .transaction import TransactionSummary, Effect
 
 JSConfigClient = j.baseclasses.object_config
 
 
-_THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES = {"TEST": "testnet.threefold.io", "STD": "threefold.io"}
+_THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES = {"TEST": "testnet.threefold.io", "STD": "tokenservices.threefold.io"}
 _HORIZON_NETWORKS = {"TEST": "https://horizon-testnet.stellar.org", "STD": "https://horizon.stellar.org"}
 _NETWORK_PASSPHRASES = {"TEST": Network.TESTNET_NETWORK_PASSPHRASE, "STD": Network.PUBLIC_NETWORK_PASSPHRASE}
+_NETWORK_KNOWN_TRUSTS = {
+    "TEST": {
+        "TFT": "GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3",
+        "FreeTFT": "GBLDUINEFYTF7XEE7YNWA3JQS4K2VD37YU7I2YAE7R5AHZDKQXSS2J6R",
+    },
+    "STD": {
+        "TFT": "GBOVQKJYHXRR3DX6NOX2RRYFRCUMSADGDESTDNBDS6CDVLGVESRTAC47",
+        "FreeTFT": "GCBGS5TFE2BPPUVY55ZPEMWWGR6CLQ7T6P46SOFGHXEBJ34MSP6HVEUT",
+    },
+}
+_THREEFOLDFOUNDATION_TFTSTELLAR_ENDPOINT = {
+    "FUND": "/threefoldfoundation/transactionfunding_service/fund_transaction",
+    "CREATE_UNLOCK": "/threefoldfoundation/unlock_service/create_unlockhash_transaction",
+    "GET_UNLOCK": "/threefoldfoundation/unlock_service/get_unlockhash_transaction",
+    "CREATE_ACTIVATION_CODE": "/threefoldfoundation/activation_service/create_activation_code",
+    "ACTIVATE_ACCOUNT": "/threefoldfoundation/activation_service/activate_account",
+}
 
 
 class Account(stellarAccount):
@@ -52,10 +56,10 @@ class Account(stellarAccount):
         stellarAccount.increment_sequence_number(self)
         self.wallet.sequence = self.sequence
         self.wallet.sequencedate = int(time.time())
-    
+
     @property
     def last_created_sequence_is_used(self):
-         return self.wallet.sequence <= self.sequence 
+        return self.wallet.sequence <= self.sequence
 
 
 class StellarClient(JSConfigClient):
@@ -92,53 +96,40 @@ class StellarClient(JSConfigClient):
         jsx_account = Account(saccount.account_id, saccount.sequence, self)
         return jsx_account
 
-    @property
-    def _unlock_service_client(self):
-        """
-        lazy loading of the unlock service client
-        """
+    def _get_url(self, endpoint):
+        url = _THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES[str(self.network)]
+        endpoint = _THREEFOLDFOUNDATION_TFTSTELLAR_ENDPOINT[endpoint]
+        return f"https://{url}{endpoint}"
 
-        if self._unlock_service_client_ is None:
-            gedis_client_name = "unlock_service_{}".format(str(self.network))
-            if j.clients.gedis.exists(gedis_client_name):
-                c = j.clients.gedis.get(gedis_client_name)
-                if str(c.host) != _THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES[str(self.network)]:
-                    j.clients.gedis.delete(gedis_client_name)
+    def _fund_transaction(self, transaction):
+        data = {"transaction": transaction}
+        resp = requests.post(self._get_url("FUND"), json={"args": data})
+        resp.raise_for_status()
+        return resp.json()
 
-            if not j.clients.gedis.exists(gedis_client_name):
-                c = j.clients.gedis.new(
-                    gedis_client_name,
-                    host=_THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES[str(self.network)],
-                    port=8901,
-                    package_name="threefoldfoundation.unlock_service",
-                )
+    def _create_unlockhash_transation(self, unlock_hash, transaction_xdr):
+        data = {"unlock_hash": unlock_hash, "transaction_xdr": transaction_xdr}
+        resp = requests.post(self._get_url("CREATE_UNLOCK"), json={"args": data})
+        resp.raise_for_status()
+        return resp.json()
 
-            self._unlock_service_client_ = c.actors.unlock_service
-        return self._unlock_service_client_
+    def _get_unlockhash_transaction(self, unlockhash):
+        data = {"unlockhash": unlockhash}
+        resp = requests.post(self._get_url("GET_UNLOCK"), json={"args": data})
+        resp.raise_for_status()
+        return resp.json()
 
-    @property
-    def _transaction_fund_client(self):
-        """
-        lazy loading of the unlock service client
-        """
+    def _create_activation_code(self):
+        data = {"address": self.address}
+        resp = requests.post(self._get_url("CREATE_ACTIVATION_CODE"), json={"args": data})
+        resp.raise_for_status()
+        return resp.json()
 
-        if self._transaction_fund_client_ is None:
-            gedis_client_name = "transactionfunding_service_{}".format(str(self.network))
-            if j.clients.gedis.exists(gedis_client_name):
-                c = j.clients.gedis.get(gedis_client_name)
-                if str(c.host) != _THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES[str(self.network)]:
-                    j.clients.gedis.delete(gedis_client_name)
-
-            if not j.clients.gedis.exists(gedis_client_name):
-                c = j.clients.gedis.new(
-                    gedis_client_name,
-                    host=_THREEFOLDFOUNDATION_TFTSTELLAR_SERVICES[str(self.network)],
-                    port=8901,
-                    package_name="threefoldfoundation.transactionfunding_service",
-                )
-
-            self._transaction_fund_client_ = c.actors.transactionfunding_service
-        return self._transaction_fund_client_
+    def _activation_account(self, activation_code):
+        data = {"activation_code": activation_code}
+        resp = requests.post(self._get_url("ACTIVATE_ACCOUNT"), json={"args": data})
+        resp.raise_for_status()
+        return resp.json()
 
     def set_unlock_transaction(self, unlock_transaction):
         """
@@ -150,7 +141,7 @@ class StellarClient(JSConfigClient):
         tx_hash = txe.hash()
         unlock_hash = strkey.StrKey.encode_pre_auth_tx(tx_hash)
 
-        self._unlock_service_client.create_unlockhash_transaction(unlock_hash=unlock_hash, transaction_xdr=txe.to_xdr())
+        self._create_unlockhash_transaction(unlock_hash=unlock_hash, transaction_xdr=txe.to_xdr())
 
     def _get_free_balances(self, address=None):
         if address is None:
@@ -210,11 +201,11 @@ class StellarClient(JSConfigClient):
     def _unlock_account(self, escrow_account):
         submitted_unlock_transactions = 0
         for unlockhash in escrow_account.unlockhashes:
-            unlockhash_transation = self._unlock_service_client.get_unlockhash_transaction(unlockhash=unlockhash)
+            unlockhash_transation = self._get_unlockhash_transaction(unlockhash=unlockhash)
             if unlockhash_transation is None:
                 return
-            self._log_info(unlockhash_transation.transaction_xdr)
-            self._get_horizon_server().submit_transaction(unlockhash_transation.transaction_xdr)
+            self._log_info(unlockhash_transation["transaction_xdr"])
+            self._get_horizon_server().submit_transaction(unlockhash_transation["transaction_xdr"])
             submitted_unlock_transactions += 1
 
         if submitted_unlock_transactions == len(escrow_account.unlockhashes):
@@ -259,16 +250,16 @@ class StellarClient(JSConfigClient):
         if str(self.network) != "TEST":
             raise Exception("Account activation through friendbot is only available on testnet")
 
-        try:
-            resp = j.clients.http.get_response("https://friendbot.stellar.org/?addr=" + self.address)
-            if resp.getcode() == 200:
-                self._log_info("account with address: {} funded through friendbot".format(self.address))
-        except HTTPError as e:
-            if e.status_code == 400:
-                msg = e.msg
-                if isinstance(msg, (bytes, bytearray)):
-                    msg = msg.decode("utf-8")
-                    self._log_debug(msg)
+        resp = requests.get("https://friendbot.stellar.org/", params={"addr": self.address})
+        resp.raise_for_status()
+        self._log_info("account with address: {} funded through friendbot".format(self.address))
+
+    def activate_through_threefold_service(self):
+        """
+        Activate your weallet through threefold services
+        """
+        activationdata = self._create_activation_code()
+        self._activation_account(activationdata["activation_code"])
 
     def activate_account(self, destination_address, starting_balance="12.50"):
         """Activates another account
@@ -308,6 +299,18 @@ class StellarClient(JSConfigClient):
         :type issuer: str
         """
         self._change_trustline(asset_code, issuer, secret=secret)
+
+    def add_known_trustline(self, asset_code):
+        """
+        Will add a trustline known by threefold for chosen asset_code
+
+        :param asset_code: code of the asset. For example: 'FreeTFT', 'TFT', ...
+        :type asset_code: str
+        """
+        issuer = _NETWORK_KNOWN_TRUSTS.get(str(self.network), {}).get(asset_code)
+        if not issuer:
+            raise j.exceptions.NotFound(f"We do not provide a known issuers for {asset_code} on network {self.network}")
+        self._change_trustline(asset_code, issuer)
 
     def delete_trustline(self, asset_code, issuer, secret=None):
         """Deletes a trustline
@@ -357,7 +360,16 @@ class StellarClient(JSConfigClient):
             self.log_debug(e)
             raise e
 
-    def transfer(self, destination_address, amount, asset="XLM", locked_until=None, memo_text=None, memo_hash=None, fund_transaction=True):
+    def transfer(
+        self,
+        destination_address,
+        amount,
+        asset="XLM",
+        locked_until=None,
+        memo_text=None,
+        memo_hash=None,
+        fund_transaction=True,
+    ):
         """Transfer assets to another address
         :param destination_address: address of the destination.
         :type destination_address: str
@@ -397,7 +409,11 @@ class StellarClient(JSConfigClient):
             source_account=source_account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee
         )
         transaction_builder.append_payment_op(
-            destination=destination_address, amount=str(amount), asset_code=asset, asset_issuer=issuer, source=source_public_key
+            destination=destination_address,
+            amount=str(amount),
+            asset_code=asset,
+            asset_issuer=issuer,
+            source=source_keypair.public_key,
         )
         transaction_builder.set_timeout(30)
         if memo_text is not None:
@@ -410,8 +426,8 @@ class StellarClient(JSConfigClient):
 
         if asset == "TFT" or asset == "FreeTFT":
             if fund_transaction:
-                transaction = self._transaction_fund_client.fund_transaction(transaction=transaction)
-                transaction = transaction.transaction_xdr
+                transaction = self._fund_transaction(transaction=transaction)
+                transaction = transaction["transaction_xdr"]
 
         transaction = TransactionEnvelope.from_xdr(transaction, _NETWORK_PASSPHRASES[str(self.network)])
         transaction.sign(source_keypair)
@@ -428,7 +444,7 @@ class StellarClient(JSConfigClient):
                 for op in operations:
                     if op == "op_underfunded":
                         raise e
-                    # if op_bad_auth is returned then we assume the transaction needs more signatures 
+                    # if op_bad_auth is returned then we assume the transaction needs more signatures
                     # so we return the transaction as xdr
                     elif op == "op_bad_auth":
                         self._log_info("Transaction might need additional signatures in order to send")
@@ -535,7 +551,7 @@ class StellarClient(JSConfigClient):
 
         # save the preauth transaction in our unlock service
         unlock_hash = strkey.StrKey.encode_pre_auth_tx(preauth_tx_hash)
-        self._unlock_service_client.create_unlockhash_transaction(unlock_hash, preauth_tx.to_xdr())
+        self._create_unlockhash_transaction(unlock_hash=unlock_hash, transaction_xdr=preauth_tx.to_xdr())
 
         self._set_account_signers(escrow_kp.public_key, destination_address, preauth_tx_hash, escrow_kp)
         self._log_info("Unlock Transaction:")

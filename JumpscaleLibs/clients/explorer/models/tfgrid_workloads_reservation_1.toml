@@ -14,6 +14,7 @@ signatures_provision = (LO) !tfgrid.workloads.reservation.signing.signature.1
 signatures_farmer = (LO) !tfgrid.workloads.reservation.signing.signature.1
 signatures_delete = (LO) !tfgrid.workloads.reservation.signing.signature.1
 epoch = (T)
+metadata = (S)
 results = (LO) !tfgrid.workloads.reservation.result.1
 
 @url = tfgrid.workloads.reservation.data.1
@@ -27,10 +28,16 @@ volumes = (LO) !tfgrid.workloads.reservation.volume.1
 zdbs = (LO) !tfgrid.workloads.reservation.zdb.1
 networks = (LO) !tfgrid.workloads.reservation.network.1
 kubernetes = (LO) !tfgrid.workloads.reservation.k8s.1
+proxies = (LO) !tfgrid.workloads.reservation.gateway.proxy.1
+reserve_proxies = (LO) !tfgrid.workloads.reservation.gateway.reserve_proxy.1
+subdomains = (LO) !tfgrid.workloads.reservation.gateway.subdomain.1
+domain_delegates = (LO) !tfgrid.workloads.reservation.gateway.delegate.1
 #till whe is request for provisioning valid, if not signed in required time then obsolete
 expiration_provisioning = (T)
 #till whe is reservation valid
 expiration_reservation = (T)
+# list of currency the user is able to pay with
+currencies = (LS)
 
 @url = tfgrid.workloads.reservation.signing.request.1
 #part of the reservation.data, because should never be possible to delete this
@@ -53,8 +60,9 @@ escrow_information = (O) !tfgrid.workloads.reservation.escrow.1
 
 @url = tfgrid.workloads.reservation.escrow.1
 address = (S)
+asset = (S) # the token asset code of the currency the reservation needs to be paid with
 details = (LO) !tfgrid.workloads.reservation.escrow.detail.1
 
 @url = tfgrid.workloads.reservation.escrow.detail.1
 farmer_id  = (I)
-total_amount = (I)
+total_amount = (I64)

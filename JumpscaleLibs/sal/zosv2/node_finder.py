@@ -23,7 +23,16 @@ class NodeFinder:
         return filter_public_ip(node, 6)
 
     def nodes_by_capacity(
-        self, farm_id=None, farm_name=None, country=None, city=None, cru=None, sru=None, mru=None, hru=None
+        self,
+        farm_id=None,
+        farm_name=None,
+        country=None,
+        city=None,
+        cru=None,
+        sru=None,
+        mru=None,
+        hru=None,
+        currency=None,
     ):
         nodes = self.nodes_search(farm_id=farm_id, farm_name=farm_name, country=country, city=city)
         for node in nodes:
@@ -39,6 +48,12 @@ class NodeFinder:
                 continue
 
             if hru and total.hru - max(0, reserved.hru) < hru:
+                continue
+
+            if currency and currency == "FreeTFT" and not node.free_to_use:
+                continue
+
+            if currency and currency != "FreeTFT" and node.free_to_use:
                 continue
 
             yield node

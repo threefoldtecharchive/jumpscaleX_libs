@@ -1,6 +1,6 @@
 #json representation of whatever needs to come back from the ZOS after provisioning
 @url = tfgrid.workloads.reservation.result.1
-category = "zdb,container,network,volume,kubernetes" (E)
+category = "zdb,container,volume,network,kubernetes,proxy,reverse-proxy,subdomain,domain-delegate,gateway4to6" (E)
 workload_id = (S)
 data_json = (json)
 #signature of the data (is e.g. json) by the zos node who deployed
