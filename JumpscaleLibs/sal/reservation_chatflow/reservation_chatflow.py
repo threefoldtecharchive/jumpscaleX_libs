@@ -624,10 +624,10 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
 
         if containers == [] and volumes == [] and zdbs == [] and kubernetes == []:
             return "network"
+        elif kubernetes != []:
+            return "kubernetes"
         elif "ubuntu" in containers[0].flist:
             return "ubuntu"
         elif "minio" in containers[0].flist:
             return "minio"
-        elif kubernetes != []:
-            return "kubernetes"
         return "flist"
