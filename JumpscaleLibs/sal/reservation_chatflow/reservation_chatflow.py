@@ -263,7 +263,11 @@ class Chatflow(j.baseclasses.object):
                 currencies=[currency],
             )
         except requests.HTTPError as e:
-            bot.stop("The following error occured:  " + e.response.text)
+            try:
+                msg = e.response.json()["error"]
+            except (KeyError, json.JSONDecodeError):
+                msg = e.response.text
+            bot.stop(f"The following error occured: {msg}")
 
         rid = reservation_create.reservation_id
         reservation.id = rid
