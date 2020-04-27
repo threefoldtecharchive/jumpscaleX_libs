@@ -22,3 +22,8 @@ ips = (LS) # list of target IP
 workload_id = (I)
 node_id = (S)
 domain = (S)
+
+@url = tfgrid.workloads.reservation.gateway4to6.1
+workload_id = (I)
+node_id = (S)
+public_key = (S) the wireguard public key of the user

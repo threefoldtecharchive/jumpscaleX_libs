@@ -40,6 +40,13 @@ class GatewayGenerator:
         p.secret = secret
         return p
 
+    def gateway_4to6(self, reservation, node_id, public_key):
+        gw = reservation.data_reservation.gateway4to6.new()
+        gw.public_key = public_key
+        gw.node_id = node_id
+        gw.workload_id = _next_workload_id(reservation)
+        return gw
+
 
 def _is_valid_ip(ip):
     try:
