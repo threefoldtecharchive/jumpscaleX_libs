@@ -411,8 +411,16 @@ class Chatflow(j.baseclasses.object):
             wallets[wallet.name] = wallet
         return wallets
 
-    def reservation_pay(self, bot, reservation_create):
-        payment = self.payments_show(bot, reservation_create)
+    def reservation_register_and_pay(self, reservation, expiration=None, customer_tid=None , currency=None ,bot=None):
+        if customer_tid and expiration and currency:
+            reservation_create = self.reservation_register(
+                reservation, expiration, customer_tid=customer_tid, currency=currency, bot=bot
+            )
+            payment = self.payments_show(bot, reservation_create)
+        else:
+            reservation_create = reservation
+            payment = self.payments_show(bot, reservation_create)
+
         resv_id = reservation_create.reservation_id
         if payment["free"]:
             return
@@ -421,6 +429,9 @@ class Chatflow(j.baseclasses.object):
             self.payment_wait(bot, resv_id, threebot_app=False)
         else:
             self.payment_wait(bot, resv_id, threebot_app=True, reservation_create_resp=reservation_create)
+
+        self.reservation_wait(bot, resv_id)
+        return resv_id
 
     def payments_show(self, bot, reservation_create_resp):
         """
