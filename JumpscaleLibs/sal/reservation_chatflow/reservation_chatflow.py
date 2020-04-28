@@ -411,6 +411,17 @@ class Chatflow(j.baseclasses.object):
             wallets[wallet.name] = wallet
         return wallets
 
+    def reservation_pay(self, bot, reservation_create):
+        payment = self.payments_show(bot, reservation_create)
+        resv_id = reservation_create.reservation_id
+        if payment["free"]:
+            return
+        elif payment["wallet"]:
+            j.sal.zosv2.billing.payout_farmers(payment["wallet"], reservation_create)
+            self.payment_wait(bot, resv_id, threebot_app=False)
+        else:
+            self.payment_wait(bot, resv_id, threebot_app=True, reservation_create_resp=reservation_create)
+
     def payments_show(self, bot, reservation_create_resp):
         """
         Show valid payment options in chatflow available. All available wallets possible are shown or usage of 3bot app is shown
