@@ -123,7 +123,7 @@ class Chatflow(j.baseclasses.object):
             raise j.exceptions.Value("Name of logged in user shouldn't be empty")
         return self._explorer.users.get(name=user_info["username"], email=user_info["email"])
 
-    def _random_nodes_distribute(self, number_of_nodes, farm_names):
+    def _nodes_distribute(self, number_of_nodes, farm_names):
         nodes_distribution = {}
         nodes_left = number_of_nodes
         if not farm_names:
@@ -131,13 +131,17 @@ class Chatflow(j.baseclasses.object):
             farm_names = []
             for f in farms:
                 farm_names.append(f.name)
+        random.shuffle(farm_names)
+        names_pointer = 0
         while nodes_left:
-            farm_name = random.choice(farm_names)
-            nodes_in_farm = random.randint(1, nodes_left)
-            nodes_left -= nodes_in_farm
+            farm_name = farm_names[names_pointer]
             if farm_name not in nodes_distribution:
                 nodes_distribution[farm_name] = 0
-            nodes_distribution[farm_name] += nodes_in_farm
+            nodes_distribution[farm_name] += 1
+            nodes_left -= 1
+            names_pointer += 1
+            if names_pointer == len(farm_names):
+                names_pointer = 0
         return nodes_distribution
 
     def nodes_get(
@@ -163,11 +167,11 @@ class Chatflow(j.baseclasses.object):
                 nodes = filter(j.sal.zosv2.nodes_finder.filter_is_not_free_to_use, nodes)
             return nodes
 
-        random_nodes_distribution = self._random_nodes_distribute(number_of_nodes, farm_names)
+        nodes_distribution = self._nodes_distribute(number_of_nodes, farm_names)
         # to avoid using the same node with different networks
         nodes_selected = []
-        for farm_name in random_nodes_distribution:
-            nodes_number = random_nodes_distribution[farm_name]
+        for farm_name in nodes_distribution:
+            nodes_number = nodes_distribution[farm_name]
             if not farm_names:
                 farm_name = None
             nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
