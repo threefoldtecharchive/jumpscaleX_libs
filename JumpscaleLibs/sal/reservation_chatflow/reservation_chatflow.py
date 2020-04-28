@@ -577,6 +577,11 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                 self.reservation_save(
                     reservation.id, metadata["name"], urls[solution_type], form_info=metadata["form_info"]
                 )
+            else:
+                solution_type = self.solution_type_check(reservation)
+                if solution_type == "unknown":
+                    continue
+                self.reservation_save(reservation.id, f"unknow_{reservation.id}", urls[solution_type], form_info={})
 
     def solution_ubuntu_info_get(self, metadata, reservation):
         envs = reservation.data_reservation.containers[0].environment
@@ -612,3 +617,21 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
             network, expiration = networks[key]
             if network.name == name:
                 return Network(network, expiration, bot, reservations)
+
+    def solution_type_check(self, reservation):
+        containers = reservation.data_reservation.containers
+        volumes = reservation.data_reservation.volumes
+        zdbs = reservation.data_reservation.zdbs
+        kubernetes = reservation.data_reservation.kubernetes
+
+        if containers == [] and volumes == [] and zdbs == [] and kubernetes == []:
+            return "network"
+        elif kubernetes != []:
+            return "kubernetes"
+        elif len(containers) != 0:
+            if "ubuntu" in containers[0].flist:
+                return "ubuntu"
+            elif "minio" in containers[0].flist:
+                return "minio"
+            return "flist"
+        return "unknown"
