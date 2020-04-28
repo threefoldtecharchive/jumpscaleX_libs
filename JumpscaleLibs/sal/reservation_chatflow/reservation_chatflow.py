@@ -114,7 +114,8 @@ class Chatflow(j.baseclasses.object):
         return self._explorer.users.get(name=user_info["username"], email=user_info["email"])
 
     def nodes_get(
-        self, number_of_nodes, farm_id=None, farm_name=None, cru=None, sru=None, mru=None, hru=None, currency="TFT"
+        self, number_of_nodes, farm_id=None, farm_name=None, cru=None, sru=None, mru=None, hru=None, free_to_use=None,
+            currency="TFT"
     ):
         # get nodes without public ips
         nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
@@ -122,6 +123,12 @@ class Chatflow(j.baseclasses.object):
         )
         nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, nodes)
 
+        if free_to_use == True:
+            nodes = list(nodes)
+            nodes = filter(j.sal.zosv2.nodes_finder.filter_is_free_to_use, nodes)
+        elif free_to_use == False:
+            nodes = list(nodes)
+            nodes = filter(j.sal.zosv2.nodes_finder.filter_is_not_free_to_use, nodes)
         # to avoid using the same node with different networks
         nodes = list(nodes)
         nodes_selected = []
