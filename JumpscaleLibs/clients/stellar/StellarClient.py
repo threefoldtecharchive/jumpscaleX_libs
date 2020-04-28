@@ -107,7 +107,7 @@ class StellarClient(JSConfigClient):
         resp.raise_for_status()
         return resp.json()
 
-    def _create_unlockhash_transation(self, unlock_hash, transaction_xdr):
+    def _create_unlockhash_transaction(self, unlock_hash, transaction_xdr):
         data = {"unlock_hash": unlock_hash, "transaction_xdr": transaction_xdr}
         resp = requests.post(self._get_url("CREATE_UNLOCK"), json={"args": data})
         resp.raise_for_status()
