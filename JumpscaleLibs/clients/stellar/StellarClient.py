@@ -357,7 +357,7 @@ class StellarClient(JSConfigClient):
             response = server.submit_transaction(transaction)
             self._log_info("Transaction hash: {}".format(response["hash"]))
         except BadRequestError as e:
-            self.log_debug(e)
+            self._log_debug(e)
             raise e
 
     def transfer(
