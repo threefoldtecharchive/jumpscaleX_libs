@@ -275,7 +275,11 @@ class Chatflow(j.baseclasses.object):
                 currencies=[currency],
             )
         except requests.HTTPError as e:
-            bot.stop("The following error occured:  " + e.response.text)
+            try:
+                msg = e.response.json()["error"]
+            except (KeyError, json.JSONDecodeError):
+                msg = e.response.text
+            bot.stop(f"The following error occured: {msg}")
 
         rid = reservation_create.reservation_id
         reservation.id = rid
@@ -296,6 +300,10 @@ class Chatflow(j.baseclasses.object):
             count += len(reservation.data_reservation.zdbs)
             count += len(reservation.data_reservation.containers)
             count += len(reservation.data_reservation.kubernetes)
+            count += len(reservation.data_reservation.proxies)
+            count += len(reservation.data_reservation.reserve_proxies)
+            count += len(reservation.data_reservation.subdomains)
+            count += len(reservation.data_reservation.domain_delegates)
             for network in reservation.data_reservation.networks:
                 count += len(network.network_resources)
             return len(reservation.results) >= count
