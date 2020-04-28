@@ -65,11 +65,16 @@ class Network:
                 reservation, self._expiration, tid, currency=currency, bot=bot
             )
             rid = reservation_create.reservation_id
-            wallet = j.sal.reservation_chatflow.payments_show(self._bot, reservation_create)
-            if wallet:
-                j.sal.zosv2.billing.payout_farmers(wallet, reservation_create)
-
-            j.sal.reservation_chatflow.payment_wait(self._bot, rid)
+            payment = j.sal.reservation_chatflow.payments_show(self._bot, reservation_create)
+            if payment["free"]:
+                pass
+            elif payment["wallet"]:
+                j.sal.zosv2.billing.payout_farmers(payment["wallet"], reservation_create)
+                j.sal.reservation_chatflow.payment_wait(bot, rid, threebot_app=False)
+            else:
+                j.sal.reservation_chatflow.payment_wait(
+                    bot, rid, threebot_app=True, reservation_create_resp=reservation_create
+                )
             return self._sal.reservation_wait(self._bot, rid)
         return True
 
@@ -401,8 +406,10 @@ class Chatflow(j.baseclasses.object):
         where a QR code is viewed for the user to scan and continue with their payment
         :rtype: wallet in case a wallet is used
         """
+        payment = {"wallet": None, "free": False}
         if not (reservation_create_resp.escrow_information and reservation_create_resp.escrow_information.details):
-            return
+            payment["free"] = True
+            return payment
         escrow_info = j.sal.zosv2.reservation_escrow_information_with_qrcodes(reservation_create_resp)
 
         escrow_address = escrow_info["escrow_address"]
@@ -430,10 +437,10 @@ Billing details:
             if result == "3bot app":
                 reservation = self._explorer.reservations.get(rid)
                 self.escrow_qr_show(bot, reservation_create_resp, reservation.data_reservation.expiration_provisioning)
-                return
+                return payment
             else:
-                wallet = wallets[result]
-                return wallet
+                payment["wallet"] = wallets[result]
+                return payment
 
     def escrow_qr_show(self, bot, reservation_create_resp, expiration_provisioning):
         """
@@ -574,6 +581,11 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                 self.reservation_save(
                     reservation.id, metadata["name"], urls[solution_type], form_info=metadata["form_info"]
                 )
+            else:
+                solution_type = self.solution_type_check(reservation)
+                if solution_type == "unknown":
+                    continue
+                self.reservation_save(reservation.id, f"unknow_{reservation.id}", urls[solution_type], form_info={})
 
     def solution_ubuntu_info_get(self, metadata, reservation):
         envs = reservation.data_reservation.containers[0].environment
@@ -609,3 +621,21 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
             network, expiration = networks[key]
             if network.name == name:
                 return Network(network, expiration, bot, reservations)
+
+    def solution_type_check(self, reservation):
+        containers = reservation.data_reservation.containers
+        volumes = reservation.data_reservation.volumes
+        zdbs = reservation.data_reservation.zdbs
+        kubernetes = reservation.data_reservation.kubernetes
+
+        if containers == [] and volumes == [] and zdbs == [] and kubernetes == []:
+            return "network"
+        elif kubernetes != []:
+            return "kubernetes"
+        elif len(containers) != 0:
+            if "ubuntu" in containers[0].flist:
+                return "ubuntu"
+            elif "minio" in containers[0].flist:
+                return "minio"
+            return "flist"
+        return "unknown"
