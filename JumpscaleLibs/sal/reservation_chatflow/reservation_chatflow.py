@@ -293,6 +293,10 @@ class Chatflow(j.baseclasses.object):
             count += len(reservation.data_reservation.zdbs)
             count += len(reservation.data_reservation.containers)
             count += len(reservation.data_reservation.kubernetes)
+            count += len(reservation.data_reservation.proxies)
+            count += len(reservation.data_reservation.reserve_proxies)
+            count += len(reservation.data_reservation.subdomains)
+            count += len(reservation.data_reservation.domain_delegates)
             for network in reservation.data_reservation.networks:
                 count += len(network.network_resources)
             return len(reservation.results) >= count
