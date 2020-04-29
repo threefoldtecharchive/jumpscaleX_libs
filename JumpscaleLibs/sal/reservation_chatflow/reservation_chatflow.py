@@ -715,3 +715,8 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         gateway_id = gateway.split()[-1][1:-1]
         gateway = gateways[gateway_id]
         return gateway
+
+    def gateway_get_kube_network_ip(self, reservation_data):
+        network_id = reservation_data["kubernetes"][0]["network_id"]
+        ip = reservation_data["kubernetes"]["ipaddress"]
+        return network_id, ip
