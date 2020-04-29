@@ -9,7 +9,7 @@ import base64
 
 
 class Network:
-    def __init__(self, network, expiration, bot, reservations):
+    def __init__(self, network, expiration, bot, reservations, currency):
         self._network = network
         self._expiration = expiration
         self.name = network.name
@@ -18,7 +18,7 @@ class Network:
         self._sal = j.sal.reservation_chatflow
         self._bot = bot
         self._fill_used_ips(reservations)
-        self.currency = j.sal.reservation_chatflow.currency_get(reservations[0])
+        self.currency = currency
 
     def _fill_used_ips(self, reservations):
         for reservation in reservations:
@@ -226,8 +226,8 @@ class Chatflow(j.baseclasses.object):
             result = bot.single_choice("Choose a network", names)
             if result not in networks:
                 continue
-            network, expiration = networks[result]
-            return Network(network, expiration, bot, reservations)
+            network, expiration, currency = networks[result]
+            return Network(network, expiration, bot, reservations, currency)
 
     def farms_select(self, bot):
         explorer = j.clients.explorer.explorer
@@ -451,7 +451,7 @@ class Chatflow(j.baseclasses.object):
                 names.add(network.name)
                 remaning = expiration - j.data.time.epoch
                 network_name = network.name + f" ({currency}) - ends in: " + j.data.time.secondsToHRDelta(remaning)
-                networks[network_name] = (network, expiration)
+                networks[network_name] = (network, expiration, currency)
 
         return networks
 
@@ -709,9 +709,9 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
         networks = self.network_list(customer_tid, reservations)
         for key in networks.keys():
-            network, expiration = networks[key]
+            network, expiration, currency = networks[key]
             if network.name == name:
-                return Network(network, expiration, bot, reservations)
+                return Network(network, expiration, bot, reservations, currency)
 
     def solution_type_check(self, reservation):
         containers = reservation.data_reservation.containers
