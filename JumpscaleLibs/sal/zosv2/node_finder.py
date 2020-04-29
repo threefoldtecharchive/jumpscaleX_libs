@@ -16,6 +16,12 @@ class NodeFinder:
         ago = j.data.time.epoch - (60 * 10)
         return node.updated > ago
 
+    def filter_is_free_to_use(self, node):
+        return node.free_to_use
+
+    def filter_is_not_free_to_use(self, node):
+        return not node.free_to_use
+
     def filter_public_ip4(self, node):
         return filter_public_ip(node, 4)
 

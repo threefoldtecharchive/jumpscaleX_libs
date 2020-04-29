@@ -29,10 +29,12 @@ _NETWORK_KNOWN_TRUSTS = {
     "TEST": {
         "TFT": "GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3",
         "FreeTFT": "GBLDUINEFYTF7XEE7YNWA3JQS4K2VD37YU7I2YAE7R5AHZDKQXSS2J6R",
+        "TFTA": "GB55A4RR4G2MIORJTQA4L6FENZU7K4W7ATGY6YOT2CW47M5SZYGYKSCT",
     },
     "STD": {
         "TFT": "GBOVQKJYHXRR3DX6NOX2RRYFRCUMSADGDESTDNBDS6CDVLGVESRTAC47",
         "FreeTFT": "GCBGS5TFE2BPPUVY55ZPEMWWGR6CLQ7T6P46SOFGHXEBJ34MSP6HVEUT",
+        "TFTA": "GBUT4GP5GJ6B3XW5PXENHQA7TXJI5GOPW3NF4W3ZIW6OOO4ISY6WNLN2",
     },
 }
 _THREEFOLDFOUNDATION_TFTSTELLAR_ENDPOINT = {
@@ -107,7 +109,7 @@ class StellarClient(JSConfigClient):
         resp.raise_for_status()
         return resp.json()
 
-    def _create_unlockhash_transation(self, unlock_hash, transaction_xdr):
+    def _create_unlockhash_transaction(self, unlock_hash, transaction_xdr):
         data = {"unlock_hash": unlock_hash, "transaction_xdr": transaction_xdr}
         resp = requests.post(self._get_url("CREATE_UNLOCK"), json={"args": data})
         resp.raise_for_status()
@@ -357,7 +359,7 @@ class StellarClient(JSConfigClient):
             response = server.submit_transaction(transaction)
             self._log_info("Transaction hash: {}".format(response["hash"]))
         except BadRequestError as e:
-            self.log_debug(e)
+            self._log_debug(e)
             raise e
 
     def transfer(

@@ -9,7 +9,7 @@ import base64
 
 
 class Network:
-    def __init__(self, network, expiration, bot, reservations):
+    def __init__(self, network, expiration, bot, reservations, currency):
         self._network = network
         self._expiration = expiration
         self.name = network.name
@@ -18,7 +18,7 @@ class Network:
         self._sal = j.sal.reservation_chatflow
         self._bot = bot
         self._fill_used_ips(reservations)
-        self.currency = j.sal.reservation_chatflow.currency_get(reservations[0])
+        self.currency = currency
 
     def _fill_used_ips(self, reservations):
         for reservation in reservations:
@@ -91,6 +91,16 @@ class Network:
         self._used_ips.append(ip_address)
         return ip_address
 
+    def get_free_ip(self, node):
+        ip_range = self.get_node_range(node)
+        hosts = netaddr.IPNetwork(ip_range).iter_hosts()
+        next(hosts)  # skip ip used by node
+        for host in hosts:
+            ip = str(host)
+            if ip not in self._used_ips:
+                return ip
+        return None
+
 
 class Chatflow(j.baseclasses.object):
     __jslocation__ = "j.sal.reservation_chatflow"
@@ -113,27 +123,71 @@ class Chatflow(j.baseclasses.object):
             raise j.exceptions.Value("Name of logged in user shouldn't be empty")
         return self._explorer.users.get(name=user_info["username"], email=user_info["email"])
 
-    def nodes_get(
-        self, number_of_nodes, farm_id=None, farm_name=None, cru=None, sru=None, mru=None, hru=None, currency="TFT"
-    ):
-        # get nodes without public ips
-        nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
-            farm_id=farm_id, farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
-        )
-        nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, nodes)
+    def _nodes_distribute(self, number_of_nodes, farm_names):
+        nodes_distribution = {}
+        nodes_left = number_of_nodes
+        names = list(farm_names)
+        if not farm_names:
+            farms = j.clients.explorer.explorer.farms.list()
+            names = []
+            for f in farms:
+                names.append(f.name)
+        random.shuffle(names)
+        names_pointer = 0
+        while nodes_left:
+            farm_name = names[names_pointer]
+            if farm_name not in nodes_distribution:
+                nodes_distribution[farm_name] = 0
+            nodes_distribution[farm_name] += 1
+            nodes_left -= 1
+            names_pointer += 1
+            if names_pointer == len(names):
+                names_pointer = 0
+        return nodes_distribution
 
+    def nodes_get(
+        self,
+        number_of_nodes,
+        farm_id=None,
+        farm_names=None,
+        cru=None,
+        sru=None,
+        mru=None,
+        hru=None,
+        free_to_use=None,
+        currency="TFT",
+    ):
+        def nodes_filter(nodes, free_to_use):
+            nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, nodes)
+            nodes = list(nodes)
+            if free_to_use is True:
+                nodes = list(nodes)
+                nodes = filter(j.sal.zosv2.nodes_finder.filter_is_free_to_use, nodes)
+            elif free_to_use is False:
+                nodes = list(nodes)
+                nodes = filter(j.sal.zosv2.nodes_finder.filter_is_not_free_to_use, nodes)
+            return nodes
+
+        nodes_distribution = self._nodes_distribute(number_of_nodes, farm_names)
         # to avoid using the same node with different networks
-        nodes = list(nodes)
         nodes_selected = []
-        for i in range(number_of_nodes):
-            try:
-                node = random.choice(nodes)
-                while node in nodes_selected:
+        for farm_name in nodes_distribution:
+            nodes_number = nodes_distribution[farm_name]
+            if not farm_names:
+                farm_name = None
+            nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
+                farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
+            )
+            nodes = nodes_filter(nodes, free_to_use)
+            for i in range(nodes_number):
+                try:
                     node = random.choice(nodes)
-            except IndexError:
-                raise StopChatFlow("Failed to find resources for this reservation")
-            nodes.remove(node)
-            nodes_selected.append(node)
+                    while node in nodes_selected:
+                        node = random.choice(nodes)
+                except IndexError:
+                    raise StopChatFlow("Failed to find resources for this reservation")
+                nodes.remove(node)
+                nodes_selected.append(node)
         return nodes_selected
 
     def validate_node(self, nodeid, query=None, currency=None):
@@ -172,8 +226,20 @@ class Chatflow(j.baseclasses.object):
             result = bot.single_choice("Choose a network", names)
             if result not in networks:
                 continue
-            network, expiration = networks[result]
-            return Network(network, expiration, bot, reservations)
+            network, expiration, currency = networks[result]
+            return Network(network, expiration, bot, reservations, currency)
+
+    def farms_select(self, bot):
+        explorer = j.clients.explorer.explorer
+        farms = explorer.farms.list()
+        farm_names = []
+        for f in farms:
+            farm_names.append(f.name)
+        farms_selected = bot.multi_list_choice(
+            "Select 1 or more farms to distribute the nodes on. If no selection is made, the farms will be chosen randomly",
+            farm_names,
+        )
+        return farms_selected
 
     def ip_range_get(self, bot):
         """
@@ -268,7 +334,11 @@ class Chatflow(j.baseclasses.object):
                 currencies=[currency],
             )
         except requests.HTTPError as e:
-            bot.stop("The following error occured:  " + e.response.text)
+            try:
+                msg = e.response.json()["error"]
+            except (KeyError, json.JSONDecodeError):
+                msg = e.response.text
+            bot.stop(f"The following error occured: {msg}")
 
         rid = reservation_create.reservation_id
         reservation.id = rid
@@ -289,6 +359,11 @@ class Chatflow(j.baseclasses.object):
             count += len(reservation.data_reservation.zdbs)
             count += len(reservation.data_reservation.containers)
             count += len(reservation.data_reservation.kubernetes)
+            count += len(reservation.data_reservation.proxies)
+            count += len(reservation.data_reservation.reserve_proxies)
+            count += len(reservation.data_reservation.subdomains)
+            count += len(reservation.data_reservation.domain_delegates)
+            count += len(reservation.data_reservation.gateway4to6)
             for network in reservation.data_reservation.networks:
                 count += len(network.network_resources)
             return len(reservation.results) >= count
@@ -376,7 +451,7 @@ class Chatflow(j.baseclasses.object):
                 names.add(network.name)
                 remaning = expiration - j.data.time.epoch
                 network_name = network.name + f" ({currency}) - ends in: " + j.data.time.secondsToHRDelta(remaning)
-                networks[network_name] = (network, expiration)
+                networks[network_name] = (network, expiration, currency)
 
         return networks
 
@@ -395,6 +470,26 @@ class Chatflow(j.baseclasses.object):
         for wallet in wallets_list:
             wallets[wallet.name] = wallet
         return wallets
+
+    def reservation_register_and_pay(self, reservation, expiration=None, customer_tid=None, currency=None, bot=None):
+        if customer_tid and expiration and currency:
+            reservation_create = self.reservation_register(
+                reservation, expiration, customer_tid=customer_tid, currency=currency, bot=bot
+            )
+            payment = self.payments_show(bot, reservation_create)
+        else:
+            reservation_create = reservation
+            payment = self.payments_show(bot, reservation_create)
+
+        resv_id = reservation_create.reservation_id
+        if payment["wallet"]:
+            j.sal.zosv2.billing.payout_farmers(payment["wallet"], reservation_create)
+            self.payment_wait(bot, resv_id, threebot_app=False)
+        elif not payment["free"]:
+            self.payment_wait(bot, resv_id, threebot_app=True, reservation_create_resp=reservation_create)
+
+        self.reservation_wait(bot, resv_id)
+        return resv_id
 
     def payments_show(self, bot, reservation_create_resp):
         """
@@ -614,9 +709,9 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
         networks = self.network_list(customer_tid, reservations)
         for key in networks.keys():
-            network, expiration = networks[key]
+            network, expiration, currency = networks[key]
             if network.name == name:
-                return Network(network, expiration, bot, reservations)
+                return Network(network, expiration, bot, reservations, currency)
 
     def solution_type_check(self, reservation):
         containers = reservation.data_reservation.containers
@@ -635,3 +730,46 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                 return "minio"
             return "flist"
         return "unknown"
+
+    def delegate_domains_list(self, customer_tid):
+        reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
+        domains = dict()
+        names = set()
+        for reservation in sorted(reservations, key=lambda r: r.id, reverse=True):
+            if reservation.next_action != "DEPLOY":
+                continue
+            rdomains = reservation.data_reservation.domain_delegates
+            for dom in rdomains:
+                if dom.domain in names:
+                    continue
+                names.add(dom.domain)
+                domains[dom.domain] = dom
+        return domains
+
+    def gateway_select(self, bot):
+        gateways = {}
+        gw_ask_list = []
+        for g in j.sal.zosv2._explorer.gateway.list():
+            gateways[g.node_id] = g
+            city = g.location.city if g.location.city else "Unknown"
+            country = g.location.country if g.location.country else "Unknown"
+            continent = g.location.continent if g.location.continent else "Unkown"
+            if g.free_to_use:
+                currency = "FreeTFT"
+            else:
+                currency = "TFT"
+            gtext = (
+                f"Continent: ({continent}) Country: ({country}) City: ({city}) Currency: ({currency}) ID: ({g.node_id})"
+            )
+            gw_ask_list.append(gtext)
+        if not gw_ask_list:
+            bot.stop("No available gateways")
+        gateway = bot.single_choice("Please choose a gateway", list(gw_ask_list))
+        gateway_id = gateway.split()[-1][1:-1]
+        gateway = gateways[gateway_id]
+        return gateway
+
+    def gateway_get_kube_network_ip(self, reservation_data):
+        network_id = reservation_data["kubernetes"][0]["network_id"]
+        ip = reservation_data["kubernetes"][0]["ipaddress"]
+        return network_id, ip
