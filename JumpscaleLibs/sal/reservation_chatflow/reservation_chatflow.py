@@ -160,10 +160,10 @@ class Chatflow(j.baseclasses.object):
         def nodes_filter(nodes, free_to_use):
             nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, nodes)
             nodes = list(nodes)
-            if free_to_use == True:
+            if free_to_use is True:
                 nodes = list(nodes)
                 nodes = filter(j.sal.zosv2.nodes_finder.filter_is_free_to_use, nodes)
-            elif free_to_use == False:
+            elif free_to_use is False:
                 nodes = list(nodes)
                 nodes = filter(j.sal.zosv2.nodes_finder.filter_is_not_free_to_use, nodes)
             return nodes
@@ -762,6 +762,8 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                 f"Continent: ({continent}) Country: ({country}) City: ({city}) Currency: ({currency}) ID: ({g.node_id})"
             )
             gw_ask_list.append(gtext)
+        if not gw_ask_list:
+            bot.stop("No available gateways")
         gateway = bot.single_choice("Please choose a gateway", list(gw_ask_list))
         gateway_id = gateway.split()[-1][1:-1]
         gateway = gateways[gateway_id]
