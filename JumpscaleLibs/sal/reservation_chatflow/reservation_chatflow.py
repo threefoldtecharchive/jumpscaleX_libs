@@ -91,6 +91,15 @@ class Network:
         self._used_ips.append(ip_address)
         return ip_address
 
+    def get_free_ip(self, node):
+        ip_range = self.get_node_range(node)
+        hosts = netaddr.IPNetwork(ip_range).iter_hosts()
+        next(hosts)  # skip ip used by node
+        for host in hosts:
+            ip = str(host)
+            if ip not in self._used_ips:
+                return ip
+        return None
 
 class Chatflow(j.baseclasses.object):
     __jslocation__ = "j.sal.reservation_chatflow"
