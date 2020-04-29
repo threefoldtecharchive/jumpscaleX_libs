@@ -101,6 +101,7 @@ class Network:
                 return ip
         return None
 
+
 class Chatflow(j.baseclasses.object):
     __jslocation__ = "j.sal.reservation_chatflow"
 
@@ -123,8 +124,16 @@ class Chatflow(j.baseclasses.object):
         return self._explorer.users.get(name=user_info["username"], email=user_info["email"])
 
     def nodes_get(
-        self, number_of_nodes, farm_id=None, farm_name=None, cru=None, sru=None, mru=None, hru=None, free_to_use=None,
-            currency="TFT"
+        self,
+        number_of_nodes,
+        farm_id=None,
+        farm_name=None,
+        cru=None,
+        sru=None,
+        mru=None,
+        hru=None,
+        free_to_use=None,
+        currency="TFT",
     ):
         # get nodes without public ips
         nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
@@ -313,6 +322,7 @@ class Chatflow(j.baseclasses.object):
             count += len(reservation.data_reservation.reserve_proxies)
             count += len(reservation.data_reservation.subdomains)
             count += len(reservation.data_reservation.domain_delegates)
+            count += len(reservation.data_reservation.gateway4to6)
             for network in reservation.data_reservation.networks:
                 count += len(network.network_resources)
             return len(reservation.results) >= count
@@ -420,7 +430,7 @@ class Chatflow(j.baseclasses.object):
             wallets[wallet.name] = wallet
         return wallets
 
-    def reservation_register_and_pay(self, reservation, expiration=None, customer_tid=None , currency=None ,bot=None):
+    def reservation_register_and_pay(self, reservation, expiration=None, customer_tid=None, currency=None, bot=None):
         if customer_tid and expiration and currency:
             reservation_create = self.reservation_register(
                 reservation, expiration, customer_tid=customer_tid, currency=currency, bot=bot
@@ -432,7 +442,7 @@ class Chatflow(j.baseclasses.object):
 
         resv_id = reservation_create.reservation_id
         if payment["free"]:
-            pass
+            return resv_id
         elif payment["wallet"]:
             j.sal.zosv2.billing.payout_farmers(payment["wallet"], reservation_create)
             self.payment_wait(bot, resv_id, threebot_app=False)
@@ -709,7 +719,9 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                 currency = "FreeTFT"
             else:
                 currency = "TFT"
-            gtext = f"Continent: ({continent}) Country: ({country}) City: ({city}) Currency: ({currency}) ID: ({g.node_id})"
+            gtext = (
+                f"Continent: ({continent}) Country: ({country}) City: ({city}) Currency: ({currency}) ID: ({g.node_id})"
+            )
             gw_ask_list.append(gtext)
         gateway = bot.single_choice("Please choose a gateway", list(gw_ask_list))
         gateway_id = gateway.split()[-1][1:-1]
