@@ -672,3 +672,37 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                 return "minio"
             return "flist"
         return "unknown"
+
+    def delegate_domains_list(self, customer_tid):
+        reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
+        domains = dict()
+        names = set()
+        for reservation in sorted(reservations, key=lambda r: r.id, reverse=True):
+            if reservation.next_action != "DEPLOY":
+                continue
+            rdomains = reservation.data_reservation.domain_delegates
+            for dom in rdomains:
+                if dom.domain in names:
+                    continue
+                names.add(dom.domain)
+                domains[dom.domain] = dom
+        return domains
+
+    def gateway_select(self, bot):
+        gateways = {}
+        gw_ask_list = []
+        for g in j.sal.zosv2._explorer.gateway.list():
+            gateways[g.node_id] = g
+            city = g.location.city if g.location.city else "Unknown"
+            country = g.location.country if g.location.country else "Unknown"
+            continent = g.location.continent if g.location.continent else "Unkown"
+            if g.free_to_use:
+                currency = "FreeTFT"
+            else:
+                currency = "TFT"
+            gtext = f"Continent: ({continent}) Country: ({country}) City: ({city}) Currency: ({currency}) ID: ({g.node_id})"
+            gw_ask_list.append(gtext)
+        gateway = bot.single_choice("Please choose a gateway", list(gw_ask_list))
+        gateway_id = gateway.split()[-1][1:-1]
+        gateway = gateways[gateway_id]
+        return gateway
