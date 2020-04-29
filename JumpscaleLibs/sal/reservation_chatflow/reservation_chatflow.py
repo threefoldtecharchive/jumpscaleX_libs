@@ -126,21 +126,22 @@ class Chatflow(j.baseclasses.object):
     def _nodes_distribute(self, number_of_nodes, farm_names):
         nodes_distribution = {}
         nodes_left = number_of_nodes
+        names = list(farm_names)
         if not farm_names:
             farms = j.clients.explorer.explorer.farms.list()
-            farm_names = []
+            names = []
             for f in farms:
-                farm_names.append(f.name)
-        random.shuffle(farm_names)
+                names.append(f.name)
+        random.shuffle(names)
         names_pointer = 0
         while nodes_left:
-            farm_name = farm_names[names_pointer]
+            farm_name = names[names_pointer]
             if farm_name not in nodes_distribution:
                 nodes_distribution[farm_name] = 0
             nodes_distribution[farm_name] += 1
             nodes_left -= 1
             names_pointer += 1
-            if names_pointer == len(farm_names):
+            if names_pointer == len(names):
                 names_pointer = 0
         return nodes_distribution
 
