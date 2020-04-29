@@ -234,7 +234,7 @@ class Chatflow(j.baseclasses.object):
         farm_names = []
         for f in farms:
             farm_names.append(f.name)
-        farms_selected = bot.multi_choice(
+        farms_selected = bot.multi_list_choice(
             "Select 1 or more farms to distribute the nodes on. If no selection is made, the farms will be chosen randomly",
             farm_names,
         )
