@@ -441,12 +441,10 @@ class Chatflow(j.baseclasses.object):
             payment = self.payments_show(bot, reservation_create)
 
         resv_id = reservation_create.reservation_id
-        if payment["free"]:
-            return resv_id
-        elif payment["wallet"]:
+        if payment["wallet"]:
             j.sal.zosv2.billing.payout_farmers(payment["wallet"], reservation_create)
             self.payment_wait(bot, resv_id, threebot_app=False)
-        else:
+        elif not payment["free"]:
             self.payment_wait(bot, resv_id, threebot_app=True, reservation_create_resp=reservation_create)
 
         self.reservation_wait(bot, resv_id)
