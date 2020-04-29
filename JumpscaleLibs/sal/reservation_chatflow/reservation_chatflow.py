@@ -123,11 +123,33 @@ class Chatflow(j.baseclasses.object):
             raise j.exceptions.Value("Name of logged in user shouldn't be empty")
         return self._explorer.users.get(name=user_info["username"], email=user_info["email"])
 
+    def _nodes_distribute(self, number_of_nodes, farm_names):
+        nodes_distribution = {}
+        nodes_left = number_of_nodes
+        names = list(farm_names)
+        if not farm_names:
+            farms = j.clients.explorer.explorer.farms.list()
+            names = []
+            for f in farms:
+                names.append(f.name)
+        random.shuffle(names)
+        names_pointer = 0
+        while nodes_left:
+            farm_name = names[names_pointer]
+            if farm_name not in nodes_distribution:
+                nodes_distribution[farm_name] = 0
+            nodes_distribution[farm_name] += 1
+            nodes_left -= 1
+            names_pointer += 1
+            if names_pointer == len(names):
+                names_pointer = 0
+        return nodes_distribution
+
     def nodes_get(
         self,
         number_of_nodes,
         farm_id=None,
-        farm_name=None,
+        farm_names=None,
         cru=None,
         sru=None,
         mru=None,
@@ -135,30 +157,37 @@ class Chatflow(j.baseclasses.object):
         free_to_use=None,
         currency="TFT",
     ):
-        # get nodes without public ips
-        nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
-            farm_id=farm_id, farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
-        )
-        nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, nodes)
+        def nodes_filter(nodes, free_to_use):
+            nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, nodes)
+            nodes = list(nodes)
+            if free_to_use == True:
+                nodes = list(nodes)
+                nodes = filter(j.sal.zosv2.nodes_finder.filter_is_free_to_use, nodes)
+            elif free_to_use == False:
+                nodes = list(nodes)
+                nodes = filter(j.sal.zosv2.nodes_finder.filter_is_not_free_to_use, nodes)
+            return nodes
 
-        if free_to_use == True:
-            nodes = list(nodes)
-            nodes = filter(j.sal.zosv2.nodes_finder.filter_is_free_to_use, nodes)
-        elif free_to_use == False:
-            nodes = list(nodes)
-            nodes = filter(j.sal.zosv2.nodes_finder.filter_is_not_free_to_use, nodes)
+        nodes_distribution = self._nodes_distribute(number_of_nodes, farm_names)
         # to avoid using the same node with different networks
-        nodes = list(nodes)
         nodes_selected = []
-        for i in range(number_of_nodes):
-            try:
-                node = random.choice(nodes)
-                while node in nodes_selected:
+        for farm_name in nodes_distribution:
+            nodes_number = nodes_distribution[farm_name]
+            if not farm_names:
+                farm_name = None
+            nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
+                farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
+            )
+            nodes = nodes_filter(nodes, free_to_use)
+            for i in range(nodes_number):
+                try:
                     node = random.choice(nodes)
-            except IndexError:
-                raise StopChatFlow("Failed to find resources for this reservation")
-            nodes.remove(node)
-            nodes_selected.append(node)
+                    while node in nodes_selected:
+                        node = random.choice(nodes)
+                except IndexError:
+                    raise StopChatFlow("Failed to find resources for this reservation")
+                nodes.remove(node)
+                nodes_selected.append(node)
         return nodes_selected
 
     def validate_node(self, nodeid, query=None, currency=None):
@@ -199,6 +228,18 @@ class Chatflow(j.baseclasses.object):
                 continue
             network, expiration = networks[result]
             return Network(network, expiration, bot, reservations)
+
+    def farms_select(self, bot):
+        explorer = j.clients.explorer.explorer
+        farms = explorer.farms.list()
+        farm_names = []
+        for f in farms:
+            farm_names.append(f.name)
+        farms_selected = bot.multi_list_choice(
+            "Select 1 or more farms to distribute the nodes on. If no selection is made, the farms will be chosen randomly",
+            farm_names,
+        )
+        return farms_selected
 
     def ip_range_get(self, bot):
         """
