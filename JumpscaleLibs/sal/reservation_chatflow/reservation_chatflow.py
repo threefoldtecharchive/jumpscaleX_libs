@@ -145,29 +145,60 @@ class Chatflow(j.baseclasses.object):
                 names_pointer = 0
         return nodes_distribution
 
-    def nodes_get(
-        self,
-        number_of_nodes,
-        farm_id=None,
-        farm_names=None,
-        cru=None,
-        sru=None,
-        mru=None,
-        hru=None,
-        free_to_use=None,
-        currency="TFT",
-    ):
-        def nodes_filter(nodes, free_to_use):
-            nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, nodes)
+    def nodes_filter(self, nodes, free_to_use):
+        nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, nodes)
+        nodes = list(nodes)
+        if free_to_use:
             nodes = list(nodes)
-            if free_to_use is True:
-                nodes = list(nodes)
-                nodes = filter(j.sal.zosv2.nodes_finder.filter_is_free_to_use, nodes)
-            elif free_to_use is False:
-                nodes = list(nodes)
-                nodes = filter(j.sal.zosv2.nodes_finder.filter_is_not_free_to_use, nodes)
-            return nodes
+            nodes = filter(j.sal.zosv2.nodes_finder.filter_is_free_to_use, nodes)
+        elif not free_to_use:
+            nodes = list(nodes)
+            nodes = filter(j.sal.zosv2.nodes_finder.filter_is_not_free_to_use, nodes)
+        return list(nodes)
 
+    def farms_check(
+        self, number_of_nodes, farm_id=None, farm_names=None, cru=None, sru=None, mru=None, hru=None, currency="TFT"
+    ):
+        if not farm_names:
+            return []
+        farms_with_no_resources = []
+        nodes_distribution = self._nodes_distribute(number_of_nodes, farm_names)
+        for farm_name in nodes_distribution:
+            nodes_number = nodes_distribution[farm_name]
+            nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
+                farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
+            )
+            nodes = self.nodes_filter(nodes, currency == "FreeTFT")
+            if nodes_number > len(nodes):
+                farms_with_no_resources.append(farm_name)
+        return list(farms_with_no_resources)
+
+    def farm_names_get(self, number_of_nodes, bot, cru=None, sru=None, mru=None, hru=None, currency="TFT", message=""):
+        farms_message = f"Select 1 or more farms to distribute the {message} nodes on. If no selection is made, the farms will be chosen randomly"
+        empty_farms = set()
+        all_farms = j.clients.explorer.explorer.farms.list()
+        while True:
+            farms = self.farms_select(bot, farms_message)
+            farms_with_no_resources = self.farms_check(
+                1, farm_names=farms, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
+            )
+            if not farms_with_no_resources:
+                return farms
+            for farm_name in farms_with_no_resources:
+                empty_farms.add(farm_name)
+            if len(all_farms) == len(empty_farms):
+                raise StopChatFlow("No Farms available containing nodes that match the required resources")
+            farms_message = (
+                f"""The following farms don't have enough resources for {message}: """
+                + ", ".join(farms_with_no_resources)
+                + """.
+                Please reselect farms to check for resources or leave it empty
+                """
+            )
+
+    def nodes_get(
+        self, number_of_nodes, farm_id=None, farm_names=None, cru=None, sru=None, mru=None, hru=None, currency="TFT",
+    ):
         nodes_distribution = self._nodes_distribute(number_of_nodes, farm_names)
         # to avoid using the same node with different networks
         nodes_selected = []
@@ -178,7 +209,7 @@ class Chatflow(j.baseclasses.object):
             nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
                 farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
             )
-            nodes = nodes_filter(nodes, free_to_use)
+            nodes = self.nodes_filter(nodes, currency == "FreeTFT")
             for i in range(nodes_number):
                 try:
                     node = random.choice(nodes)
@@ -229,16 +260,14 @@ class Chatflow(j.baseclasses.object):
             network, expiration, currency = networks[result]
             return Network(network, expiration, bot, reservations, currency)
 
-    def farms_select(self, bot):
+    def farms_select(self, bot, message=None):
+        message = message or "Select 1 or more farms to distribute nodes on"
         explorer = j.clients.explorer.explorer
         farms = explorer.farms.list()
         farm_names = []
         for f in farms:
             farm_names.append(f.name)
-        farms_selected = bot.multi_list_choice(
-            "Select 1 or more farms to distribute the nodes on. If no selection is made, the farms will be chosen randomly",
-            farm_names,
-        )
+        farms_selected = bot.multi_list_choice(message, farm_names,)
         return farms_selected
 
     def ip_range_get(self, bot):
