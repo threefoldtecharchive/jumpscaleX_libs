@@ -762,14 +762,17 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
             return "flist"
         return "unknown"
 
-    def delegate_domains_list(self, customer_tid):
+    def delegate_domains_list(self, customer_tid, currency=None):
         reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
         domains = dict()
         names = set()
         for reservation in sorted(reservations, key=lambda r: r.id, reverse=True):
+            reservation_currency = reservation.data_reservation.currencies[0]
             if reservation.next_action != "DEPLOY":
                 continue
             rdomains = reservation.data_reservation.domain_delegates
+            if currency and currency != reservation_currency:
+                continue
             for dom in rdomains:
                 if dom.domain in names:
                     continue
@@ -777,7 +780,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                 domains[dom.domain] = dom
         return domains
 
-    def gateway_select(self, bot):
+    def gateway_select(self, bot, currency=None):
         gateways = {}
         gw_ask_list = []
         for g in j.sal.zosv2._explorer.gateway.list():
@@ -786,12 +789,12 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
             country = g.location.country if g.location.country else "Unknown"
             continent = g.location.continent if g.location.continent else "Unkown"
             if g.free_to_use:
-                currency = "FreeTFT"
+                reservation_currency = "FreeTFT"
             else:
-                currency = "TFT"
-            gtext = (
-                f"Continent: ({continent}) Country: ({country}) City: ({city}) Currency: ({currency}) ID: ({g.node_id})"
-            )
+                reservation_currency = "TFT"
+            if currency and currency != reservation_currency:
+                continue
+            gtext = f"Continent: ({continent}) Country: ({country}) City: ({city}) Currency: ({reservation_currency}) ID: ({g.node_id})"
             gw_ask_list.append(gtext)
         if not gw_ask_list:
             bot.stop("No available gateways")
