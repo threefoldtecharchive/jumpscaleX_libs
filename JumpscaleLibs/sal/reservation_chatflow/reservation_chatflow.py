@@ -188,8 +188,10 @@ class Chatflow(j.baseclasses.object):
                 empty_farms.add(farm_name)
             if len(all_farms) == len(empty_farms):
                 raise StopChatFlow("No Farms available containing nodes that match the required resources")
+            if message:
+                message = f"for {message}"
             farms_message = (
-                f"""The following farms don't have enough resources for {message}: """
+                f"""The following farms don't have enough resources {message}: """
                 + ", ".join(farms_with_no_resources)
                 + """.
                 Please reselect farms to check for resources or leave it empty
