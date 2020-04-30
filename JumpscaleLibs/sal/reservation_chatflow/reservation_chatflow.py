@@ -65,7 +65,7 @@ class Network:
                 reservation, self._expiration, tid, currency=currency, bot=bot
             )
             rid = reservation_create.reservation_id
-            payment = j.sal.reservation_chatflow.payments_show(self._bot, reservation_create)
+            payment = j.sal.reservation_chatflow.payments_show(self._bot, reservation_create, currency)
             if payment["free"]:
                 pass
             elif payment["wallet"]:
@@ -507,10 +507,9 @@ class Chatflow(j.baseclasses.object):
             reservation_create = self.reservation_register(
                 reservation, expiration, customer_tid=customer_tid, currency=currency, bot=bot
             )
-            payment = self.payments_show(bot, reservation_create)
         else:
             reservation_create = reservation
-            payment = self.payments_show(bot, reservation_create)
+        payment = self.payments_show(bot, reservation_create, currency)
 
         resv_id = reservation_create.reservation_id
         if payment["wallet"]:
@@ -522,7 +521,7 @@ class Chatflow(j.baseclasses.object):
         self.reservation_wait(bot, resv_id)
         return resv_id
 
-    def payments_show(self, bot, reservation_create_resp):
+    def payments_show(self, bot, reservation_create_resp, currency):
         """
         Show valid payment options in chatflow available. All available wallets possible are shown or usage of 3bot app is shown
         where a QR code is viewed for the user to scan and continue with their payment
@@ -562,7 +561,20 @@ Billing details:
                 return payment
             else:
                 payment["wallet"] = wallets[result]
-                return payment
+                balances = payment["wallet"].get_balance().balances
+                for balance in balances:
+                    if balance.asset_code == currency:
+                        current_balance = balance.balance
+                        if float(current_balance) >= total_amount:
+                            return payment
+                message = f"""
+<h2>{total_amount} {currency} are required, but only {current_balance} {currency} are available in wallet {payment["wallet"].name}</h2>
+Billing details:
+<h4> Escrow address: </h4>  {escrow_address} \n
+<h4> Escrow asset: </h4>  {escrow_asset} \n
+<h4> Total amount: </h4>  {total_amount} \n
+<h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
+"""
 
     def escrow_qr_show(self, bot, reservation_create_resp, expiration_provisioning):
         """
