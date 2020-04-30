@@ -568,7 +568,7 @@ Billing details:
                         if float(current_balance) >= total_amount:
                             return payment
                 message = f"""
-<h2>{total_amount} {currency} are required, but only {current_balance} {currency} are available in wallet {payment["wallet"].name}</h2>
+<h2 style="color: #142850;"><b style="color: #00909e;">{total_amount} {currency}</b> are required, but only <b style="color: #00909e;">{current_balance} {currency}</b> are available in wallet <b style="color: #00909e;">{payment["wallet"].name}</b></h2>
 Billing details:
 <h4> Escrow address: </h4>  {escrow_address} \n
 <h4> Escrow asset: </h4>  {escrow_asset} \n
