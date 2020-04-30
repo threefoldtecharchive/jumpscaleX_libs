@@ -86,8 +86,6 @@ class StellarClient(JSConfigClient):
         else:
             kp = Keypair.from_secret(self.secret)
         self.address = kp.public_key
-        self._unlock_service_client_ = None
-        self._transaction_fund_client_ = None
 
     def _get_horizon_server(self):
         return Server(horizon_url=_HORIZON_NETWORKS[str(self.network)])
@@ -110,7 +108,7 @@ class StellarClient(JSConfigClient):
         return resp.json()
 
     def _create_unlockhash_transaction(self, unlock_hash, transaction_xdr):
-        data = {"unlock_hash": unlock_hash, "transaction_xdr": transaction_xdr}
+        data = {"unlockhash": unlock_hash, "transaction_xdr": transaction_xdr}
         resp = requests.post(self._get_url("CREATE_UNLOCK"), json={"args": data})
         resp.raise_for_status()
         return resp.json()
@@ -189,7 +187,7 @@ class StellarClient(JSConfigClient):
                     balances.append(Balance.from_horizon_response(response_balance))
 
                 escrow_account = EscrowAccount(
-                    account_id, preauth_signers, balances, _NETWORK_PASSPHRASES[str(self.network)]
+                    account_id, preauth_signers, balances, _NETWORK_PASSPHRASES[str(self.network)], self._get_unlockhash_transaction
                 )
                 escrow_accounts.append(escrow_account)
         return escrow_accounts

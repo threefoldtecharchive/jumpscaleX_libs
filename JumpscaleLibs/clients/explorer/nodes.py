@@ -68,3 +68,25 @@ class Nodes:
         data = {"free_to_use": free}
         self._session.post(self._base_url + f"/nodes/{node_id}/configure_free", auth=auth, headers=headers, json=data)
         return True
+
+    def configure_public_config(self, node_id, master_iface, ipv4, gw4, ipv6, gw6, identity=None):
+        node = self.get(node_id)
+
+        public_config = node.public_config
+        public_config.master = master_iface
+        public_config.ipv4 = ipv4
+        public_config.gw4 = gw4
+        public_config.ipv6 = ipv6
+        public_config.gw6 = gw6
+        public_config.type = "MACVLAN"
+        public_config.version += 1
+
+        me = identity if identity else j.myidentities.me
+        secret = me.encryptor.signing_key.encode(Base64Encoder)
+
+        auth = HTTPSignatureAuth(key_id=str(me.tid), secret=secret, headers=["(created)", "date", "threebot-id"])
+        headers = {"threebot-id": str(me.tid)}
+
+        data = public_config._ddict
+        self._session.post(self._base_url + f"/nodes/{node_id}/configure_public", auth=auth, headers=headers, json=data)
+        return True

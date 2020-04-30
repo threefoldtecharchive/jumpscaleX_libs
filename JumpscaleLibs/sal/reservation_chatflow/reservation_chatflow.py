@@ -65,7 +65,7 @@ class Network:
                 reservation, self._expiration, tid, currency=currency, bot=bot
             )
             rid = reservation_create.reservation_id
-            payment = j.sal.reservation_chatflow.payments_show(self._bot, reservation_create)
+            payment = j.sal.reservation_chatflow.payments_show(self._bot, reservation_create, currency)
             if payment["free"]:
                 pass
             elif payment["wallet"]:
@@ -126,7 +126,7 @@ class Chatflow(j.baseclasses.object):
     def _nodes_distribute(self, number_of_nodes, farm_names):
         nodes_distribution = {}
         nodes_left = number_of_nodes
-        names = list(farm_names)
+        names = list(farm_names) if farm_names else []
         if not farm_names:
             farms = j.clients.explorer.explorer.farms.list()
             names = []
@@ -145,29 +145,62 @@ class Chatflow(j.baseclasses.object):
                 names_pointer = 0
         return nodes_distribution
 
-    def nodes_get(
-        self,
-        number_of_nodes,
-        farm_id=None,
-        farm_names=None,
-        cru=None,
-        sru=None,
-        mru=None,
-        hru=None,
-        free_to_use=None,
-        currency="TFT",
-    ):
-        def nodes_filter(nodes, free_to_use):
-            nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, nodes)
+    def nodes_filter(self, nodes, free_to_use):
+        nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, nodes)
+        nodes = list(nodes)
+        if free_to_use:
             nodes = list(nodes)
-            if free_to_use is True:
-                nodes = list(nodes)
-                nodes = filter(j.sal.zosv2.nodes_finder.filter_is_free_to_use, nodes)
-            elif free_to_use is False:
-                nodes = list(nodes)
-                nodes = filter(j.sal.zosv2.nodes_finder.filter_is_not_free_to_use, nodes)
-            return nodes
+            nodes = filter(j.sal.zosv2.nodes_finder.filter_is_free_to_use, nodes)
+        elif not free_to_use:
+            nodes = list(nodes)
+            nodes = filter(j.sal.zosv2.nodes_finder.filter_is_not_free_to_use, nodes)
+        return list(nodes)
 
+    def farms_check(
+        self, number_of_nodes, farm_id=None, farm_names=None, cru=None, sru=None, mru=None, hru=None, currency="TFT"
+    ):
+        if not farm_names:
+            return []
+        farms_with_no_resources = []
+        nodes_distribution = self._nodes_distribute(number_of_nodes, farm_names)
+        for farm_name in nodes_distribution:
+            nodes_number = nodes_distribution[farm_name]
+            nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
+                farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
+            )
+            nodes = self.nodes_filter(nodes, currency == "FreeTFT")
+            if nodes_number > len(nodes):
+                farms_with_no_resources.append(farm_name)
+        return list(farms_with_no_resources)
+
+    def farm_names_get(self, number_of_nodes, bot, cru=None, sru=None, mru=None, hru=None, currency="TFT", message=""):
+        farms_message = f"Select 1 or more farms to distribute the {message} nodes on. If no selection is made, the farms will be chosen randomly"
+        empty_farms = set()
+        all_farms = j.clients.explorer.explorer.farms.list()
+        while True:
+            farms = self.farms_select(bot, farms_message)
+            farms_with_no_resources = self.farms_check(
+                1, farm_names=farms, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
+            )
+            if not farms_with_no_resources:
+                return farms
+            for farm_name in farms_with_no_resources:
+                empty_farms.add(farm_name)
+            if len(all_farms) == len(empty_farms):
+                raise StopChatFlow("No Farms available containing nodes that match the required resources")
+            if message:
+                message = f"for {message}"
+            farms_message = (
+                f"""The following farms don't have enough resources {message}: """
+                + ", ".join(farms_with_no_resources)
+                + """.
+                Please reselect farms to check for resources or leave it empty
+                """
+            )
+
+    def nodes_get(
+        self, number_of_nodes, farm_id=None, farm_names=None, cru=None, sru=None, mru=None, hru=None, currency="TFT",
+    ):
         nodes_distribution = self._nodes_distribute(number_of_nodes, farm_names)
         # to avoid using the same node with different networks
         nodes_selected = []
@@ -178,7 +211,7 @@ class Chatflow(j.baseclasses.object):
             nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
                 farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
             )
-            nodes = nodes_filter(nodes, free_to_use)
+            nodes = self.nodes_filter(nodes, currency == "FreeTFT")
             for i in range(nodes_number):
                 try:
                     node = random.choice(nodes)
@@ -229,16 +262,14 @@ class Chatflow(j.baseclasses.object):
             network, expiration, currency = networks[result]
             return Network(network, expiration, bot, reservations, currency)
 
-    def farms_select(self, bot):
+    def farms_select(self, bot, message=None):
+        message = message or "Select 1 or more farms to distribute nodes on"
         explorer = j.clients.explorer.explorer
         farms = explorer.farms.list()
         farm_names = []
         for f in farms:
             farm_names.append(f.name)
-        farms_selected = bot.multi_list_choice(
-            "Select 1 or more farms to distribute the nodes on. If no selection is made, the farms will be chosen randomly",
-            farm_names,
-        )
+        farms_selected = bot.multi_list_choice(message, farm_names,)
         return farms_selected
 
     def ip_range_get(self, bot):
@@ -476,10 +507,9 @@ class Chatflow(j.baseclasses.object):
             reservation_create = self.reservation_register(
                 reservation, expiration, customer_tid=customer_tid, currency=currency, bot=bot
             )
-            payment = self.payments_show(bot, reservation_create)
         else:
             reservation_create = reservation
-            payment = self.payments_show(bot, reservation_create)
+        payment = self.payments_show(bot, reservation_create, currency)
 
         resv_id = reservation_create.reservation_id
         if payment["wallet"]:
@@ -491,7 +521,7 @@ class Chatflow(j.baseclasses.object):
         self.reservation_wait(bot, resv_id)
         return resv_id
 
-    def payments_show(self, bot, reservation_create_resp):
+    def payments_show(self, bot, reservation_create_resp, currency):
         """
         Show valid payment options in chatflow available. All available wallets possible are shown or usage of 3bot app is shown
         where a QR code is viewed for the user to scan and continue with their payment
@@ -531,7 +561,20 @@ Billing details:
                 return payment
             else:
                 payment["wallet"] = wallets[result]
-                return payment
+                balances = payment["wallet"].get_balance().balances
+                for balance in balances:
+                    if balance.asset_code == currency:
+                        current_balance = balance.balance
+                        if float(current_balance) >= total_amount:
+                            return payment
+                message = f"""
+<h2 style="color: #142850;"><b style="color: #00909e;">{total_amount} {currency}</b> are required, but only <b style="color: #00909e;">{current_balance} {currency}</b> are available in wallet <b style="color: #00909e;">{payment["wallet"].name}</b></h2>
+Billing details:
+<h4> Escrow address: </h4>  {escrow_address} \n
+<h4> Escrow asset: </h4>  {escrow_asset} \n
+<h4> Total amount: </h4>  {total_amount} \n
+<h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
+"""
 
     def escrow_qr_show(self, bot, reservation_create_resp, expiration_provisioning):
         """
@@ -731,14 +774,17 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
             return "flist"
         return "unknown"
 
-    def delegate_domains_list(self, customer_tid):
+    def delegate_domains_list(self, customer_tid, currency=None):
         reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
         domains = dict()
         names = set()
         for reservation in sorted(reservations, key=lambda r: r.id, reverse=True):
+            reservation_currency = reservation.data_reservation.currencies[0]
             if reservation.next_action != "DEPLOY":
                 continue
             rdomains = reservation.data_reservation.domain_delegates
+            if currency and currency != reservation_currency:
+                continue
             for dom in rdomains:
                 if dom.domain in names:
                     continue
@@ -746,7 +792,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                 domains[dom.domain] = dom
         return domains
 
-    def gateway_select(self, bot):
+    def gateway_select(self, bot, currency=None):
         gateways = {}
         gw_ask_list = []
         for g in j.sal.zosv2._explorer.gateway.list():
@@ -755,12 +801,12 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
             country = g.location.country if g.location.country else "Unknown"
             continent = g.location.continent if g.location.continent else "Unkown"
             if g.free_to_use:
-                currency = "FreeTFT"
+                reservation_currency = "FreeTFT"
             else:
-                currency = "TFT"
-            gtext = (
-                f"Continent: ({continent}) Country: ({country}) City: ({city}) Currency: ({currency}) ID: ({g.node_id})"
-            )
+                reservation_currency = "TFT"
+            if currency and currency != reservation_currency:
+                continue
+            gtext = f"Continent: ({continent}) Country: ({country}) City: ({city}) Currency: ({reservation_currency}) ID: ({g.node_id})"
             gw_ask_list.append(gtext)
         if not gw_ask_list:
             bot.stop("No available gateways")
