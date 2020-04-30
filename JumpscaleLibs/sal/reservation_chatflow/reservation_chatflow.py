@@ -126,7 +126,7 @@ class Chatflow(j.baseclasses.object):
     def _nodes_distribute(self, number_of_nodes, farm_names):
         nodes_distribution = {}
         nodes_left = number_of_nodes
-        names = list(farm_names)
+        names = list(farm_names) if farm_names else []
         if not farm_names:
             farms = j.clients.explorer.explorer.farms.list()
             names = []
