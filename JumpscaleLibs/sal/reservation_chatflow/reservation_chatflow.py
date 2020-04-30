@@ -178,8 +178,8 @@ class Chatflow(j.baseclasses.object):
         empty_farms = set()
         all_farms = j.clients.explorer.explorer.farms.list()
         while True:
-            farms = j.sal.reservation_chatflow.farms_select(bot, farms_message)
-            farms_with_no_resources = j.sal.reservation_chatflow.farms_check(
+            farms = self.farms_select(bot, farms_message)
+            farms_with_no_resources = self.farms_check(
                 1, farm_names=farms, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
             )
             if not farms_with_no_resources:
@@ -189,7 +189,7 @@ class Chatflow(j.baseclasses.object):
             if len(all_farms) == len(empty_farms):
                 raise StopChatFlow("No Farms available containing nodes that match the required resources")
             farms_message = (
-                f"""The following farms dont have enough resources for {message}: """
+                f"""The following farms don't have enough resources for {message}: """
                 + ", ".join(farms_with_no_resources)
                 + """.
                 Please reselect farms to check for resources or leave it empty
