@@ -779,7 +779,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         domains = dict()
         names = set()
         for reservation in sorted(reservations, key=lambda r: r.id, reverse=True):
-            reservation_currency = reservation.data_reservation.currencies[0]
+            reservation_currency = self.currency_get(reservation)
             if reservation.next_action != "DEPLOY":
                 continue
             rdomains = reservation.data_reservation.domain_delegates
