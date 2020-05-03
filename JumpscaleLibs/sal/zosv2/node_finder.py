@@ -82,27 +82,28 @@ class NodeFinder:
         return self._nodes.list(farm_id=farm_id, country=country, city=city, cru=cru, sru=sru, mru=mru, hru=hru)
 
 
+def is_public_ip(ip, version):
+    try:
+        network = netaddr.IPNetwork(ip)
+    except netaddr.AddrFormatError:
+        return False
+    if network.version != version:
+        return False
+    return not is_private(ip)
+
+
 def filter_public_ip(node, version):
     if version not in [4, 6]:
         raise j.exceptions.Input("ip version can only be 4 or 6")
 
-    ips = []
-
-    # gather all the public ip of the requried version in ips
     if node.public_config and node.public_config.master:
         if version == 4:
-            ips = [node.public_config.ipv4]
-        else:
-            ips = [node.public_config.ipv6]
+            return is_public_ip(node.public_config.ipv4, 4)
+        elif node.public_config.ipv6:
+            return is_public_ip(node.public_config.ipv6, 6)
     else:
         for iface in node.ifaces:
             for addr in iface.addrs:
-                ip = netaddr.IPNetwork(addr)
-                if ip.version != version:
-                    continue
-                ips.append(ip)
-    # check if any of the ips is public
-    for ip in ips:
-        if not is_private(ip):
-            return True
+                if is_public_ip(addr, version):
+                    return True
     return False
