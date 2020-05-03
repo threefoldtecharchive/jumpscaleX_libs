@@ -792,28 +792,32 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                 domains[dom.domain] = dom
         return domains
 
-    def gateway_select(self, bot, currency=None):
+    def gateway_list(self, bot, currency=None):
+        unknowns = ["", None, "Uknown", "Unknown"]
         gateways = {}
-        gw_ask_list = []
         for g in j.sal.zosv2._explorer.gateway.list():
-            gateways[g.node_id] = g
-            city = g.location.city if g.location.city else "Unknown"
-            country = g.location.country if g.location.country else "Unknown"
-            continent = g.location.continent if g.location.continent else "Unkown"
+            location = []
+            for area in ["continent", "country", "city"]:
+                areaname = getattr(g.location, area)
+                if areaname not in unknowns:
+                    location.append(areaname)
             if g.free_to_use:
                 reservation_currency = "FreeTFT"
             else:
                 reservation_currency = "TFT"
             if currency and currency != reservation_currency:
                 continue
-            gtext = f"Continent: ({continent}) Country: ({country}) City: ({city}) Currency: ({reservation_currency}) ID: ({g.node_id})"
-            gw_ask_list.append(gtext)
-        if not gw_ask_list:
+            gtext = f"{' - '.join(location)} ({reservation_currency}) ID: {g.node_id}"
+            gateways[gtext] = g
+        return gateways
+
+    def gateway_select(self, bot, currency=None):
+        gateways = self.gateway_list(bot, currency)
+        if not gateways:
             bot.stop("No available gateways")
-        gateway = bot.single_choice("Please choose a gateway", list(gw_ask_list))
-        gateway_id = gateway.split()[-1][1:-1]
-        gateway = gateways[gateway_id]
-        return gateway
+        options = sorted(list(gateways.keys()))
+        gateway = bot.drop_down_choice("Please choose a gateway", options)
+        return gateways[gateway]
 
     def gateway_get_kube_network_ip(self, reservation_data):
         network_id = reservation_data["kubernetes"][0]["network_id"]
