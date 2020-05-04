@@ -1,5 +1,5 @@
 from stellar_sdk.exceptions import BadRequestError
-from decimal import *
+from decimal import Decimal
 
 # TFT_ISSUER on production
 TFT_ISSUER_PROD = "GBOVQKJYHXRR3DX6NOX2RRYFRCUMSADGDESTDNBDS6CDVLGVESRTAC47"
