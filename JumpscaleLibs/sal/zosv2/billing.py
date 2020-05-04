@@ -23,7 +23,7 @@ class Billing:
         escrow_informations = reservation_response.escrow_information
         asset = reservation_response.escrow_information.asset
         total_amount = sum([d.total_amount for d in reservation_response.escrow_information.details])
-        total_amount = total_amount / 10e7
+        total_amount = total_amount / 10e6
         escrow_address = reservation_response.escrow_information.address
         try:
             txhash = client.transfer(escrow_address, total_amount, asset=asset, memo_text=str(reservation_id))
