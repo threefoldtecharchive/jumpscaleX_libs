@@ -699,12 +699,13 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         explorer = j.clients.explorer.explorer
         customer_tid = j.me.tid
         reservations = explorer.reservations.list(customer_tid, "DEPLOY")
-        for reservation in reservations:
+        networks = []
+        for reservation in sorted(reservations, key=lambda res: res.id, reverse=True):
             if reservation.metadata:
                 try:
                     metadata = self.reservation_metadata_decrypt(reservation.metadata)
                     metadata = json.loads(metadata)
-                except:
+                except Exception:
                     continue
                 solution_type = metadata["form_info"]["chatflow"]
                 metadata["form_info"].pop("chatflow")
@@ -712,14 +713,24 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                     metadata = self.solution_ubuntu_info_get(metadata, reservation)
                 elif solution_type == "flist":
                     metadata = self.solution_flist_info_get(metadata, reservation)
+                elif solution_type == "network":
+                    if metadata["name"] in networks:
+                        continue
+                    networks.append(metadata["name"])
                 self.reservation_save(
                     reservation.id, metadata["name"], urls[solution_type], form_info=metadata["form_info"]
                 )
             else:
                 solution_type = self.solution_type_check(reservation)
+                name = f"unknown_{reservation.id}"
                 if solution_type == "unknown":
                     continue
-                self.reservation_save(reservation.id, f"unknow_{reservation.id}", urls[solution_type], form_info={})
+                elif solution_type == "network":
+                    name = reservation.data_reservation.networks[0].name
+                    if name in networks:
+                        continue
+                    networks.append(name)
+                self.reservation_save(reservation.id, name, urls[solution_type], form_info={})
 
     def solution_ubuntu_info_get(self, metadata, reservation):
         envs = reservation.data_reservation.containers[0].environment
