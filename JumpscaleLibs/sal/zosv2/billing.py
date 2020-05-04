@@ -1,4 +1,5 @@
 from stellar_sdk.exceptions import BadRequestError
+from decimal import *
 
 # TFT_ISSUER on production
 TFT_ISSUER_PROD = "GBOVQKJYHXRR3DX6NOX2RRYFRCUMSADGDESTDNBDS6CDVLGVESRTAC47"
@@ -23,7 +24,9 @@ class Billing:
         escrow_informations = reservation_response.escrow_information
         asset = reservation_response.escrow_information.asset
         total_amount = sum([d.total_amount for d in reservation_response.escrow_information.details])
-        total_amount = total_amount / 10e6
+        total_amount = Decimal(total_amount) / Decimal(1e7)
+        total_amount = '{0:f}'.format(total_amount)
+
         escrow_address = reservation_response.escrow_information.address
         try:
             txhash = client.transfer(escrow_address, total_amount, asset=asset, memo_text=str(reservation_id))
