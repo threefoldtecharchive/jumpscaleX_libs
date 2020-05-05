@@ -642,7 +642,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
     def solution_name_add(self, bot, model):
         name_exists = False
         while not name_exists:
-            solution_name = bot.string_ask("Please add a name for your solution")
+            solution_name = bot.string_ask("Please add a name for your solution", allow_empty=False)
             find = model.find(name=solution_name)
             if len(find) > 0:
                 res = "# Please choose another name because this name already exist"
@@ -726,6 +726,8 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                 if solution_type == "unknown":
                     continue
                 elif solution_type == "network":
+                    if not reservation.data_reservation.networks:
+                        continue
                     name = reservation.data_reservation.networks[0].name
                     if name in networks:
                         continue
