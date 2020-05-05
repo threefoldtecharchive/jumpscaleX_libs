@@ -28,6 +28,15 @@ class NodeFinder:
     def filter_public_ip6(self, node):
         return filter_public_ip(node, 6)
 
+    def filter_farm_currency(self, farm, currency):
+        if currency and currency != "FreeTFT":
+            # check if farm support this currency
+            for wallet in farm.wallet_addresses:
+                if wallet.asset == currency:
+                    return True
+            return False
+        return True
+
     def nodes_by_capacity(
         self,
         farm_id=None,
@@ -40,6 +49,7 @@ class NodeFinder:
         hru=None,
         currency=None,
     ):
+        not_supported_farms = []
         nodes = self.nodes_search(farm_id=farm_id, farm_name=farm_name, country=country, city=city)
         for node in nodes:
             total = node.total_resources
@@ -56,12 +66,19 @@ class NodeFinder:
             if hru and total.hru - max(0, reserved.hru) < hru:
                 continue
 
-            if currency and currency == "FreeTFT" and not node.free_to_use:
-                continue
-
-            if currency and currency != "FreeTFT" and node.free_to_use:
-                continue
-
+            if currency:
+                if currency == "FreeTFT":
+                    if node.free_to_use:
+                        yield node
+                    continue
+                elif currency != "FreeTFT" and node.free_to_use:
+                    continue
+                if node.farm_id in not_supported_farms:
+                    continue
+                farm = self._farms.get(node.farm_id)
+                if not self.filter_farm_currency(farm, currency):
+                    not_supported_farms.append(node.farm_id)
+                    continue
             yield node
 
     def nodes_search(
