@@ -128,7 +128,7 @@ class Chatflow(j.baseclasses.object):
         nodes_left = number_of_nodes
         names = list(farm_names) if farm_names else []
         if not farm_names:
-            farms = j.clients.explorer.explorer.farms.list()
+            farms = self._explorer.farms.list()
             names = []
             for f in farms:
                 names.append(f.name)
@@ -176,9 +176,9 @@ class Chatflow(j.baseclasses.object):
     def farm_names_get(self, number_of_nodes, bot, cru=None, sru=None, mru=None, hru=None, currency="TFT", message=""):
         farms_message = f"Select 1 or more farms to distribute the {message} nodes on. If no selection is made, the farms will be chosen randomly"
         empty_farms = set()
-        all_farms = j.clients.explorer.explorer.farms.list()
+        all_farms = self._explorer.farms.list()
         while True:
-            farms = self.farms_select(bot, farms_message)
+            farms = self.farms_select(bot, farms_message, currency=currency)
             farms_with_no_resources = self.farms_check(
                 1, farm_names=farms, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
             )
@@ -262,13 +262,13 @@ class Chatflow(j.baseclasses.object):
             network, expiration, currency = networks[result]
             return Network(network, expiration, bot, reservations, currency)
 
-    def farms_select(self, bot, message=None):
+    def farms_select(self, bot, message=None, currency=None):
         message = message or "Select 1 or more farms to distribute nodes on"
-        explorer = j.clients.explorer.explorer
-        farms = explorer.farms.list()
+        farms = self._explorer.farms.list()
         farm_names = []
         for f in farms:
-            farm_names.append(f.name)
+            if j.sal.zosv2.nodes_finder.filter_farm_currency(f, currency):
+                farm_names.append(f.name)
         farms_selected = bot.multi_list_choice(message, farm_names,)
         return farms_selected
 
@@ -306,19 +306,19 @@ class Chatflow(j.baseclasses.object):
         network = j.sal.zosv2.network.create(reservation, ip_range, network_name)
         node_subnets = netaddr.IPNetwork(ip_range).subnet(24)
         network_config = dict()
-        access_nodes = j.sal.zosv2.nodes_finder.nodes_search()
+        access_nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(currency=currency)
         use_ipv4 = ip_version == "IPv4"
 
         if use_ipv4:
             nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip4
         else:
             nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip6
+
         for node in filter(nodefilter, access_nodes):
-            if (currency == "FreeTFT" and node.free_to_use) or (currency != "FreeTFT" and not node.free_to_use):
-                access_node = node
-                break
+            access_node = node
+            break
         else:
-            raise j.exceptions.NotFound("Could not find available access node")
+            raise StopChatFlow("Could not find available access node")
 
         j.sal.zosv2.network.add_node(network, access_node.node_id, str(next(node_subnets)))
         wg_quick = j.sal.zosv2.network.add_access(network, access_node.node_id, str(next(node_subnets)), ipv4=use_ipv4)
@@ -460,7 +460,7 @@ class Chatflow(j.baseclasses.object):
             return currencies[0]
         elif reservation.data_reservation.networks and reservation.data_reservation.networks[0].network_resources:
             node_id = reservation.data_reservation.networks[0].network_resources[0].node_id
-            if j.clients.explorer.default.nodes.get(node_id).free_to_use:
+            if self._explorer.nodes.get(node_id).free_to_use:
                 return "FreeTFT"
 
         return "TFT"
@@ -605,7 +605,7 @@ Scan the QR code with your application (do not change the message) or enter the 
 Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
 """
 
-        bot.qrcode_show(qrcode, title=f"Please make your payment", msg=message_text, scale=4, update=True)
+        bot.qrcode_show(qrcode, title="Please make your payment", msg=message_text, scale=4, update=True)
 
     def reservation_save(self, rid, name, url, form_info=None):
         form_info = form_info or []
@@ -615,8 +615,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         reservation.name = name
         reservation.form_info = form_info
 
-        explorer = j.clients.explorer.explorer
-        reservation.explorer = explorer.url
+        reservation.explorer = self._explorer.url
         reservation.save()
 
     def solution_model_get(self, name, url, form_info=None):
@@ -626,8 +625,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         reservation.name = name
         reservation.form_info = form_info
 
-        explorer = j.clients.explorer.explorer
-        reservation.explorer = explorer.url
+        reservation.explorer = self._explorer.url
         return reservation
 
     def reservation_metadata_add(self, reservation, metadata):
@@ -654,16 +652,14 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
     def solutions_get(self, url):
         try:
             model = j.clients.bcdbmodel.get(url=url, name="tfgrid_solutions")
-        except:
+        except Exception:
             return []
         solutions = model.find()
         reservations = []
-        explorer = j.clients.explorer.explorer
-
         for solution in solutions:
-            if solution.explorer and solution.explorer != explorer.url:
+            if solution.explorer and solution.explorer != self._explorer.url:
                 continue
-            reservation = explorer.reservations.get(solution.rid)
+            reservation = self._explorer.reservations.get(solution.rid)
             solution_type = url.replace("tfgrid.solutions.", "").replace(".1", "")
             reservations.append(
                 {
@@ -696,9 +692,8 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
             for model in models.find():
                 models.delete(model)
 
-        explorer = j.clients.explorer.explorer
         customer_tid = j.me.tid
-        reservations = explorer.reservations.list(customer_tid, "DEPLOY")
+        reservations = self._explorer.reservations.list(customer_tid, "DEPLOY")
         networks = []
         for reservation in sorted(reservations, key=lambda res: res.id, reverse=True):
             if reservation.metadata:
