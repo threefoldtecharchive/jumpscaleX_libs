@@ -558,7 +558,7 @@ class StellarClient(JSConfigClient):
         unlock_hash = strkey.StrKey.encode_pre_auth_tx(preauth_tx_hash)
         self._create_unlockhash_transaction(unlock_hash=unlock_hash, transaction_xdr=preauth_tx.to_xdr())
 
-        self._set_account_signers(escrow_kp.public_key, destination_address, preauth_tx_hash, escrow_kp)
+        self._set_escrow_account_signers(escrow_kp.public_key, destination_address, preauth_tx_hash, escrow_kp)
         self._log_info("Unlock Transaction:")
         self._log_info(preauth_tx.to_xdr())
 
@@ -578,7 +578,7 @@ class StellarClient(JSConfigClient):
         tx.sign(escrow_kp)
         return tx
 
-    def _set_account_signers(self, address, public_key_signer, preauth_tx_hash, signer_kp):
+    def _set_escrow_account_signers(self, address, public_key_signer, preauth_tx_hash, signer_kp):
         horizon_server = self._get_horizon_server()
         if address == self.address:
             account = self.load_account()
@@ -601,30 +601,27 @@ class StellarClient(JSConfigClient):
             )
         )
 
-    def modify_signing_requirements(self, public_keys_signers, signature_count, low_treshold=1, high_treshold=2):
-        """modify_signing_requirements sets to amount of signatures required for the creation of multisig account. It also adds
-        the public keys of the signer to this account
+    def modify_signing_requirements(self, public_keys_signers, signature_count, low_treshold=0, high_treshold=2, master_weight=2):
+        """modify_signing_requirements sets the signing requirements for a multisig account. It also adds
+        the public keys of the signer to this account.
         :param public_keys_signers: list of public keys of signers.
         :type public_keys_signers: list
-        :param signature_count: amount of signatures requires to transfer funds.
-        :type signature_count: str
-        :param low_treshold: amount of signatures required for low security operations (transaction processing, allow trust, bump sequence)
-        :type low_treshold: str
-        :param high_treshold: amount of signatures required for high security operations (set options, account merge)
-        :type: str
+        :param signature_count: amount of signatures required to transfer funds.
+        :type signature_count: int
+        :param low_treshold: weight required for low security operations (transaction processing, allow trust, bump sequence)
+        :type low_treshold: int
+        :param high_treshold: weight required for high security operations (set options, account merge)
+        :type high_treshold: int
+        :param master_weight: A number from 0-255 (inclusive) representing the weight of the master key. If the weight of the master key is updated to 0, it is effectively disabled.
+        :type master_weight: int 
         """
-        if len(public_keys_signers) != signature_count - 1:
-            raise Exception(
-                "Number of public_keys must be 1 less than the signature count in order to set the signature count"
-            )
-
         account = self.load_account()
         source_keypair = Keypair.from_secret(self.secret)
 
         transaction_builder = TransactionBuilder(account)
         # set the signing options
         transaction_builder.append_set_options_op(
-            low_threshold=low_treshold, med_threshold=signature_count, high_threshold=high_treshold
+            low_threshold=low_treshold, med_threshold=signature_count, high_threshold=high_treshold, master_weight=master_weight
         )
 
         # For every public key given, add it as a signer to this account
