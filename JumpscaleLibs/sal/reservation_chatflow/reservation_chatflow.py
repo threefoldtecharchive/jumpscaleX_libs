@@ -726,8 +726,6 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                 if solution_type == "unknown":
                     continue
                 elif solution_type == "network":
-                    if not reservation.data_reservation.networks:
-                        continue
                     name = reservation.data_reservation.networks[0].name
                     if name in networks:
                         continue
