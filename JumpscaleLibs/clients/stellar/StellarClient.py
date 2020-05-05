@@ -359,7 +359,7 @@ class StellarClient(JSConfigClient):
         except BadRequestError as e:
             self._log_debug(e)
             raise e
-
+    
     def transfer(
         self,
         destination_address,
@@ -369,6 +369,7 @@ class StellarClient(JSConfigClient):
         memo_text=None,
         memo_hash=None,
         fund_transaction=True,
+        from_address=None,
     ):
         """Transfer assets to another address
         :param destination_address: address of the destination.
@@ -387,9 +388,11 @@ class StellarClient(JSConfigClient):
         :type: Union[str, bytes]
         :param fund_transaction: use the threefoldfoundation transaction funding service
         :type: fund_transaction: bool
+        :param from_address: Use a different address to send the tokens from, useful in multisig use cases.
+        :type from_address: str
         """
         issuer = None
-        self._log_info("Sending {} {} to {}".format(amount, asset, destination_address))
+        self._log_info(f"Sending {amount} {asset} to {destination_address}")
         if asset != "XLM":
             assetStr = asset.split(":")
             if len(assetStr) != 2:
@@ -398,12 +401,15 @@ class StellarClient(JSConfigClient):
             issuer = assetStr[1]
 
         if locked_until is not None:
-            return self._transfer_locked_tokens(destination_address, amount, asset, issuer, locked_until)
+            return self._transfer_locked_tokens(destination_address, amount, asset, issuer, locked_until,memo_text=memo_text, memo_hash=memo_hash, fund_transaction=fund_transaction,from_address=from_address)
 
-        source_keypair = Keypair.from_secret(self.secret)
-        source_account = self.load_account()
         horizon_server = self._get_horizon_server()
+
         base_fee = horizon_server.fetch_base_fee()
+        if from_address:
+            source_account= horizon_server.load_account(from_address)
+        else:
+            source_account = self.load_account()
 
         transaction_builder = TransactionBuilder(
             source_account=source_account, network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee
@@ -413,7 +419,7 @@ class StellarClient(JSConfigClient):
             amount=str(amount),
             asset_code=asset,
             asset_issuer=issuer,
-            source=source_keypair.public_key,
+            source=source_account.account_id,
         )
         transaction_builder.set_timeout(30)
         if memo_text is not None:
@@ -430,7 +436,9 @@ class StellarClient(JSConfigClient):
                 transaction = transaction["transaction_xdr"]
 
         transaction = TransactionEnvelope.from_xdr(transaction, _NETWORK_PASSPHRASES[str(self.network)])
-        transaction.sign(source_keypair)
+
+        my_keypair = Keypair.from_secret(self.secret)
+        transaction.sign(my_keypair)
 
         try:
             response = horizon_server.submit_transaction(transaction)
@@ -452,7 +460,7 @@ class StellarClient(JSConfigClient):
             raise e
 
     def list_transactions(self, address=None):
-        """Get the transactions for an adddres
+        """Get the transactions for an adddress
         :param address: address of the effects.In None, the address of this wallet is taken
         :type address: str
         """
@@ -503,7 +511,7 @@ class StellarClient(JSConfigClient):
                     effects.append(Effect.from_horizon_response(response_effect))
         return effects
 
-    def _transfer_locked_tokens(self, destination_address, amount, asset_code, asset_issuer, unlock_time):
+    def _transfer_locked_tokens(self, destination_address, amount, asset_code, asset_issuer, unlock_time,memo_text=None,memo_hash=None,fund_transaction=True,from_address=None):
         """Transfer locked assets to another address
         :param destination_address: address of the destination.
         :type destination_address: str
@@ -515,19 +523,16 @@ class StellarClient(JSConfigClient):
         :type asset_issuer: str
         :param unlock_time: an epoch timestamp indicating when the funds should be unlocked.
         :type unlock_time: float
+        :param text_memo: optional memo text to add to the transaction, a string encoded using either ASCII or UTF-8, up to 28-bytes long
+        :type: Union[str, bytes]
+        :param memo_hash: optional memo hash to add to the transaction, A 32 byte hash
+        :type: Union[str, bytes]
+        :param fund_transaction: use the threefoldfoundation transaction funding service
+        :type: fund_transaction: bool
+        :param from_address: Use a different address to send the tokens from, useful in multisig use cases.
+        :type from_address: str
         """
-
-        from_kp = Keypair.from_secret(self.secret)
         unlock_time = math.ceil(unlock_time)
-        self._log_info(
-            "Sending {amount} {asset_code} from {from_address} to {destination_address} locked until {unlock_time}".format(
-                amount=amount,
-                asset_code=asset_code,
-                from_address=from_kp.public_key,
-                destination_address=destination_address,
-                unlock_time=unlock_time,
-            )
-        )
 
         self._log_info("Creating escrow account")
         escrow_kp = Keypair.random()
@@ -557,7 +562,7 @@ class StellarClient(JSConfigClient):
         self._log_info("Unlock Transaction:")
         self._log_info(preauth_tx.to_xdr())
 
-        self.transfer(escrow_kp.public_key, amount, asset_code + ":" + asset_issuer)
+        self.transfer(escrow_kp.public_key, amount, asset_code + ":" + asset_issuer, memo_text=memo_text,memo_hash=memo_hash,fund_transaction=fund_transaction, from_address=from_address)
         return preauth_tx.to_xdr()
 
     def _create_unlock_transaction(self, escrow_kp, unlock_time):
