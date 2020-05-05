@@ -772,8 +772,9 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         volumes = reservation.data_reservation.volumes
         zdbs = reservation.data_reservation.zdbs
         kubernetes = reservation.data_reservation.kubernetes
+        networks = reservation.data_reservation.networks
 
-        if containers == [] and volumes == [] and zdbs == [] and kubernetes == []:
+        if containers == [] and volumes == [] and zdbs == [] and kubernetes == [] and networks:
             return "network"
         elif kubernetes != []:
             return "kubernetes"
