@@ -1,4 +1,5 @@
 from Jumpscale import j
+import requests
 import netaddr
 
 from .network import is_private
@@ -75,7 +76,12 @@ class NodeFinder:
                     continue
                 if node.farm_id in not_supported_farms:
                     continue
-                farm = self._farms.get(node.farm_id)
+                try:
+                    farm = self._farms.get(node.farm_id)
+                except requests.exceptions.HTTPError:
+                    not_supported_farms.append(node.farm_id)
+                    continue
+
                 if not self.filter_farm_currency(farm, currency):
                     not_supported_farms.append(node.farm_id)
                     continue
