@@ -685,6 +685,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
             "minio": "tfgrid.solutions.minio.1",
             "kubernetes": "tfgrid.solutions.kubernetes.1",
             "network": "tfgrid.solutions.network.1",
+            "gitea": "tfgrid.solutions.gitea.1",
         }
 
         for _, url in urls.items():
@@ -712,6 +713,10 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                     if metadata["name"] in networks:
                         continue
                     networks.append(metadata["name"])
+                elif solution_type == "gitea":
+                    metadata["form_info"]["Public key"] = reservation.data_reservation.containers[0].environment[
+                        "pub_key"
+                    ]
                 self.reservation_save(
                     reservation.id, metadata["name"], urls[solution_type], form_info=metadata["form_info"]
                 )
@@ -778,6 +783,8 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                 return "ubuntu"
             elif "minio" in containers[0].flist:
                 return "minio"
+            elif "gitea" in containers[0].flist:
+                return "gitea"
             return "flist"
         return "unknown"
 
