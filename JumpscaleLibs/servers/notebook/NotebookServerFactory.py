@@ -35,6 +35,7 @@ class NotebookServerFactory(j.baseclasses.object):
             else:
                 j.builders.runtimes.nodejs.install()
 
+            j.builders.runtimes.python3.pip_package_install("matplot")
             j.builders.runtimes.python3.pip_package_install("prompt-toolkit", reset=True)
             j.builders.runtimes.python3.pip_package_install(
                 "jupyterlab,notebook,voila,plotly,pandas,jupyterlab_code_formatter,plotly,voila-gridstack,voila-vuetify,ipywidgets",
@@ -43,6 +44,7 @@ class NotebookServerFactory(j.baseclasses.object):
             # make sure the prompt toolkit stays below 3
             j.builders.runtimes.python3.pip_package_install("prompt-toolkit==2.0.9", reset=True)
             j.builders.runtimes.python3.pip_package_install("ptpython==2.0.4", reset=True)
+
             C = """
             export NODE_OPTIONS=--max-old-space-size=4096
 
