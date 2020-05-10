@@ -549,6 +549,7 @@ Billing details:
 <h4> Escrow address: </h4>  {escrow_address} \n
 <h4> Escrow asset: </h4>  {escrow_asset} \n
 <h4> Total amount: </h4>  {total_amount} \n
+<h4> An extra 0.1 {currency} is required as transaction fees </h4> \n
 <h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
 """
         while True:
