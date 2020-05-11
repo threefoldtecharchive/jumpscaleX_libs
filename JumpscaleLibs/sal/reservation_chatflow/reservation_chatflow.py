@@ -87,7 +87,7 @@ class Network:
             ip = str(host)
             if ip not in self._used_ips:
                 freeips.append(ip)
-        ip_address = self._bot.drop_down_choice(message, freeips)
+        ip_address = self._bot.drop_down_choice(message, freeips, required=True)
         self._used_ips.append(ip_address)
         return ip_address
 
@@ -199,7 +199,7 @@ class Chatflow(j.baseclasses.object):
             )
 
     def nodes_get(
-        self, number_of_nodes, farm_id=None, farm_names=None, cru=None, sru=None, mru=None, hru=None, currency="TFT",
+        self, number_of_nodes, farm_id=None, farm_names=None, cru=None, sru=None, mru=None, hru=None, currency="TFT"
     ):
         nodes_distribution = self._nodes_distribute(number_of_nodes, farm_names)
         # to avoid using the same node with different networks
@@ -269,7 +269,7 @@ class Chatflow(j.baseclasses.object):
         for f in farms:
             if j.sal.zosv2.nodes_finder.filter_farm_currency(f, currency):
                 farm_names.append(f.name)
-        farms_selected = bot.multi_list_choice(message, farm_names,)
+        farms_selected = bot.multi_list_choice(message, farm_names)
         return farms_selected
 
     def ip_range_get(self, bot):
@@ -553,7 +553,7 @@ Billing details:
 <h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
 """
         while True:
-            result = bot.single_choice(message, wallet_names)
+            result = bot.single_choice(message, wallet_names, html=True)
             if result not in wallet_names:
                 continue
             if result == "3bot app":
@@ -606,7 +606,7 @@ Scan the QR code with your application (do not change the message) or enter the 
 Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
 """
 
-        bot.qrcode_show(qrcode, title="Please make your payment", msg=message_text, scale=4, update=True)
+        bot.qrcode_show(qrcode, title="Please make your payment", msg=message_text, scale=4, update=True, html=True)
 
     def reservation_save(self, rid, name, url, form_info=None):
         form_info = form_info or []
