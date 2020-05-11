@@ -252,11 +252,11 @@ class Chatflow(j.baseclasses.object):
         for n in networks.keys():
             names.append(n)
         if not names:
-            res = "<h2> You don't have any networks, please use the network chatflow to create one</h2>"
+            res = "You don't have any networks, please use the network chatflow to create one"
             res = j.tools.jinja2.template_render(text=res)
             bot.stop(res)
         while True:
-            result = bot.single_choice("Choose a network", names)
+            result = bot.single_choice("Choose a network", names, required=True)
             if result not in networks:
                 continue
             network, expiration, currency = networks[result]
@@ -415,7 +415,7 @@ class Chatflow(j.baseclasses.object):
                 link = f"{self._explorer.url}/reservations/{reservation.id}"
                 res += f"<h2> <a href={link}>Full reservation info</a></h2>"
                 j.sal.zosv2.reservation_cancel(rid)
-                bot.stop(res)
+                bot.stop(res, md=True, html=True)
             time.sleep(1)
             reservation = self._explorer.reservations.get(rid)
 
@@ -641,7 +641,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
     def solution_name_add(self, bot, model):
         name_exists = False
         while not name_exists:
-            solution_name = bot.string_ask("Please add a name for your solution", allow_empty=False)
+            solution_name = bot.string_ask("Please add a name for your solution", allow_empty=False, required=True)
             find = model.find(name=solution_name)
             if len(find) > 0:
                 res = "# Please choose another name because this name already exist"
