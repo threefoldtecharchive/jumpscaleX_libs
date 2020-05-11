@@ -59,7 +59,7 @@ class Nodes:
         if not isinstance(free, bool):
             raise j.exceptions.Input("free must be a boolean")
 
-        me = identity if identity else j.myidentities.me
+        me = identity if identity else j.me
         secret = me.encryptor.signing_key.encode(Base64Encoder)
 
         auth = HTTPSignatureAuth(key_id=str(me.tid), secret=secret, headers=["(created)", "date", "threebot-id"])
@@ -81,7 +81,7 @@ class Nodes:
         public_config.type = "MACVLAN"
         public_config.version += 1
 
-        me = identity if identity else j.myidentities.me
+        me = identity if identity else j.me
         secret = me.encryptor.signing_key.encode(Base64Encoder)
 
         auth = HTTPSignatureAuth(key_id=str(me.tid), secret=secret, headers=["(created)", "date", "threebot-id"])
