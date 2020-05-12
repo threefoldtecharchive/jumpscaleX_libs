@@ -177,8 +177,9 @@ class Chatflow(j.baseclasses.object):
         farms_message = f"Select 1 or more farms to distribute the {message} nodes on. If no selection is made, the farms will be chosen randomly"
         empty_farms = set()
         all_farms = self._explorer.farms.list()
+        retry = False
         while True:
-            farms = self.farms_select(bot, farms_message, currency=currency)
+            farms = self.farms_select(bot, farms_message, currency=currency, retry=retry)
             farms_with_no_resources = self.farms_check(
                 1, farm_names=farms, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
             )
@@ -190,6 +191,7 @@ class Chatflow(j.baseclasses.object):
                 raise StopChatFlow("No Farms available containing nodes that match the required resources")
             if message:
                 message = f"for {message}"
+            retry = True
             farms_message = (
                 f"""The following farms don't have enough resources {message}: """
                 + ", ".join(farms_with_no_resources)
@@ -262,10 +264,7 @@ class Chatflow(j.baseclasses.object):
             network, expiration, currency = networks[result]
             return Network(network, expiration, bot, reservations, currency)
 
-    def farms_select(self, bot, message=None, currency=None):
-        retry = False
-        if "enough" in message:
-            retry = True
+    def farms_select(self, bot, message=None, currency=None, retry=False):
         message = message or "Select 1 or more farms to distribute nodes on"
         farms = self._explorer.farms.list()
         farm_names = []
@@ -560,6 +559,7 @@ Billing details:
 
             result = bot.single_choice(message, wallet_names, html=True, retry=retry)
             if result not in wallet_names:
+                retry = True
                 continue
             if result == "3bot app":
                 reservation = self._explorer.reservations.get(rid)
