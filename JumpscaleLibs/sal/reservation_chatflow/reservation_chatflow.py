@@ -271,7 +271,7 @@ class Chatflow(j.baseclasses.object):
         for f in farms:
             if j.sal.zosv2.nodes_finder.filter_farm_currency(f, currency):
                 farm_names.append(f.name)
-        farms_selected = bot.multi_list_choice(message, farm_names, retry=retry)
+        farms_selected = bot.multi_list_choice(message, farm_names, retry=retry, auto_complete=True)
         return farms_selected
 
     def ip_range_get(self, bot):
