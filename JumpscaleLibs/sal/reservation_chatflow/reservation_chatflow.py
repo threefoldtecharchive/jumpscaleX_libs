@@ -87,7 +87,7 @@ class Network:
             ip = str(host)
             if ip not in self._used_ips:
                 freeips.append(ip)
-        ip_address = self._bot.drop_down_choice(message, freeips)
+        ip_address = self._bot.drop_down_choice(message, freeips, required=True)
         self._used_ips.append(ip_address)
         return ip_address
 
@@ -177,8 +177,9 @@ class Chatflow(j.baseclasses.object):
         farms_message = f"Select 1 or more farms to distribute the {message} nodes on. If no selection is made, the farms will be chosen randomly"
         empty_farms = set()
         all_farms = self._explorer.farms.list()
+        retry = False
         while True:
-            farms = self.farms_select(bot, farms_message, currency=currency)
+            farms = self.farms_select(bot, farms_message, currency=currency, retry=retry)
             farms_with_no_resources = self.farms_check(
                 1, farm_names=farms, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
             )
@@ -190,6 +191,7 @@ class Chatflow(j.baseclasses.object):
                 raise StopChatFlow("No Farms available containing nodes that match the required resources")
             if message:
                 message = f"for {message}"
+            retry = True
             farms_message = (
                 f"""The following farms don't have enough resources {message}: """
                 + ", ".join(farms_with_no_resources)
@@ -199,7 +201,7 @@ class Chatflow(j.baseclasses.object):
             )
 
     def nodes_get(
-        self, number_of_nodes, farm_id=None, farm_names=None, cru=None, sru=None, mru=None, hru=None, currency="TFT",
+        self, number_of_nodes, farm_id=None, farm_names=None, cru=None, sru=None, mru=None, hru=None, currency="TFT"
     ):
         nodes_distribution = self._nodes_distribute(number_of_nodes, farm_names)
         # to avoid using the same node with different networks
@@ -252,24 +254,24 @@ class Chatflow(j.baseclasses.object):
         for n in networks.keys():
             names.append(n)
         if not names:
-            res = "<h2> You don't have any networks, please use the network chatflow to create one</h2>"
+            res = "You don't have any networks, please use the network chatflow to create one"
             res = j.tools.jinja2.template_render(text=res)
             bot.stop(res)
         while True:
-            result = bot.single_choice("Choose a network", names)
+            result = bot.single_choice("Choose a network", names, required=True)
             if result not in networks:
                 continue
             network, expiration, currency = networks[result]
             return Network(network, expiration, bot, reservations, currency)
 
-    def farms_select(self, bot, message=None, currency=None):
+    def farms_select(self, bot, message=None, currency=None, retry=False):
         message = message or "Select 1 or more farms to distribute nodes on"
         farms = self._explorer.farms.list()
         farm_names = []
         for f in farms:
             if j.sal.zosv2.nodes_finder.filter_farm_currency(f, currency):
                 farm_names.append(f.name)
-        farms_selected = bot.multi_list_choice(message, farm_names,)
+        farms_selected = bot.multi_list_choice(message, farm_names, retry=retry)
         return farms_selected
 
     def ip_range_get(self, bot):
@@ -415,7 +417,7 @@ class Chatflow(j.baseclasses.object):
                 link = f"{self._explorer.url}/reservations/{reservation.id}"
                 res += f"<h2> <a href={link}>Full reservation info</a></h2>"
                 j.sal.zosv2.reservation_cancel(rid)
-                bot.stop(res)
+                bot.stop(res, md=True, html=True)
             time.sleep(1)
             reservation = self._explorer.reservations.get(rid)
 
@@ -436,7 +438,7 @@ class Chatflow(j.baseclasses.object):
                 link = f"{self._explorer.url}/reservations/{reservation.id}"
                 res += f"<h2> <a href={link}>Full reservation info</a></h2>"
                 j.sal.zosv2.reservation_cancel(rid)
-                bot.stop(res)
+                bot.stop(res, md=True, html=True)
             if threebot_app and reservation_create_resp:
                 self.escrow_qr_show(bot, reservation_create_resp, reservation.data_reservation.expiration_provisioning)
             time.sleep(5)
@@ -452,7 +454,7 @@ class Chatflow(j.baseclasses.object):
             link = f"{self._explorer.url}/reservations/{reservation.id}"
             res += f"<h2> <a href={link}>Full reservation info</a></h2>"
             j.sal.zosv2.reservation_cancel(reservation.id)
-            bot.stop(res)
+            bot.stop(res, md=True, html=True)
 
     def currency_get(self, reservation):
         currencies = reservation.data_reservation.currencies
@@ -552,9 +554,12 @@ Billing details:
 <h4> An extra 0.1 {currency} is required as transaction fees </h4> \n
 <h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
 """
+        retry = False
         while True:
-            result = bot.single_choice(message, wallet_names)
+
+            result = bot.single_choice(message, wallet_names, html=True, retry=retry)
             if result not in wallet_names:
+                retry = True
                 continue
             if result == "3bot app":
                 reservation = self._explorer.reservations.get(rid)
@@ -568,6 +573,7 @@ Billing details:
                         current_balance = balance.balance
                         if float(current_balance) >= total_amount:
                             return payment
+                retry = True
                 message = f"""
 <h2 style="color: #142850;"><b style="color: #00909e;">{total_amount} {currency}</b> are required, but only <b style="color: #00909e;">{current_balance} {currency}</b> are available in wallet <b style="color: #00909e;">{payment["wallet"].name}</b></h2>
 Billing details:
@@ -606,7 +612,7 @@ Scan the QR code with your application (do not change the message) or enter the 
 Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
 """
 
-        bot.qrcode_show(qrcode, title="Please make your payment", msg=message_text, scale=4, update=True)
+        bot.qrcode_show(qrcode, title="Please make your payment", msg=message_text, scale=4, update=True, html=True)
 
     def reservation_save(self, rid, name, url, form_info=None):
         form_info = form_info or []
@@ -640,13 +646,15 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
 
     def solution_name_add(self, bot, model):
         name_exists = False
+        retry = False
         while not name_exists:
-            solution_name = bot.string_ask("Please add a name for your solution", allow_empty=False)
+            solution_name = bot.string_ask("Please add a name for your solution", required=True, retry=retry)
             find = model.find(name=solution_name)
             if len(find) > 0:
                 res = "# Please choose another name because this name already exist"
                 res = j.tools.jinja2.template_render(text=res)
-                bot.md_show(res)
+                retry = True
+                bot.md_show(res, md=True)
             else:
                 return solution_name
 
@@ -831,7 +839,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         if not gateways:
             bot.stop("No available gateways")
         options = sorted(list(gateways.keys()))
-        gateway = bot.drop_down_choice("Please choose a gateway", options)
+        gateway = bot.drop_down_choice("Please choose a gateway", options, required=True)
         return gateways[gateway]
 
     def gateway_get_kube_network_ip(self, reservation_data):

@@ -18,6 +18,7 @@ import time
 import math
 from .balance import Balance, EscrowAccount, AccountBalances
 from .transaction import TransactionSummary, Effect
+from decimal import Decimal
 
 JSConfigClient = j.baseclasses.object_config
 
@@ -374,8 +375,8 @@ class StellarClient(JSConfigClient):
         """Transfer assets to another address
         :param destination_address: address of the destination.
         :type destination_address: str
-        :param amount: amount, can be a floating point number with 7 numbers after the decimal point expressed as a string.
-        :type amount: str
+        :param amount: amount, can be a floating point number with 7 numbers after the decimal point expressed as a Decimal or a string.
+        :type amount: Union[str, Decimal]
         :param asset: asset to transfer (if none is specified the default 'XLM' is used),
         if you wish to specify an asset it should be in format 'assetcode:issuer'. Where issuer is the address of the
         issuer of the asset.
@@ -416,7 +417,7 @@ class StellarClient(JSConfigClient):
         )
         transaction_builder.append_payment_op(
             destination=destination_address,
-            amount=str(amount),
+            amount=amount,
             asset_code=asset,
             asset_issuer=issuer,
             source=source_account.account_id,
@@ -515,8 +516,8 @@ class StellarClient(JSConfigClient):
         """Transfer locked assets to another address
         :param destination_address: address of the destination.
         :type destination_address: str
-        :param amount: amount, can be a floating point number with 7 numbers after the decimal point expressed as a string.
-        :type amount: str
+        :param amount: amount, can be a floating point number with 7 numbers after the decimal point expressed as a Decimal or a string.
+        :type amount: Union[str, Decimal]
         :param asset_code: asset to transfer
         :type asset_code: str
         :param asset_issuer: if the asset_code is different from 'XlM', the issuer address
