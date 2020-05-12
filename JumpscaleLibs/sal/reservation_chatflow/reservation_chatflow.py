@@ -439,7 +439,7 @@ class Chatflow(j.baseclasses.object):
                 link = f"{self._explorer.url}/reservations/{reservation.id}"
                 res += f"<h2> <a href={link}>Full reservation info</a></h2>"
                 j.sal.zosv2.reservation_cancel(rid)
-                bot.stop(res)
+                bot.stop(res, md=True, html=True)
             if threebot_app and reservation_create_resp:
                 self.escrow_qr_show(bot, reservation_create_resp, reservation.data_reservation.expiration_provisioning)
             time.sleep(5)
@@ -455,7 +455,7 @@ class Chatflow(j.baseclasses.object):
             link = f"{self._explorer.url}/reservations/{reservation.id}"
             res += f"<h2> <a href={link}>Full reservation info</a></h2>"
             j.sal.zosv2.reservation_cancel(reservation.id)
-            bot.stop(res)
+            bot.stop(res, md=True, html=True)
 
     def currency_get(self, reservation):
         currencies = reservation.data_reservation.currencies
