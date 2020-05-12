@@ -45,7 +45,7 @@ class Farms:
         return resp.json()["id"]
 
     def update(self, farm, identity=None):
-        me = identity if identity else j.myidentities.me
+        me = identity if identity else j.me
         secret = me.encryptor.signing_key.encode(Base64Encoder)
 
         auth = HTTPSignatureAuth(key_id=str(me.tid), secret=secret, headers=["(created)", "date", "threebot-id"])
