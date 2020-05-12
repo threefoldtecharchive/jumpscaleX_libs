@@ -263,13 +263,16 @@ class Chatflow(j.baseclasses.object):
             return Network(network, expiration, bot, reservations, currency)
 
     def farms_select(self, bot, message=None, currency=None):
+        retry = False
+        if "enough" in message:
+            retry = True
         message = message or "Select 1 or more farms to distribute nodes on"
         farms = self._explorer.farms.list()
         farm_names = []
         for f in farms:
             if j.sal.zosv2.nodes_finder.filter_farm_currency(f, currency):
                 farm_names.append(f.name)
-        farms_selected = bot.multi_list_choice(message, farm_names)
+        farms_selected = bot.multi_list_choice(message, farm_names, retry=retry)
         return farms_selected
 
     def ip_range_get(self, bot):
@@ -552,8 +555,10 @@ Billing details:
 <h4> An extra 0.1 {currency} is required as transaction fees </h4> \n
 <h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
 """
+        retry = False
         while True:
-            result = bot.single_choice(message, wallet_names, html=True)
+
+            result = bot.single_choice(message, wallet_names, html=True, retry=retry)
             if result not in wallet_names:
                 continue
             if result == "3bot app":
@@ -568,6 +573,7 @@ Billing details:
                         current_balance = balance.balance
                         if float(current_balance) >= total_amount:
                             return payment
+                retry = True
                 message = f"""
 <h2 style="color: #142850;"><b style="color: #00909e;">{total_amount} {currency}</b> are required, but only <b style="color: #00909e;">{current_balance} {currency}</b> are available in wallet <b style="color: #00909e;">{payment["wallet"].name}</b></h2>
 Billing details:
@@ -640,13 +646,15 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
 
     def solution_name_add(self, bot, model):
         name_exists = False
+        retry = False
         while not name_exists:
-            solution_name = bot.string_ask("Please add a name for your solution", allow_empty=False, required=True)
+            solution_name = bot.string_ask("Please add a name for your solution", required=True, retry=retry)
             find = model.find(name=solution_name)
             if len(find) > 0:
                 res = "# Please choose another name because this name already exist"
                 res = j.tools.jinja2.template_render(text=res)
-                bot.md_show(res)
+                retry = True
+                bot.md_show(res, md=True)
             else:
                 return solution_name
 
