@@ -839,7 +839,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         if not gateways:
             bot.stop("No available gateways")
         options = sorted(list(gateways.keys()))
-        gateway = bot.drop_down_choice("Please choose a gateway", options)
+        gateway = bot.drop_down_choice("Please choose a gateway", options, required=True)
         return gateways[gateway]
 
     def gateway_get_kube_network_ip(self, reservation_data):
