@@ -430,7 +430,7 @@ class StellarClient(JSConfigClient):
         transaction = transaction_builder.build()
         transaction = transaction.to_xdr()
 
-        if asset == "TFT" or asset == "FreeTFT":
+        if asset in _NETWORK_KNOWN_TRUSTS[str(self.network)]:
             if fund_transaction:
                 transaction = self._fund_transaction(transaction=transaction)
                 transaction = transaction["transaction_xdr"]
@@ -569,8 +569,10 @@ class StellarClient(JSConfigClient):
         horizon_server = self._get_horizon_server()
         escrow_account = horizon_server.load_account(escrow_kp.public_key)
         escrow_account.increment_sequence_number()
+
+        base_fee = horizon_server.fetch_base_fee()
         tx = (
-            TransactionBuilder(escrow_account)
+            TransactionBuilder(escrow_account,network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee)
             .append_set_options_op(master_weight=0, low_threshold=1, med_threshold=1, high_threshold=1)
             .add_time_bounds(unlock_time, 0)
             .build()
@@ -584,8 +586,10 @@ class StellarClient(JSConfigClient):
             account = self.load_account()
         else:
             account = horizon_server.load_account(address)
+
+        base_fee = horizon_server.fetch_base_fee()
         tx = (
-            TransactionBuilder(account)
+            TransactionBuilder(account,network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee)
             .append_pre_auth_tx_signer(preauth_tx_hash, 1)
             .append_ed25519_public_key_signer(public_key_signer, 1)
             .append_set_options_op(master_weight=1, low_threshold=2, med_threshold=2, high_threshold=2)
@@ -618,7 +622,9 @@ class StellarClient(JSConfigClient):
         account = self.load_account()
         source_keypair = Keypair.from_secret(self.secret)
 
-        transaction_builder = TransactionBuilder(account)
+        horizon_server = self._get_horizon_server()
+        base_fee = horizon_server.fetch_base_fee()
+        transaction_builder = TransactionBuilder(account,network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee)
         # set the signing options
         transaction_builder.append_set_options_op(
             low_threshold=low_treshold, med_threshold=signature_count, high_threshold=high_treshold, master_weight=master_weight
@@ -632,7 +638,6 @@ class StellarClient(JSConfigClient):
         tx = transaction_builder.build()
         tx.sign(source_keypair)
 
-        horizon_server = self._get_horizon_server()
         try:
             response = horizon_server.submit_transaction(tx)
             self._log_info(response)
@@ -673,15 +678,17 @@ class StellarClient(JSConfigClient):
         """
 
         account = self.load_account()
-        tx = TransactionBuilder(account).append_ed25519_public_key_signer(public_key_signer, 0).build()
+
+        horizon_server = self._get_horizon_server()
+        base_fee = horizon_server.fetch_base_fee()
+        tx = TransactionBuilder(account,network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee).append_ed25519_public_key_signer(public_key_signer, 0).build()
 
         source_keypair = Keypair.from_secret(self.secret)
 
         tx.sign(source_keypair)
 
-        server = self._get_horizon_server()
         try:
-            response = server.submit_transaction(tx)
+            response = horizon_server.submit_transaction(tx)
             self._log_info(response)
             self._log_info("Multisig tx signed and sent")
         except BadRequestError:
