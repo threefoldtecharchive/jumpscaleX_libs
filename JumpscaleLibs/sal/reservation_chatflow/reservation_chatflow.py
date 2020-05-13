@@ -316,7 +316,7 @@ class Chatflow(j.baseclasses.object):
         else:
             nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip6
 
-        for node in filter(nodefilter, access_nodes):
+        for node in filter(j.sal.zosv2.nodes_finder.filter_is_up, filter(nodefilter, access_nodes)):
             access_node = node
             break
         else:
@@ -371,7 +371,7 @@ class Chatflow(j.baseclasses.object):
                 msg = e.response.json()["error"]
             except (KeyError, json.JSONDecodeError):
                 msg = e.response.text
-            bot.stop(f"The following error occured: {msg}")
+            raise StopChatFlow(f"The following error occured: {msg}")
 
         rid = reservation_create.reservation_id
         reservation.id = rid
