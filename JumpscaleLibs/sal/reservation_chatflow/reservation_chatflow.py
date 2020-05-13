@@ -636,7 +636,10 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         return reservation
 
     def reservation_metadata_add(self, reservation, metadata):
-        meta_json = metadata._json
+        if isinstance(metadata, dict):
+            meta_json = json.dumps(metadata)
+        else:
+            meta_json = metadata._json
         encrypted_metadata = base64.b85encode(j.me.encryptor.encrypt(meta_json.encode())).decode()
         reservation.metadata = encrypted_metadata
         return reservation
@@ -692,6 +695,8 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
             "ubuntu": "tfgrid.solutions.ubuntu.1",
             "flist": "tfgrid.solutions.flist.1",
             "minio": "tfgrid.solutions.minio.1",
+            "exposed": "tfgrid.solutions.exposed.1",
+            "delegated_domain": "tfgrid.solutions.delegated_domain.1",
             "kubernetes": "tfgrid.solutions.kubernetes.1",
             "network": "tfgrid.solutions.network.1",
             "gitea": "tfgrid.solutions.gitea.1",
@@ -726,11 +731,14 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                     metadata["form_info"]["Public key"] = reservation.data_reservation.containers[0].environment[
                         "pub_key"
                     ]
+                elif solution_type == "exposed":
+                    metadata["form_info"].update(self.solution_exposed_info_get(reservation))
                 self.reservation_save(
                     reservation.id, metadata["name"], urls[solution_type], form_info=metadata["form_info"]
                 )
             else:
                 solution_type = self.solution_type_check(reservation)
+                info = {}
                 name = f"unknown_{reservation.id}"
                 if solution_type == "unknown":
                     continue
@@ -739,7 +747,13 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                     if name in networks:
                         continue
                     networks.append(name)
-                self.reservation_save(reservation.id, name, urls[solution_type], form_info={})
+                elif solution_type == "delegated_domain":
+                    info = self.solution_domain_delegates_info_get(reservation)
+                    name = info["Domain"]
+                elif solution_type == "exposed":
+                    info = self.solution_exposed_info_get(reservation)
+                    info["Solution name"] = name
+                self.reservation_save(reservation.id, name, urls[solution_type], form_info=info)
 
     def solution_ubuntu_info_get(self, metadata, reservation):
         envs = reservation.data_reservation.containers[0].environment
@@ -753,6 +767,34 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         metadata["form_info"]["Env variables"] = str(env_variable)
         metadata["form_info"]["IP Address"] = reservation.data_reservation.containers[0].network_connection[0].ipaddress
         return metadata
+
+    def solution_domain_delegates_info_get(self, reservation):
+        delegated_domain = reservation.data_reservation.domain_delegates[0]
+        return {"Domain": delegated_domain.domain, "Gateway": delegated_domain.node_id}
+
+    def solution_exposed_info_get(self, reservation):
+        def get_arg(cmd, arg):
+            idx = cmd.index(arg)
+            if idx:
+                return cmd[idx + 1]
+            return None
+
+        info = {}
+        for container in reservation.data_reservation.containers:
+            if "tcprouter" in container.flist:
+                entrypoint = container.entrypoint.split()
+                local = get_arg(entrypoint, "-local")
+                if local:
+                    info["Port"] = local.split(":")[-1]
+                localtls = get_arg(entrypoint, "-local-tls")
+                if localtls:
+                    info["port-tls"] = localtls.split(":")[-1]
+                remote = get_arg(entrypoint, "-remote")
+                if remote:
+                    info["Name Server"] = remote.split(":")[0]
+        for sub in reservation.data_reservation.subdomains:
+            info["Domain"] = sub.domain
+        return info
 
     def solution_flist_info_get(self, metadata, reservation):
         envs = reservation.data_reservation.containers[0].environment
@@ -794,7 +836,11 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                 return "minio"
             elif "gitea" in containers[0].flist:
                 return "gitea"
+            elif "tcprouter" in containers[0].flist:
+                return "exposed"
             return "flist"
+        elif reservation.data_reservation.domain_delegates:
+            return "delegated_domain"
         return "unknown"
 
     def delegate_domains_list(self, customer_tid, currency=None):
