@@ -406,6 +406,14 @@ class Chatflow(j.baseclasses.object):
 
         reservation = self._explorer.reservations.get(rid)
         while True:
+            remaning_time = j.data.time.secondsToHRDelta(
+                reservation.data_reservation.expiration_provisioning - j.data.time.epoch
+            )
+            deploying_message = f"""
+            # Deploying...
+            Deployment will be cancelled if it is not successful in {remaning_time}
+            """
+            bot.md_show_update(j.core.text.strip(deploying_message), md=True)
             self._reservation_failed(bot, reservation)
             if is_finished(reservation):
                 return reservation.results
@@ -428,6 +436,14 @@ class Chatflow(j.baseclasses.object):
 
         reservation = self._explorer.reservations.get(rid)
         while True:
+            remaning_time = j.data.time.secondsToHRDelta(
+                reservation.data_reservation.expiration_provisioning - j.data.time.epoch
+            )
+            deploying_message = f"""
+            # Payment being processed...
+            Deployment will be cancelled if payment is not successful in {remaning_time}
+            """
+            bot.md_show_update(j.core.text.strip(deploying_message), md=True)
             if reservation.next_action != "PAY":
                 return
             if is_expired(reservation):
