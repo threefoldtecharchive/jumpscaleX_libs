@@ -7,7 +7,7 @@ from .id import _next_workload_id
 
 class GatewayGenerator:
     def __init__(self, explorer):
-        self._gateways = explorer.gateways
+        self._gateways = explorer.gateway
 
     def sub_domain(self, reservation, node_id, domain, ips):
         for ip in ips:
