@@ -7,7 +7,7 @@ from .id import _next_workload_id
 
 class GatewayGenerator:
     def __init__(self, explorer):
-        self._gateways = explorer.nodes
+        self._gateways = explorer.gateways
 
     def sub_domain(self, reservation, node_id, domain, ips):
         for ip in ips:
@@ -44,7 +44,7 @@ class GatewayGenerator:
         p.domain = domain
         p.workload_id = _next_workload_id(reservation)
 
-        node = self._nodes.get(node_id)
+        node = self._gateways.get(node_id)
         p.secret = encrypt_for_node(node.public_key_hex, secret)
 
         return p
