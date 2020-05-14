@@ -16,33 +16,12 @@ class Ship(j.baseclasses.object_config, j.baseclasses.threebot_actor):
 
     def _init(self, **kwargs):
         self.a = "some"
-        self.phase1 = False
-        self.phase2 = False
-        self.phase3 = False
+        pass
 
     def wait_test(self, nr):
         gevent.sleep(1)
-        print("phase1 :%s" % nr)
-        self.phase1 = True
+        print("waittest:%s" % nr)
         return nr
-
-    def wait_test2(self, nr):
-        gevent.sleep(1)
-        assert self.phase1
-        print("phase 2:%s" % nr)
-        self.phase2 = True
-        return nr
-
-    def wait_test3(self, nr):
-        gevent.sleep(1)
-        assert self.phase2
-        print("phase 3:%s" % nr)
-        return nr
-
-    def recurring_test(self, nr):
-        gevent.sleep(1)
-        print("recurring ...")
-        # never returns... unless error
 
 
 class Ships(j.baseclasses.object_config_collection):
@@ -59,7 +38,7 @@ class Ships(j.baseclasses.object_config_collection):
         pass
 
 
-class WorldTestScheduling(j.baseclasses.testtools, j.baseclasses.object):
+class BaseClasses_Object_Structure(j.baseclasses.testtools, j.baseclasses.object):
 
     __jslocation__ = "j.tutorials.worldtest.scheduling"
 
@@ -85,23 +64,20 @@ class WorldTestScheduling(j.baseclasses.testtools, j.baseclasses.object):
         ship2.scheduler.sleep_time = 1
 
         nr = 10
+
         res = {}
         for i in range(nr):
-            res[i] = ship2.scheduler.schedule(f"wait_{i}", ship1.wait_test, nr=nr)
+            res[i] = ship2.scheduler.schedule("wait", ship1.wait_test, nr=nr)
 
-        ship2.scheduler.schedule("waitrecurring", ship1.recurring_test, period=2, nr=nr)
+        ship2.scheduler.schedule("waitrecurring", ship1.wait_test, period=2, nr=nr)
 
         event = ship2.scheduler.event_get("wait_event_1")
 
         for i in range(nr):
-            ship2.scheduler.schedule(f"waitb_{i}", ship1.wait_test2, event=event, nr=nr)
+            ship2.scheduler.schedule("waitb", ship1.wait_test, event=event, nr=nr)
 
-        event2 = ship2.scheduler.event_get("wait_event_2")
-
-        for i in range(nr):
-            res[i] = ship2.scheduler.schedule(f"wait_{i}", ship1.wait_test3, event=event2, nr=nr)
-
-        gevent.sleep(1)
+        # TODO: not behaving as it should
+        gevent.sleep(1111)
 
         j.shell()
 

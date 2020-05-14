@@ -413,7 +413,7 @@ class MarkDownDocs(j.baseclasses.object, TESTTOOLS):
     @skip("https://github.com/threefoldtech/jumpscaleX_libs/issues/99")
     def test2(self):
         url = (
-            "https://github.com/threefoldtech/jumpscaleX_core/tree/development/docs/tools/wiki/docsites/examples/docs/"
+            "https://github.com/threefoldtech/jumpscaleX_core/tree/master/docs/tools/wiki/docsites/examples/docs/"
         )
         examples = j.tools.markdowndocs.load(url, name="examples")
         examples.write()
