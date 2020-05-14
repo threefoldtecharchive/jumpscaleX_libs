@@ -677,6 +677,20 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
             else:
                 return solution_name
 
+    def network_name_add(self, bot, model):
+        name_exists = False
+        retry = False
+        while not name_exists:
+            network_name = bot.string_ask("Please enter a network name", required=True, field="name", retry=retry)
+            find = model.find(name=network_name)
+            if len(find) > 0:
+                res = "# Please choose another name because this name already exist"
+                res = j.tools.jinja2.template_render(text=res)
+                retry = True
+                bot.md_show(res, md=True)
+            else:
+                return network_name
+
     def solutions_get(self, url):
         try:
             model = j.clients.bcdbmodel.get(url=url, name="tfgrid_solutions")
