@@ -17,9 +17,6 @@ class Reservations:
         return self._reservation_create_model.new(datadict=resp.json())
 
     def list(self, customer_tid=None, next_action=None, page=None):
-        def filter_next_action(reservation):
-            return reservation.next_action == next_action
-
         if page:
             query = {}
             if customer_tid:
@@ -29,8 +26,6 @@ class Reservations:
             reservations, _ = get_page(self._session, page, self._model, self._base_url, query)
         else:
             reservations = list(self.iter(customer_tid, next_action))
-        if next_action:
-            reservations = list(filter(filter_next_action, reservations))
         return reservations
 
     def _next_action(self, next_action):
@@ -42,12 +37,15 @@ class Reservations:
         return next_action
 
     def iter(self, customer_tid=None, next_action=None):
+        def filter_next_action(reservation):
+            return reservation.next_action == next_action
+
         query = {}
         if customer_tid:
             query["customer_tid"] = customer_tid
         if next_action:
             query["next_action"] = self._next_action(next_action)
-        yield from get_all(self._session, self._model, self._base_url, query)
+        yield from filter(filter_next_action, get_all(self._session, self._model, self._base_url, query))
 
     def get(self, reservation_id):
         url = self._base_url + f"/{reservation_id}"
