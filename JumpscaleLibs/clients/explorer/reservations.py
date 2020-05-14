@@ -17,6 +17,9 @@ class Reservations:
         return self._reservation_create_model.new(datadict=resp.json())
 
     def list(self, customer_tid=None, next_action=None, page=None):
+        def filter_next_action(reservation):
+            return reservation.next_action == next_action
+
         if page:
             query = {}
             if customer_tid:
@@ -26,6 +29,8 @@ class Reservations:
             reservations, _ = get_page(self._session, page, self._model, self._base_url, query)
         else:
             reservations = list(self.iter(customer_tid, next_action))
+        if next_action:
+            reservations = list(filter(filter_next_action, reservations))
         return reservations
 
     def _next_action(self, next_action):
@@ -36,9 +41,7 @@ class Reservations:
                 raise j.exceptions.Input("next_action should be of type int")
         return next_action
 
-    def iter(
-        self, customer_tid=None, next_action=None,
-    ):
+    def iter(self, customer_tid=None, next_action=None):
         query = {}
         if customer_tid:
             query["customer_tid"] = customer_tid
@@ -53,7 +56,7 @@ class Reservations:
 
     def sign_provision(self, reservation_id, tid, signature):
         url = self._base_url + f"/{reservation_id}/sign/provision"
-        data = j.data.serializers.json.dumps({"signature": signature, "tid": tid, "epoch": j.data.time.epoch,})
+        data = j.data.serializers.json.dumps({"signature": signature, "tid": tid, "epoch": j.data.time.epoch})
         self._session.post(url, data=data)
         return True
 
