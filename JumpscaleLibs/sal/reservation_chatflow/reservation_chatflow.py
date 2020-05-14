@@ -520,14 +520,23 @@ class Chatflow(j.baseclasses.object):
             wallets[wallet.name] = wallet
         return wallets
 
-    def reservation_register_and_pay(self, reservation, expiration=None, customer_tid=None, currency=None, bot=None):
+    def reservation_register_and_pay(
+        self, reservation, expiration=None, customer_tid=None, currency=None, bot=None, wallet=None
+    ):
         if customer_tid and expiration and currency:
             reservation_create = self.reservation_register(
                 reservation, expiration, customer_tid=customer_tid, currency=currency, bot=bot
             )
         else:
             reservation_create = reservation
-        payment = self.payments_show(bot, reservation_create, currency)
+        if not wallet:
+            payment = self.payments_show(bot, reservation_create, currency)
+        else:
+            payment = {"wallet": None, "free": False}
+            if not (reservation_create.escrow_information and reservation_create.escrow_information.details):
+                payment["free"] = True
+            else:
+                payment["wallet"] = wallet
 
         resv_id = reservation_create.reservation_id
         if payment["wallet"]:
