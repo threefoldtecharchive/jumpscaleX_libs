@@ -605,6 +605,7 @@ Billing details:
 <h4> Escrow address: </h4>  {escrow_address} \n
 <h4> Escrow asset: </h4>  {escrow_asset} \n
 <h4> Total amount: </h4>  {total_amount} \n
+<h4> An extra 0.1 {currency} is required as transaction fees </h4> \n
 <h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
 """
 
@@ -622,7 +623,8 @@ Billing details:
         remaning_time = j.data.time.secondsToHRDelta(expiration_provisioning - j.data.time.epoch)
 
         message_text = f"""
-Scan the QR code with your application (do not change the message) or enter the information below manually and proceed with the payment make sure to add the reservationid as memo_text.
+<h3> Please make your payment </h3>
+Scan the QR code with your application (do not change the message) or enter the information below manually and proceed with the payment. Make sure to add the reservationid as memo_text.
 <p>If no payment is made in {remaning_time} the reservation will be canceled</p>
 
 <h4> Escrow address: </h4>  {escrow_address} \n
@@ -637,7 +639,7 @@ Scan the QR code with your application (do not change the message) or enter the 
 Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
 """
 
-        bot.qrcode_show(qrcode, title="Please make your payment", msg=message_text, scale=4, update=True, html=True)
+        bot.qrcode_show(data=qrcode, msg=message_text, scale=4, update=True, html=True)
 
     def reservation_save(self, rid, name, url, form_info=None):
         form_info = form_info or []
