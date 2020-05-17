@@ -9,7 +9,7 @@ import base64
 
 
 class Network:
-    def __init__(self, network, expiration, bot, reservations, currency):
+    def __init__(self, network, expiration, bot, reservations, currency, resv_id):
         self._network = network
         self._expiration = expiration
         self.name = network.name
@@ -19,6 +19,7 @@ class Network:
         self._bot = bot
         self._fill_used_ips(reservations)
         self.currency = currency
+        self.resv_id = resv_id
 
     def _fill_used_ips(self, reservations):
         for reservation in reservations:
@@ -261,8 +262,8 @@ class Chatflow(j.baseclasses.object):
             result = bot.single_choice("Choose a network", names, required=True)
             if result not in networks:
                 continue
-            network, expiration, currency = networks[result]
-            return Network(network, expiration, bot, reservations, currency)
+            network, expiration, currency, resv_id = networks[result]
+            return Network(network, expiration, bot, reservations, currency, resv_id)
 
     def farms_select(self, bot, message=None, currency=None, retry=False):
         message = message or "Select 1 or more farms to distribute nodes on"
@@ -500,7 +501,7 @@ class Chatflow(j.baseclasses.object):
                 names.add(network.name)
                 remaning = expiration - j.data.time.epoch
                 network_name = network.name + f" ({currency}) - ends in: " + j.data.time.secondsToHRDelta(remaning)
-                networks[network_name] = (network, expiration, currency)
+                networks[network_name] = (network, expiration, currency, reservation.id)
 
         return networks
 
@@ -851,13 +852,21 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         metadata["form_info"]["IP Address"] = reservation.data_reservation.containers[0].network_connection[0].ipaddress
         return metadata
 
+    def network_get_from_reservation(self, bot, customer_tid, name, reservation_id):
+        reservation = self._explorer.reservations.get(reservation_id)
+        networks = self.network_list(customer_tid, [reservation])
+        for key in networks.keys():
+            network, expiration, currency, resv_id = networks[key]
+            if network.name == name:
+                return Network(network, expiration, bot, [reservation], currency, resv_id)
+
     def network_get(self, bot, customer_tid, name):
         reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
         networks = self.network_list(customer_tid, reservations)
         for key in networks.keys():
-            network, expiration, currency = networks[key]
+            network, expiration, currency, resv_id = networks[key]
             if network.name == name:
-                return Network(network, expiration, bot, reservations, currency)
+                return Network(network, expiration, bot, reservations, currency, resv_id)
 
     def solution_type_check(self, reservation):
         containers = reservation.data_reservation.containers
