@@ -425,7 +425,7 @@ class Chatflow(j.baseclasses.object):
                 reservation.data_reservation.expiration_provisioning - j.data.time.epoch
             )
             deploying_message = f"""
-            # Deploying...
+            # Deploying...\n
             Deployment will be cancelled if it is not successful in {remaning_time}
             """
             bot.md_show_update(j.core.text.strip(deploying_message), md=True)
@@ -455,7 +455,7 @@ class Chatflow(j.baseclasses.object):
                 reservation.data_reservation.expiration_provisioning - j.data.time.epoch
             )
             deploying_message = f"""
-            # Payment being processed...
+            # Payment being processed...\n
             Deployment will be cancelled if payment is not successful in {remaning_time}
             """
             bot.md_show_update(j.core.text.strip(deploying_message), md=True)
