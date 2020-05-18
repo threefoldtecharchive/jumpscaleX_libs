@@ -674,11 +674,11 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
     def reservation_metadata_decrypt(self, metadata_encrypted):
         return j.me.encryptor.decrypt(base64.b85decode(metadata_encrypted.encode())).decode()
 
-    def solution_name_add(self, bot, model):
+    def solution_name_add(self, bot, model, msg="Please add a name for your solution"):
         name_exists = False
         retry = False
         while not name_exists:
-            solution_name = bot.string_ask("Please add a name for your solution", required=True, retry=retry)
+            solution_name = bot.string_ask(msg, required=True, retry=retry)
             find = model.find(name=solution_name)
             if len(find) > 0:
                 res = "# Please choose another name because this name already exist"
@@ -758,6 +758,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                     metadata = json.loads(metadata)
                 except Exception:
                     continue
+
                 solution_type = metadata["form_info"]["chatflow"]
                 metadata["form_info"].pop("chatflow")
                 if solution_type == "ubuntu":
@@ -790,7 +791,10 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                     networks.append(name)
                 elif solution_type == "delegated_domain":
                     info = self.solution_domain_delegates_info_get(reservation)
-                    name = info["Domain"]
+                    if not info.get("Solution name"):
+                        name = f"unknown_{reservation.id}"
+                    else:
+                        name = info["Solution name"]
                 elif solution_type == "exposed":
                     info = self.solution_exposed_info_get(reservation)
                     info["Solution name"] = name
