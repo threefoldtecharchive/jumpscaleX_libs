@@ -6,6 +6,7 @@ import requests
 import time
 import json
 import base64
+import copy
 
 
 class Network:
@@ -852,13 +853,17 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         metadata["form_info"]["IP Address"] = reservation.data_reservation.containers[0].network_connection[0].ipaddress
         return metadata
 
-    def network_get_from_reservation(self, bot, customer_tid, name, reservation_id):
+    def network_get_from_reservation(self, bot, customer_tid, name, reservation_id, used_ips=None):
         reservation = self._explorer.reservations.get(reservation_id)
         networks = self.network_list(customer_tid, [reservation])
         for key in networks.keys():
             network, expiration, currency, resv_id = networks[key]
             if network.name == name:
-                return Network(network, expiration, bot, [reservation], currency, resv_id)
+                network = Network(network, expiration, bot, [reservation], currency, resv_id)
+                break
+        if used_ips and network:
+            network._used_ips = copy.copy(used_ips)
+        return network
 
     def network_get(self, bot, customer_tid, name):
         reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
