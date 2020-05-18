@@ -80,6 +80,19 @@ class Network:
             return self._sal.reservation_wait(self._bot, rid)
         return True
 
+    def copy(self, customer_tid):
+        explorer = j.clients.explorer.default
+        reservation = explorer.reservations.get(self.resv_id)
+        networks = self._sal.network_list(customer_tid, [reservation])
+        for key in networks.keys():
+            network, expiration, currency, resv_id = networks[key]
+            if network.name == self.name:
+                network_copy = Network(network, expiration, self._bot, [reservation], currency, resv_id)
+                break
+        if network_copy:
+            network_copy._used_ips = copy.copy(self._used_ips)
+        return network_copy
+
     def ask_ip_from_node(self, node, message):
         ip_range = self.get_node_range(node)
         freeips = []
@@ -852,18 +865,6 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         metadata["form_info"]["Entry point"] = reservation.data_reservation.containers[0].entrypoint
         metadata["form_info"]["IP Address"] = reservation.data_reservation.containers[0].network_connection[0].ipaddress
         return metadata
-
-    def network_get_from_reservation(self, bot, customer_tid, name, reservation_id, used_ips=None):
-        reservation = self._explorer.reservations.get(reservation_id)
-        networks = self.network_list(customer_tid, [reservation])
-        for key in networks.keys():
-            network, expiration, currency, resv_id = networks[key]
-            if network.name == name:
-                network = Network(network, expiration, bot, [reservation], currency, resv_id)
-                break
-        if used_ips and network:
-            network._used_ips = copy.copy(used_ips)
-        return network
 
     def network_get(self, bot, customer_tid, name):
         reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
