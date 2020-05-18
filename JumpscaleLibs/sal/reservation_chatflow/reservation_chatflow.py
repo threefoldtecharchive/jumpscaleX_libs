@@ -6,10 +6,11 @@ import requests
 import time
 import json
 import base64
+import copy
 
 
 class Network:
-    def __init__(self, network, expiration, bot, reservations, currency):
+    def __init__(self, network, expiration, bot, reservations, currency, resv_id):
         self._network = network
         self._expiration = expiration
         self.name = network.name
@@ -19,6 +20,7 @@ class Network:
         self._bot = bot
         self._fill_used_ips(reservations)
         self.currency = currency
+        self.resv_id = resv_id
 
     def _fill_used_ips(self, reservations):
         for reservation in reservations:
@@ -77,6 +79,19 @@ class Network:
                 )
             return self._sal.reservation_wait(self._bot, rid)
         return True
+
+    def copy(self, customer_tid):
+        explorer = j.clients.explorer.default
+        reservation = explorer.reservations.get(self.resv_id)
+        networks = self._sal.network_list(customer_tid, [reservation])
+        for key in networks.keys():
+            network, expiration, currency, resv_id = networks[key]
+            if network.name == self.name:
+                network_copy = Network(network, expiration, self._bot, [reservation], currency, resv_id)
+                break
+        if network_copy:
+            network_copy._used_ips = copy.copy(self._used_ips)
+        return network_copy
 
     def ask_ip_from_node(self, node, message):
         ip_range = self.get_node_range(node)
@@ -261,8 +276,8 @@ class Chatflow(j.baseclasses.object):
             result = bot.single_choice("Choose a network", names, required=True)
             if result not in networks:
                 continue
-            network, expiration, currency = networks[result]
-            return Network(network, expiration, bot, reservations, currency)
+            network, expiration, currency, resv_id = networks[result]
+            return Network(network, expiration, bot, reservations, currency, resv_id)
 
     def farms_select(self, bot, message=None, currency=None, retry=False):
         message = message or "Select 1 or more farms to distribute nodes on"
@@ -410,7 +425,7 @@ class Chatflow(j.baseclasses.object):
                 reservation.data_reservation.expiration_provisioning - j.data.time.epoch
             )
             deploying_message = f"""
-            # Deploying...
+            # Deploying...\n
             Deployment will be cancelled if it is not successful in {remaning_time}
             """
             bot.md_show_update(j.core.text.strip(deploying_message), md=True)
@@ -440,7 +455,7 @@ class Chatflow(j.baseclasses.object):
                 reservation.data_reservation.expiration_provisioning - j.data.time.epoch
             )
             deploying_message = f"""
-            # Payment being processed...
+            # Payment being processed...\n
             Deployment will be cancelled if payment is not successful in {remaning_time}
             """
             bot.md_show_update(j.core.text.strip(deploying_message), md=True)
@@ -500,7 +515,7 @@ class Chatflow(j.baseclasses.object):
                 names.add(network.name)
                 remaning = expiration - j.data.time.epoch
                 network_name = network.name + f" ({currency}) - ends in: " + j.data.time.secondsToHRDelta(remaning)
-                networks[network_name] = (network, expiration, currency)
+                networks[network_name] = (network, expiration, currency, reservation.id)
 
         return networks
 
@@ -859,9 +874,9 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
         networks = self.network_list(customer_tid, reservations)
         for key in networks.keys():
-            network, expiration, currency = networks[key]
+            network, expiration, currency, resv_id = networks[key]
             if network.name == name:
-                return Network(network, expiration, bot, reservations, currency)
+                return Network(network, expiration, bot, reservations, currency, resv_id)
 
     def solution_type_check(self, reservation):
         containers = reservation.data_reservation.containers
