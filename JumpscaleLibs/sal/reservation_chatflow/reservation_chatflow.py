@@ -586,14 +586,25 @@ class Chatflow(j.baseclasses.object):
             wallet_names.append(w)
         wallet_names.append("3bot app")
 
+        explorer = j.clients.explorer.default
+        payment_details = ""
+        if currency == 'FreeTFT':
+            payment_details += f"Transaction Fees --------- {0.1} {currency}<br>"
+        else:
+            for farmer in escrow_info['farmer_payments']:
+                farmer_name = explorer.farms.get(farm_id=farmer['farmer_id']).name
+                payment_details += f"Farmer  {farmer_name} ---------- {farmer['total_amount']} {currency}<br>"
+            payment_details += f"Threefold Foundation --------- {format(0.1*(total_amount/0.9),'.6f')} {currency}<br>"
+            payment_details += f"Transaction Fees ------------- {0.1} {currency}<br>"
+            payment_details += "<hr style='width:30%'>"
+            payment_details += f"Total amount ----------------- {format((total_amount/0.9) + 0.1,'.6f')} {currency}<br>"
         message = f"""
-Billing details:
-<h4> Escrow address: </h4>  {escrow_address} \n
-<h4> Escrow asset: </h4>  {escrow_asset} \n
-<h4> Total amount: </h4>  {total_amount} \n
-<h4> An extra 0.1 {currency} is required as transaction fees </h4> \n
-<h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
-"""
+        Billing details:
+        <h4> Escrow address: </h4>  {escrow_address} \n
+        <h4> Escrow asset: </h4>  {escrow_asset} \n
+        <h4> Payment details: </h4> {payment_details} \n
+        <h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
+        """
         retry = False
         while True:
 
@@ -615,14 +626,13 @@ Billing details:
                             return payment
                 retry = True
                 message = f"""
-<h2 style="color: #142850;"><b style="color: #00909e;">{total_amount} {currency}</b> are required, but only <b style="color: #00909e;">{current_balance} {currency}</b> are available in wallet <b style="color: #00909e;">{payment["wallet"].name}</b></h2>
-Billing details:
-<h4> Escrow address: </h4>  {escrow_address} \n
-<h4> Escrow asset: </h4>  {escrow_asset} \n
-<h4> Total amount: </h4>  {total_amount} \n
-<h4> An extra 0.1 {currency} is required as transaction fees </h4> \n
-<h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
-"""
+                <h2 style="color: #142850;"><b style="color: #00909e;">{total_amount} {currency}</b> are required, but only <b style="color: #00909e;">{current_balance} {currency}</b> are available in wallet <b style="color: #00909e;">{payment["wallet"].name}</b></h2>
+                Billing details:
+                <h4> Escrow address: </h4>  {escrow_address} \n
+                <h4> Escrow asset: </h4>  {escrow_asset} \n
+                <h4> Payment details: </h4> {payment_details} \n
+                <h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
+                """
 
     def escrow_qr_show(self, bot, reservation_create_resp, expiration_provisioning):
         """
@@ -637,22 +647,30 @@ Billing details:
         qrcode = escrow_info["qrcode"]
         remaning_time = j.data.time.secondsToHRDelta(expiration_provisioning - j.data.time.epoch)
 
+        explorer = j.clients.explorer.default
+        currency = escrow_asset.split(':')[0]
+        payment_details = ""
+        if currency == 'FreeTFT':
+            payment_details += f"Transaction Fees --------- {0.1} {currency}<br>"
+        else:
+            for farmer in farmer_payments:
+                farmer_name = explorer.farms.get(farm_id=farmer['farmer_id']).name
+                payment_details += f"Farmer  {farmer_name} ---------- {farmer['total_amount']} {currency}<br>"
+            payment_details += f"Threefold Foundation --------- {format(0.1*(total_amount/0.9),'.6f')} {currency}<br>"
+            payment_details += f"Transaction Fees ------------- {0.1} {currency}<br>"
+            payment_details += "<hr style='width:30%'>"
+            payment_details += f"Total amount ----------------- {format((total_amount/0.9) + 0.1,'.6f')} {currency}<br>"
+
         message_text = f"""
-<h3> Please make your payment </h3>
-Scan the QR code with your application (do not change the message) or enter the information below manually and proceed with the payment. Make sure to add the reservationid as memo_text.
-<p>If no payment is made in {remaning_time} the reservation will be canceled</p>
+        <h3> Please make your payment </h3>
+        Scan the QR code with your application (do not change the message) or enter the information below manually and proceed with the payment. Make sure to add the reservationid as memo_text.
+        <p>If no payment is made in {remaning_time} the reservation will be canceled</p>
 
-<h4> Escrow address: </h4>  {escrow_address} \n
-<h4> Escrow asset: </h4>  {escrow_asset} \n
-<h4> Total amount: </h4>  {total_amount} \n
-<h4> Reservation id: </h4>  {reservationid} \n
-
-<h4>Payment details:</h4> \n
-"""
-        for payment in farmer_payments:
-            message_text += f"""
-Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
-"""
+        <h4> Escrow address: </h4>  {escrow_address} \n
+        <h4> Escrow asset: </h4>  {escrow_asset} \n
+        <h4> Reservation id: </h4>  {reservationid} \n
+        <h4> Payment details: </h4> {payment_details} \n
+        """
 
         bot.qrcode_show(data=qrcode, msg=message_text, scale=4, update=True, html=True)
 
