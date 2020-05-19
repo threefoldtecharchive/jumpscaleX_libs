@@ -7,7 +7,6 @@ import time
 import json
 import base64
 import copy
-import datetime
 
 
 class Network:
