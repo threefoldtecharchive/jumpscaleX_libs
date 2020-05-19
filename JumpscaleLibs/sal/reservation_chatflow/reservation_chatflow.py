@@ -590,8 +590,8 @@ class Chatflow(j.baseclasses.object):
 
         message = f"""
         Billing details:
-        <h4> Escrow address: </h4>  {escrow_address} \n
-        <h4> Escrow asset: </h4>  {escrow_asset} \n
+        <h4> Wallet address: </h4>  {escrow_address} \n
+        <h4> Currency: </h4>  {escrow_asset} \n
         <h4> Payment details: </h4> {payment_details} \n
         <h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
         """
@@ -618,8 +618,8 @@ class Chatflow(j.baseclasses.object):
                 message = f"""
                 <h2 style="color: #142850;"><b style="color: #00909e;">{total_amount} {currency}</b> are required, but only <b style="color: #00909e;">{current_balance} {currency}</b> are available in wallet <b style="color: #00909e;">{payment["wallet"].name}</b></h2>
                 Billing details:
-                <h4> Escrow address: </h4>  {escrow_address} \n
-                <h4> Escrow asset: </h4>  {escrow_asset} \n
+                <h4> Wallet address: </h4>  {escrow_address} \n
+                <h4> Currency: </h4>  {escrow_asset} \n
                 <h4> Payment details: </h4> {payment_details} \n
                 <h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
                 """
@@ -641,8 +641,8 @@ class Chatflow(j.baseclasses.object):
         Scan the QR code with your application (do not change the message) or enter the information below manually and proceed with the payment. Make sure to add the reservationid as memo_text.
         <p>If no payment is made in {remaning_time} the reservation will be canceled</p>
 
-        <h4> Escrow address: </h4>  {escrow_address} \n
-        <h4> Escrow asset: </h4>  {escrow_asset} \n
+        <h4> Wallet address: </h4>  {escrow_address} \n
+        <h4> Currency: </h4>  {escrow_asset} \n
         <h4> Reservation id: </h4>  {reservationid} \n
         <h4> Payment details: </h4> {payment_details} \n
         """
@@ -650,7 +650,6 @@ class Chatflow(j.baseclasses.object):
         bot.qrcode_show(data=qrcode, msg=message_text, scale=4, update=True, html=True)
 
     def get_payment_details(self, escrow_info, currency):
-
         farmer_payments = escrow_info["farmer_payments"]
         total_amount = escrow_info["total_amount"]
 
@@ -662,10 +661,10 @@ class Chatflow(j.baseclasses.object):
             payment_details += '<table style="width: 50%; font-family: arial, sans-serif; border-collapse: collapse;">'
             for farmer in farmer_payments:
                 farmer_name = explorer.farms.get(farm_id=farmer['farmer_id']).name
-                payment_details += f"<tr><td>Farmer {farmer_name}</td><td>{farmer['total_amount']} {currency}</td></tr>"
-            payment_details += f"<tr><td>Threefold Foundation</td><td>{format(0.1*(total_amount/0.9),'.6f')} {currency}</td></tr>"
+                payment_details += f"<tr><td>Farmer {farmer_name}</td><td>{format(farmer['total_amount']*0.9,'.6f')} {currency}</td></tr>"
+            payment_details += f"<tr><td>Threefold Foundation</td><td>{format(0.1*total_amount,'.6f')} {currency}</td></tr>"
             payment_details += f"<tr><td>Transaction Fees</td><td>{0.1} {currency}</td></tr>"
-            payment_details += f"<tr><td>Total amount</td><td>{format((total_amount/0.9) + 0.1,'.6f')} {currency}</td></tr>"
+            payment_details += f"<tr><td>Total amount</td><td>{format(total_amount + 0.1,'.6f')} {currency}</td></tr>"
             payment_details += "</table>"
 
         return payment_details
