@@ -922,7 +922,8 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                 domains[dom.domain] = dom
         return domains
 
-    def _is_up(self, last_updated_time):
+    @staticmethod
+    def node_is_up(last_updated_time):
         update_range = datetime.datetime.utcfromtimestamp(last_updated_time) + datetime.timedelta(minutes=10)
         return update_range >= datetime.datetime.utcnow()
 
@@ -930,7 +931,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         unknowns = ["", None, "Uknown", "Unknown"]
         gateways = {}
         for g in j.sal.zosv2._explorer.gateway.list():
-            if not self._is_up(g.updated):
+            if not self.node_is_up(g.updated):
                 continue
             location = []
             for area in ["continent", "country", "city"]:
