@@ -586,18 +586,8 @@ class Chatflow(j.baseclasses.object):
             wallet_names.append(w)
         wallet_names.append("3bot app")
 
-        explorer = j.clients.explorer.default
-        payment_details = ""
-        if currency == 'FreeTFT':
-            payment_details += f"Transaction Fees --------- {0.1} {currency}<br>"
-        else:
-            for farmer in escrow_info['farmer_payments']:
-                farmer_name = explorer.farms.get(farm_id=farmer['farmer_id']).name
-                payment_details += f"Farmer  {farmer_name} ---------- {farmer['total_amount']} {currency}<br>"
-            payment_details += f"Threefold Foundation --------- {format(0.1*(total_amount/0.9),'.6f')} {currency}<br>"
-            payment_details += f"Transaction Fees ------------- {0.1} {currency}<br>"
-            payment_details += "<hr style='width:30%'>"
-            payment_details += f"Total amount ----------------- {format((total_amount/0.9) + 0.1,'.6f')} {currency}<br>"
+        payment_details = self.get_payment_details(escrow_info, currency)
+
         message = f"""
         Billing details:
         <h4> Escrow address: </h4>  {escrow_address} \n
@@ -641,25 +631,10 @@ class Chatflow(j.baseclasses.object):
         escrow_info = j.sal.zosv2.reservation_escrow_information_with_qrcodes(reservation_create_resp)
         escrow_address = escrow_info["escrow_address"]
         escrow_asset = escrow_info["escrow_asset"]
-        farmer_payments = escrow_info["farmer_payments"]
-        total_amount = escrow_info["total_amount"]
         reservationid = escrow_info["reservationid"]
         qrcode = escrow_info["qrcode"]
         remaning_time = j.data.time.secondsToHRDelta(expiration_provisioning - j.data.time.epoch)
-
-        explorer = j.clients.explorer.default
-        currency = escrow_asset.split(':')[0]
-        payment_details = ""
-        if currency == 'FreeTFT':
-            payment_details += f"Transaction Fees --------- {0.1} {currency}<br>"
-        else:
-            for farmer in farmer_payments:
-                farmer_name = explorer.farms.get(farm_id=farmer['farmer_id']).name
-                payment_details += f"Farmer  {farmer_name} ---------- {farmer['total_amount']} {currency}<br>"
-            payment_details += f"Threefold Foundation --------- {format(0.1*(total_amount/0.9),'.6f')} {currency}<br>"
-            payment_details += f"Transaction Fees ------------- {0.1} {currency}<br>"
-            payment_details += "<hr style='width:30%'>"
-            payment_details += f"Total amount ----------------- {format((total_amount/0.9) + 0.1,'.6f')} {currency}<br>"
+        payment_details = self.get_payment_details(escrow_info, escrow_asset.split(':')[0])
 
         message_text = f"""
         <h3> Please make your payment </h3>
@@ -673,6 +648,27 @@ class Chatflow(j.baseclasses.object):
         """
 
         bot.qrcode_show(data=qrcode, msg=message_text, scale=4, update=True, html=True)
+
+    def get_payment_details(self, escrow_info, currency):
+
+        farmer_payments = escrow_info["farmer_payments"]
+        total_amount = escrow_info["total_amount"]
+
+        explorer = j.clients.explorer.default
+        payment_details = ""
+        if currency == 'FreeTFT':
+           payment_details += f"<tr><td>Transaction Fees</td><td>{0.1} {currency}</td></tr>"
+        else:
+            payment_details += '<table style="width: 50%; font-family: arial, sans-serif; border-collapse: collapse;">'
+            for farmer in farmer_payments:
+                farmer_name = explorer.farms.get(farm_id=farmer['farmer_id']).name
+                payment_details += f"<tr><td>Farmer {farmer_name}</td><td>{farmer['total_amount']} {currency}</td></tr>"
+            payment_details += f"<tr><td>Threefold Foundation</td><td>{format(0.1*(total_amount/0.9),'.6f')} {currency}</td></tr>"
+            payment_details += f"<tr><td>Transaction Fees</td><td>{0.1} {currency}</td></tr>"
+            payment_details += f"<tr><td>Total amount</td><td>{format((total_amount/0.9) + 0.1,'.6f')} {currency}</td></tr>"
+            payment_details += "</table>"
+
+        return payment_details
 
     def reservation_save(self, rid, name, url, form_info=None):
         form_info = form_info or []
