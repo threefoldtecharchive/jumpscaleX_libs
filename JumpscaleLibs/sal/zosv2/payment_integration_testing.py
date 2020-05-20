@@ -75,7 +75,7 @@ def create_volume_reservation():
     nodes = zos.nodes_finder.nodes_search()
     node = random.choice(nodes)
     zos.volume.create(r, node.node_id, size=1, type="SSD")
-    expiration = j.data.time.epoch + (60 * 5)  # 5 mins
+    expiration = j.data.time.epoch + (3600 * 5)  # 5 Hours
     registered_reservation = zos.reservation_register(r, expiration)
     return registered_reservation
 
@@ -95,7 +95,7 @@ def create_broken_container_reservation():
         flist="https://hub.grid.tf/zaibon/zaibon-ubuntu-ssh-0.0.2.flist",
         entrypoint="/sbin/my_init",
     )
-    expiration = j.data.time.epoch + (60 * 5)  # 5 mins
+    expiration = j.data.time.epoch + (3600 * 5)  # 5 Hours
     registered_reservation = zos.reservation_register(r, expiration)
     return registered_reservation
 
@@ -130,7 +130,7 @@ def test01_reservation_success():
 
     # . Check if the exact amount left the user wallet, should succeed
     current_tft_amount = get_wallet_balance(wallet)
-    assert "%.2f" % (user_tft_amount - current_tft_amount) == "%.2f" % needed_tft_ammount
+    assert "%.2f" % (user_tft_amount - current_tft_amount) == "%.2f" % (needed_tft_ammount + 0.1)
 
     # . Check the reservation is Done, state should be "Ok"
     assert get_reservation_state(registered_reservation.reservation_id) == "Ok", "Nothing deployed"
