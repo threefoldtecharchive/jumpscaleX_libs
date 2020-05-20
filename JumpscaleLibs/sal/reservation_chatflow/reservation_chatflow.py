@@ -650,22 +650,19 @@ class Chatflow(j.baseclasses.object):
         bot.qrcode_show(data=qrcode, msg=message_text, scale=4, update=True, html=True)
 
     def get_payment_details(self, escrow_info, currency):
+        explorer = j.clients.explorer.default
+        
         farmer_payments = escrow_info["farmer_payments"]
         total_amount = escrow_info["total_amount"]
 
-        explorer = j.clients.explorer.default
         payment_details = ""
-        if currency == 'FreeTFT':
-           payment_details += f"<tr><td>Transaction Fees</td><td>{0.1} {currency}</td></tr>"
-        else:
-            payment_details += '<table style="width: 50%; font-family: arial, sans-serif; border-collapse: collapse;">'
-            for farmer in farmer_payments:
-                farmer_name = explorer.farms.get(farm_id=farmer['farmer_id']).name
-                payment_details += f"<tr><td>Farmer {farmer_name}</td><td>{format(farmer['total_amount']*0.9,'.6f')} {currency}</td></tr>"
-            payment_details += f"<tr><td>Threefold Foundation</td><td>{format(0.1*total_amount,'.6f')} {currency}</td></tr>"
-            payment_details += f"<tr><td>Transaction Fees</td><td>{0.1} {currency}</td></tr>"
-            payment_details += f"<tr><td>Total amount</td><td>{format(total_amount + 0.1,'.6f')} {currency}</td></tr>"
-            payment_details += "</table>"
+        payment_details += '<table style="width: 50%; font-family: arial, sans-serif; border-collapse: collapse;">'
+        for farmer in farmer_payments:
+            farmer_name = explorer.farms.get(farm_id=farmer['farmer_id']).name
+            payment_details += f"<tr><td>Farmer {farmer_name}</td><td>{format(farmer['total_amount'],'.7f')} {currency}</td></tr>"
+        payment_details += f"<tr><td>Transaction Fees</td><td>{0.1} {currency}</td></tr>"
+        payment_details += f"<tr><td>Total amount</td><td>{format(total_amount + 0.1,'.7f')} {currency}</td></tr>"
+        payment_details += "</table>"
 
         return payment_details
 
