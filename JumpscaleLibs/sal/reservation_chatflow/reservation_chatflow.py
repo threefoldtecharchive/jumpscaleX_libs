@@ -936,6 +936,8 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         unknowns = ["", None, "Uknown", "Unknown"]
         gateways = {}
         for g in j.sal.zosv2._explorer.gateway.list():
+            if not j.sal.zosv2.nodes_finder.filter_is_up(g):
+                continue
             location = []
             for area in ["continent", "country", "city"]:
                 areaname = getattr(g.location, area)

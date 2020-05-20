@@ -219,7 +219,8 @@ for node in nodes:
         disk_type="SSD",
         public=False)
 volume = zos.volume.create(reservation_storage,minio_node.node_id,size=10,type='SSD')
-zdb_rid = zos.reservation_register(reservation_storage, j.data.time.epoch+(60*60))
+registered_reservation = zos.reservation_register(reservation_storage, j.data.time.epoch+(60*60))
+zdb_rid = registered_reservation.reservation_id
 results = zos.reservation_result(zdb_rid)
 
 # read the IP address of the 0-db namespaces after they are deployed
@@ -270,11 +271,7 @@ explorer = j.clients.explorer.get(name="local")
 client = j.clients.stellar.get(name="client", network="TEST")
 
 # if you don't have a trustline to the issuer of TFT on stellar
-# trustline for testnet
-client.add_trustline("TFT", "GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3")
-
-# trustline for production
-client.add_trustline("TFT", "GBOVQKJYHXRR3DX6NOX2RRYFRCUMSADGDESTDNBDS6CDVLGVESRTAC47")
+client.add_known_trustline("TFT")
 
 zos = j.sal.zosv2
 
