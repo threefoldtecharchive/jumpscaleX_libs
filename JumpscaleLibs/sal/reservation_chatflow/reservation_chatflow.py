@@ -207,8 +207,19 @@ class Chatflow(j.baseclasses.object):
             if message:
                 message = f"for {message}"
             retry = True
+            resources_of_farm = ""
+            if cru:
+                resources_of_farm += f" cru={cru}/"
+            if sru:
+                resources_of_farm += f" sru={sru}/"
+            if mru:
+                resources_of_farm += f" mru={mru}/"
+            if hru:
+                resources_of_farm += f" hru={hru}/"
+            if currency:
+                resources_of_farm += f" and the currency={currency}"
             farms_message = (
-                f"""The following farms don't have enough resources {message}: """
+                f"""The following farms don't meet the criteria of having {resources_of_farm} {message}: """
                 + ", ".join(farms_with_no_resources)
                 + """.
                 Please reselect farms to check for resources or leave it empty
@@ -935,6 +946,8 @@ class Chatflow(j.baseclasses.object):
         unknowns = ["", None, "Uknown", "Unknown"]
         gateways = {}
         for g in j.sal.zosv2._explorer.gateway.list():
+            if not j.sal.zosv2.nodes_finder.filter_is_up(g):
+                continue
             location = []
             for area in ["continent", "country", "city"]:
                 areaname = getattr(g.location, area)
