@@ -645,7 +645,7 @@ class Chatflow(j.baseclasses.object):
         reservationid = escrow_info["reservationid"]
         qrcode = escrow_info["qrcode"]
         remaning_time = j.data.time.secondsToHRDelta(expiration_provisioning - j.data.time.epoch)
-        payment_details = self.get_payment_details(escrow_info, escrow_asset.split(':')[0])
+        payment_details = self.get_payment_details(escrow_info, escrow_asset.split(":")[0])
 
         message_text = f"""
         <h3> Please make your payment </h3>
@@ -662,15 +662,17 @@ class Chatflow(j.baseclasses.object):
 
     def get_payment_details(self, escrow_info, currency):
         explorer = j.clients.explorer.default
-        
+
         farmer_payments = escrow_info["farmer_payments"]
         total_amount = escrow_info["total_amount"]
 
         payment_details = ""
         payment_details += '<table style="width: 50%; font-family: arial, sans-serif; border-collapse: collapse;">'
         for farmer in farmer_payments:
-            farmer_name = explorer.farms.get(farm_id=farmer['farmer_id']).name
-            payment_details += f"<tr><td>Farmer {farmer_name}</td><td>{format(farmer['total_amount'],'.7f')} {currency}</td></tr>"
+            farmer_name = explorer.farms.get(farm_id=farmer["farmer_id"]).name
+            payment_details += (
+                f"<tr><td>Farmer {farmer_name}</td><td>{format(farmer['total_amount'],'.7f')} {currency}</td></tr>"
+            )
         payment_details += f"<tr><td>Transaction Fees</td><td>{0.1} {currency}</td></tr>"
         payment_details += f"<tr><td>Total amount</td><td>{format(total_amount + 0.1,'.7f')} {currency}</td></tr>"
         payment_details += "</table>"
@@ -896,6 +898,8 @@ class Chatflow(j.baseclasses.object):
         metadata["form_info"]["Env variables"] = str(env_variable)
         metadata["form_info"]["Flist link"] = reservation.data_reservation.containers[0].flist
         metadata["form_info"]["Interactive"] = reservation.data_reservation.containers[0].interactive
+        if metadata["form_info"]["Interactive"]:
+            metadata["form_info"]["Port"] = "7681"
         metadata["form_info"]["Entry point"] = reservation.data_reservation.containers[0].entrypoint
         metadata["form_info"]["IP Address"] = reservation.data_reservation.containers[0].network_connection[0].ipaddress
         return metadata
