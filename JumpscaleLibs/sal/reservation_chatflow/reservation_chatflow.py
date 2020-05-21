@@ -795,9 +795,14 @@ class Chatflow(j.baseclasses.object):
                 except Exception:
                     continue
 
-                solution_type = metadata["form_info"]["chatflow"]
-                metadata["form_info"].pop("chatflow")
-                if solution_type == "ubuntu":
+                if "form_info" not in metadata:
+                    solution_type = self.solution_type_check(reservation)
+                else:
+                    solution_type = metadata["form_info"]["chatflow"]
+                    metadata["form_info"].pop("chatflow")
+                if solution_type == "unknown":
+                    continue
+                elif solution_type == "ubuntu":
                     metadata = self.solution_ubuntu_info_get(metadata, reservation)
                 elif solution_type == "flist":
                     metadata = self.solution_flist_info_get(metadata, reservation)
@@ -810,7 +815,10 @@ class Chatflow(j.baseclasses.object):
                         "pub_key"
                     ]
                 elif solution_type == "exposed":
+                    meta = metadata
+                    metadata = {"form_info": meta}
                     metadata["form_info"].update(self.solution_exposed_info_get(reservation))
+                    metadata["name"] = metadata["form_info"]["Domain"]
                 self.reservation_save(
                     reservation.id, metadata["name"], urls[solution_type], form_info=metadata["form_info"]
                 )
@@ -834,6 +842,7 @@ class Chatflow(j.baseclasses.object):
                 elif solution_type == "exposed":
                     info = self.solution_exposed_info_get(reservation)
                     info["Solution name"] = name
+                    name = info["Domain"]
                 self.reservation_save(reservation.id, name, urls[solution_type], form_info=info)
 
     def solution_ubuntu_info_get(self, metadata, reservation):
