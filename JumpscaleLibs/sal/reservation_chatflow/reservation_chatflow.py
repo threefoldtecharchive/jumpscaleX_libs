@@ -882,8 +882,8 @@ class Chatflow(j.baseclasses.object):
                 remote = get_arg(entrypoint, "-remote")
                 if remote:
                     info["Name Server"] = remote.split(":")[0]
-        for sub in reservation.data_reservation.subdomains:
-            info["Domain"] = sub.domain
+        for proxy in reservation.data_reservation.reserve_proxies:
+            info["Domain"] = proxy.domain
         return info
 
     def solution_flist_info_get(self, metadata, reservation):
