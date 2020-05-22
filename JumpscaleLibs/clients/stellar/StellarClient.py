@@ -469,7 +469,7 @@ class StellarClient(JSConfigClient):
             address = self.address
         tx_endpoint = self._get_horizon_server().transactions()
         tx_endpoint.for_account(address)
-        tx_endpoint.include_failed(False)
+        tx_endpoint.include_failed(True)
         transactions = []
         old_cursor = "old"
         new_cursor = ""
@@ -482,7 +482,8 @@ class StellarClient(JSConfigClient):
             new_cursor = parse.parse_qs(next_link_query)["cursor"][0]
             response_transactions = response["_embedded"]["records"]
             for response_transaction in response_transactions:
-                transactions.append(TransactionSummary.from_horizon_response(response_transaction))
+                if response_transaction['successful']:
+                    transactions.append(TransactionSummary.from_horizon_response(response_transaction))
         return transactions
 
     def get_transaction_effects(self, transaction_hash, address=None):
