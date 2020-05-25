@@ -153,18 +153,22 @@ class StellarClient(JSConfigClient):
             balances.add_balance(Balance.from_horizon_response(response_balance))
         return balances
 
-    def get_balance(self):
-        """Gets balance for address
+    def get_balance(self, address=None):
+        """Gets balance for an address
         """
-        all_balances = self._get_free_balances()
-        for account in self._find_escrow_accounts():
+        if address is None:
+            address = self.address
+        all_balances = self._get_free_balances(address)
+        for account in self._find_escrow_accounts(address):
             all_balances.add_escrow_account(account)
         return all_balances
 
-    def _find_escrow_accounts(self):
+    def _find_escrow_accounts(self, address=None):
+        if address is None:
+            address = self.address
         escrow_accounts = []
         accounts_endpoint = self._get_horizon_server().accounts()
-        accounts_endpoint.signer(self.address)
+        accounts_endpoint.signer(address)
         old_cursor = "old"
         new_cursor = ""
         while new_cursor != old_cursor:
