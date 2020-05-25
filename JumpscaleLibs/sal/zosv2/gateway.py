@@ -34,7 +34,7 @@ class GatewayGenerator:
         return p
 
     def tcp_proxy_reverse(self, reservation, node_id, domain, secret):
-        p = reservation.data_reservation.reserve_proxies.new()
+        p = reservation.data_reservation.reverse_proxies.new()
         p.node_id = node_id
         p.domain = domain
         p.workload_id = _next_workload_id(reservation)

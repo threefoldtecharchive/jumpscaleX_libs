@@ -393,7 +393,7 @@ class Chatflow(j.baseclasses.object):
             count += len(reservation.data_reservation.containers)
             count += len(reservation.data_reservation.kubernetes)
             count += len(reservation.data_reservation.proxies)
-            count += len(reservation.data_reservation.reserve_proxies)
+            count += len(reservation.data_reservation.reverse_proxies)
             count += len(reservation.data_reservation.subdomains)
             count += len(reservation.data_reservation.domain_delegates)
             count += len(reservation.data_reservation.gateway4to6)
