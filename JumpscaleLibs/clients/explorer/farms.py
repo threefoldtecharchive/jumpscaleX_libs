@@ -53,6 +53,16 @@ class Farms:
 
         self._session.put(self._base_url + f"/farms/{farm.id}", auth=auth, headers=headers, json=farm._ddict)
         return True
+    
+    def delete(self, farm_id, node_id, identity=None):
+        me = identity if identity else j.me
+        secret = me.encryptor.signing_key.encode(Base64Encoder)
+
+        auth = HTTPSignatureAuth(key_id=str(me.tid), secret=secret, headers=["(created)", "date", "threebot-id"])
+        headers = {"threebot-id": str(me.tid)}
+
+        self._session.delete(self._base_url + f"/farms/{farm_id}/{node_id}", auth=auth, headers=headers)
+        return True
 
     def get(self, farm_id=None, farm_name=None):
         if farm_name:
