@@ -7,12 +7,14 @@ import pytest
 WALLET_NAME = ""
 WALLET_SECRET = ""
 
+TRANSACTION_FEES = 0.1
+
 zos = j.sal.zosv2
 
 
 def get_funded_wallet():
     if WALLET_NAME and WALLET_SECRET:
-        wallet = j.clients.stellar.get(WALLET_NAME, network="Test", secret=WALLET_SECRET)
+        wallet = j.clients.stellar.get(WALLET_NAME, network="TEST", secret=WALLET_SECRET)
         return wallet
     else:
         raise ValueError("Please provide add Values to the global variables WALLET_NAME and WALLET_SECRET")
@@ -22,7 +24,7 @@ def create_new_wallet():
     wallet_name = j.data.idgenerator.generateXCharID(10)
     wallet = j.clients.stellar.new(wallet_name, network="Test")
     wallet.activate_through_friendbot()
-    wallet.add_trustline("TFT", "GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3")
+    wallet.add_known_trustline("TFT")
     return wallet
 
 
@@ -36,7 +38,7 @@ def check_if_wallet_refunded(wallet, expected_value, timeout=60):
     t = time.time()
     while t + timeout > time.time():
         tft_amount = get_wallet_balance(wallet)
-        if expected_value == tft_amount:
+        if (expected_value - TRANSACTION_FEES) == tft_amount:
             return True
         time.sleep(5)
     return False
@@ -72,10 +74,10 @@ def get_reservation_result(reservation_id, timeout):
 
 def create_volume_reservation():
     r = zos.reservation_create()
-    nodes = zos.nodes_finder.nodes_search()
+    nodes = zos.nodes_finder.nodes_search(farm_name="freefarm")
     node = random.choice(nodes)
     zos.volume.create(r, node.node_id, size=1, type="SSD")
-    expiration = j.data.time.epoch + (3600 * 5)  # 5 Hours
+    expiration = j.data.time.epoch + (3600 + 300)  # 1 hour and 5 mins
     registered_reservation = zos.reservation_register(r, expiration)
     return registered_reservation
 
@@ -85,7 +87,7 @@ def create_broken_container_reservation():
     create a container with inexistent network_name, should fail
     """
     r = zos.reservation_create()
-    nodes = zos.nodes_finder.nodes_search()
+    nodes = zos.nodes_finder.nodes_search(farm_name="freefarm")
     node = random.choice(nodes)
     zos.container.create(
         reservation=r,
@@ -95,7 +97,7 @@ def create_broken_container_reservation():
         flist="https://hub.grid.tf/zaibon/zaibon-ubuntu-ssh-0.0.2.flist",
         entrypoint="/sbin/my_init",
     )
-    expiration = j.data.time.epoch + (3600 * 5)  # 5 Hours
+    expiration = j.data.time.epoch + (3600 + 300)  # 1 hour and 5 mins
     registered_reservation = zos.reservation_register(r, expiration)
     return registered_reservation
 
@@ -130,7 +132,7 @@ def test01_reservation_success():
 
     # . Check if the exact amount left the user wallet, should succeed
     current_tft_amount = get_wallet_balance(wallet)
-    assert "%.2f" % (user_tft_amount - current_tft_amount) == "%.2f" % (needed_tft_ammount + 0.1)
+    assert "%.2f" % (user_tft_amount - current_tft_amount) == "%.2f" % (needed_tft_ammount + TRANSACTION_FEES)
 
     # . Check the reservation is Done, state should be "Ok"
     assert get_reservation_state(registered_reservation.reservation_id) == "Ok", "Nothing deployed"
