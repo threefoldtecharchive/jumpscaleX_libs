@@ -25,7 +25,7 @@ class Zosv2(j.baseclasses.object):
         self._zdb = ZDBGenerator(self._explorer)
         self._kubernetes = K8sGenerator(self._explorer)
         self._billing = Billing()
-        self._gateway = GatewayGenerator()
+        self._gateway = GatewayGenerator(self._explorer)
 
     @property
     def network(self):
@@ -102,7 +102,7 @@ class Zosv2(j.baseclasses.object):
         reservation.customer_tid = me.tid
 
         if expiration_provisioning is None:
-            expiration_provisioning = j.data.time.epoch + (3600 * 24 * 365)
+            expiration_provisioning = j.data.time.epoch + (15 * 60)
 
         dr = reservation.data_reservation
         dr.currencies = currencies
@@ -134,7 +134,7 @@ class Zosv2(j.baseclasses.object):
         :return: returns true if not error,raise an exception otherwise
         :rtype: bool
         """
-        me = identity if identity else j.myidentities.me
+        me = identity if identity else j.me
 
         reservation.json = reservation.data_reservation._json
         signature = me.encryptor.sign_hex(reservation.json.encode())
@@ -178,7 +178,7 @@ class Zosv2(j.baseclasses.object):
         :return: true if the reservation has been cancelled successfully
         :rtype: bool
         """
-        me = identity if identity else j.myidentities.me
+        me = identity if identity else j.me
 
         reservation = self.reservation_get(reservation_id)
         payload = j.me.encryptor.payload_build(reservation.id, reservation.json.encode())
@@ -187,7 +187,7 @@ class Zosv2(j.baseclasses.object):
         return self._explorer.reservations.sign_delete(reservation_id=reservation_id, tid=me.tid, signature=signature)
 
     def reservation_list(self, tid=None, next_action=None):
-        tid = tid if tid else j.myidentities.me.tid
+        tid = tid if tid else j.me.tid
         return self._explorer.reservations.list(customer_tid=tid, next_action=next_action)
 
     def reservation_store(self, reservation, path):
@@ -216,7 +216,7 @@ class Zosv2(j.baseclasses.object):
         return reservation_model.new(datadict=r)
 
     def reservation_live(self, expired=False, cancelled=False, identity=None):
-        me = identity if identity else j.myidentities.me
+        me = identity if identity else j.me
         rs = self._explorer.reservations.list()
 
         now = j.data.time.epoch

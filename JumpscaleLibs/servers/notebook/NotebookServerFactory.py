@@ -35,7 +35,7 @@ class NotebookServerFactory(j.baseclasses.object):
             else:
                 j.builders.runtimes.nodejs.install()
 
-            j.builders.runtimes.python3.pip_package_install("matplot")
+            j.builders.runtimes.python3.pip_package_install("matplotlib", reset=True)
             j.builders.runtimes.python3.pip_package_install("prompt-toolkit", reset=True)
             j.builders.runtimes.python3.pip_package_install(
                 "jupyterlab,notebook,voila,plotly,pandas,jupyterlab_code_formatter,plotly,voila-gridstack,voila-vuetify,ipywidgets",

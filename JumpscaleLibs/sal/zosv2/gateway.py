@@ -1,9 +1,14 @@
-from Jumpscale import j
 import netaddr
+from Jumpscale import j
+
+from .crypto import encrypt_for_node
 from .id import _next_workload_id
 
 
 class GatewayGenerator:
+    def __init__(self, explorer):
+        self._gateways = explorer.gateway
+
     def sub_domain(self, reservation, node_id, domain, ips):
         for ip in ips:
             if not _is_valid_ip(ip):
@@ -38,7 +43,10 @@ class GatewayGenerator:
         p.node_id = node_id
         p.domain = domain
         p.workload_id = _next_workload_id(reservation)
-        p.secret = secret
+
+        node = self._gateways.get(node_id)
+        p.secret = encrypt_for_node(node.public_key_hex, secret)
+
         return p
 
     def gateway_4to6(self, reservation, node_id, public_key):

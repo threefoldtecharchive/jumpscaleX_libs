@@ -153,18 +153,22 @@ class StellarClient(JSConfigClient):
             balances.add_balance(Balance.from_horizon_response(response_balance))
         return balances
 
-    def get_balance(self):
-        """Gets balance for address
+    def get_balance(self, address=None):
+        """Gets balance for an address
         """
-        all_balances = self._get_free_balances()
-        for account in self._find_escrow_accounts():
+        if address is None:
+            address = self.address
+        all_balances = self._get_free_balances(address)
+        for account in self._find_escrow_accounts(address):
             all_balances.add_escrow_account(account)
         return all_balances
 
-    def _find_escrow_accounts(self):
+    def _find_escrow_accounts(self, address=None):
+        if address is None:
+            address = self.address
         escrow_accounts = []
         accounts_endpoint = self._get_horizon_server().accounts()
-        accounts_endpoint.signer(self.address)
+        accounts_endpoint.signer(address)
         old_cursor = "old"
         new_cursor = ""
         while new_cursor != old_cursor:
@@ -469,7 +473,7 @@ class StellarClient(JSConfigClient):
             address = self.address
         tx_endpoint = self._get_horizon_server().transactions()
         tx_endpoint.for_account(address)
-        tx_endpoint.include_failed(False)
+        tx_endpoint.include_failed(True)
         transactions = []
         old_cursor = "old"
         new_cursor = ""
@@ -482,7 +486,8 @@ class StellarClient(JSConfigClient):
             new_cursor = parse.parse_qs(next_link_query)["cursor"][0]
             response_transactions = response["_embedded"]["records"]
             for response_transaction in response_transactions:
-                transactions.append(TransactionSummary.from_horizon_response(response_transaction))
+                if response_transaction['successful']:
+                    transactions.append(TransactionSummary.from_horizon_response(response_transaction))
         return transactions
 
     def get_transaction_effects(self, transaction_hash, address=None):
