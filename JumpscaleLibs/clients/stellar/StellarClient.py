@@ -181,7 +181,7 @@ class StellarClient(JSConfigClient):
             accounts = response["_embedded"]["records"]
             for account in accounts:
                 account_id = account["account_id"]
-                if account_id == self.address:
+                if account_id == address:
                     continue  # Do not take the receiver's account
                 all_signers = account["signers"]
                 preauth_signers = [signer["key"] for signer in all_signers if signer["type"] == "preauth_tx"]
