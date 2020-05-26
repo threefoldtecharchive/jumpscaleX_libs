@@ -1,38 +1,60 @@
-from Jumpscale import j
 import netaddr
+from Jumpscale import j
+
+from .crypto import encrypt_for_node
+from .id import _next_workload_id
 
 
-class Gateway:
+class GatewayGenerator:
     def __init__(self, explorer):
-        self._explorer = explorer
+        self._gateways = explorer.gateway
 
-    def expose_ip(self, domain, ip):
-        """
-        expose_ip configure a TCP proxy to forward traffic 
-        coming to domain to ip
-        
-        :param domain: domain name the traffic should be proxied from
-        :type domain: str
-        :param ip: ip address where to forward the traffic
-        :type ip: str
-        """
-        if not _is_valid_ip(ip):
-            raise j.exceptions.Input(f"{id} is not valid IP address")
+    def sub_domain(self, reservation, node_id, domain, ips):
+        for ip in ips:
+            if not _is_valid_ip(ip):
+                raise j.exceptions.Input(f"{ip} is not valid IP address")
 
-        self._explorer.gateway.tcpservice_ip_register(domain, ip)
+        sb = reservation.data_reservation.subdomains.new()
+        sb.node_id = node_id
+        sb.workload_id = _next_workload_id(reservation)
+        sb.domain = domain
+        sb.ips = ips
+        return sb
 
-    def reverse_tunnel(self, domain, secret):
-        """
-        reverse_tunnel configure a TCP proxy in reserve tunnel mode
-        use this when your hidden service uses TCP router in reserve tunnel mode
-        https://github.com/threefoldtech/tcprouter#reverse-tunneling    
-        
-        :param domain: domain name the traffic should be proxied from
-        :type domain: str
-        :param secret: secret used by the tcp router client
-        :type secret: str
-        """
-        self._explorer.gateway.tcpservice_client_register(domain, secret)
+    def delegate_domain(self, reservation, node_id, domain):
+        d = reservation.data_reservation.domain_delegates.new()
+        d.node_id = node_id
+        d.workload_id = _next_workload_id(reservation)
+        d.domain = domain
+        return d
+
+    def tcp_proxy(self, reservation, node_id, domain, addr, port, port_tls=None):
+        p = reservation.data_reservation.proxies.new()
+        p.node_id = node_id
+        p.workload_id = _next_workload_id(reservation)
+        p.domain = domain
+        p.addr = addr
+        p.port = port
+        p.port_tls = port_tls
+        return p
+
+    def tcp_proxy_reverse(self, reservation, node_id, domain, secret):
+        p = reservation.data_reservation.reserve_proxies.new()
+        p.node_id = node_id
+        p.domain = domain
+        p.workload_id = _next_workload_id(reservation)
+
+        node = self._gateways.get(node_id)
+        p.secret = encrypt_for_node(node.public_key_hex, secret)
+
+        return p
+
+    def gateway_4to6(self, reservation, node_id, public_key):
+        gw = reservation.data_reservation.gateway4to6.new()
+        gw.public_key = public_key
+        gw.node_id = node_id
+        gw.workload_id = _next_workload_id(reservation)
+        return gw
 
 
 def _is_valid_ip(ip):

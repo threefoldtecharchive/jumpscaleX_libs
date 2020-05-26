@@ -21,8 +21,6 @@ _EXPLORER_NODES = {
     "STD": [
         "https://explorer.threefoldtoken.com",
         "https://explorer2.threefoldtoken.com",
-        "https://explorer3.threefoldtoken.com",
-        "https://explorer4.threefoldtoken.com",
     ],
     "TEST": ["https://explorer.testnet.threefoldtoken.com"],  # , "https://explorer2.testnet.threefoldtoken.com"]
     "DEV": ["http://localhost:23110"],

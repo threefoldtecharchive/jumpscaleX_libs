@@ -35,6 +35,7 @@ class NotebookServerFactory(j.baseclasses.object):
             else:
                 j.builders.runtimes.nodejs.install()
 
+            j.builders.runtimes.python3.pip_package_install("matplotlib", reset=True)
             j.builders.runtimes.python3.pip_package_install("prompt-toolkit", reset=True)
             j.builders.runtimes.python3.pip_package_install(
                 "jupyterlab,notebook,voila,plotly,pandas,jupyterlab_code_formatter,plotly,voila-gridstack,voila-vuetify,ipywidgets",
@@ -43,26 +44,27 @@ class NotebookServerFactory(j.baseclasses.object):
             # make sure the prompt toolkit stays below 3
             j.builders.runtimes.python3.pip_package_install("prompt-toolkit==2.0.9", reset=True)
             j.builders.runtimes.python3.pip_package_install("ptpython==2.0.4", reset=True)
+
             C = """
             export NODE_OPTIONS=--max-old-space-size=4096
 
-            jupyter labextension install @jupyter-voila/jupyterlab-preview --no-build   
-            jupyter labextension install @ryantam626/jupyterlab_code_formatter --no-build            
+            jupyter labextension install @jupyter-voila/jupyterlab-preview --no-build
+            jupyter labextension install @ryantam626/jupyterlab_code_formatter --no-build
             jupyter labextension install @jupyter-widgets/jupyterlab-manager --no-build
             jupyter labextension install jupyterlab-plotly --no-build
             jupyter labextension install plotlywidget --no-build
             jupyter labextension install voila --no-build
-            jupyter labextension install @krassowski/jupyterlab_go_to_definition --no-build 
-                        
+            jupyter labextension install @krassowski/jupyterlab_go_to_definition --no-build
+
             jupyter lab build  --minimize=False
-            
+
             jupyter extension enable voila --sys-prefix
             jupyter nbextension install voila --sys-prefix --py
-            jupyter nbextension enable voila --sys-prefix --py            
+            jupyter nbextension enable voila --sys-prefix --py
 
             # jupyter serverextension enable --py jupyterlab_code_formatter
             # jupyter serverextension enable --py jupyterlab-manager
-                        
+
             """
             j.core.tools.execute(C)
 
@@ -97,7 +99,9 @@ class NotebookServerFactory(j.baseclasses.object):
     def get_cmd(self, path=None, background=False, voila=False, base_url=None, ip="0.0.0.0", port=8005):
 
         if not voila:
-            cmd = "jupyter serverextension enable --py jupyterlab_code_formatter;"
+            # This needs to be executed in the same process and startup cmds uses exec -a <process-name>
+            # so if we used a semicolon, it will seperate the execution
+            cmd = "jupyter serverextension enable --py jupyterlab_code_formatter\n"
             cmd += "jupyter lab --NotebookApp.allow_remote_access=True --NotebookApp.token=''"
             cmd += f" --NotebookApp.password='' --ip={ip} --port={port} --allow-root"
         else:

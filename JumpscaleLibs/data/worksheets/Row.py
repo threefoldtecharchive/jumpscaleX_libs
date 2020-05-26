@@ -103,6 +103,15 @@ class Row(j.baseclasses.object):
         else:
             self.cells = [None for item in range(self.nrcols)]
 
+    def sum(self):
+        tot=0
+        for x in self.cells:
+            if x==None:
+                x=0
+            tot+=float(x)
+        return tot
+
+
     def aggregate(self, period="Y", aggregate_type=None, roundnr=2, text=False):
         """
         @param period is B, Q or Y (Quarter/Year or Begin means first 12 months)
