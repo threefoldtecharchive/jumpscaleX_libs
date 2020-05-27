@@ -72,8 +72,6 @@ class NodeFinder:
                     if node.free_to_use:
                         yield node
                     continue
-                elif currency != "FreeTFT" and node.free_to_use:
-                    continue
                 if node.farm_id in not_supported_farms:
                     continue
                 try:
