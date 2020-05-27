@@ -265,10 +265,12 @@ class Chatflow(j.baseclasses.object):
                 )
         if query:
             for unit, value in query.items():
+                if unit == "currency":
+                    continue
                 freevalue = getattr(node.total_resources, unit) - getattr(node.used_resources, unit)
                 if freevalue < value:
                     raise j.exceptions.Value(
-                        f"Node {nodeid} does not have enough available resources for this request, please choose another one"
+                        f"Node {nodeid} does not have enough available {unit} resources for this request {value} required {freevalue} available, please choose another one"
                     )
         return node
 
