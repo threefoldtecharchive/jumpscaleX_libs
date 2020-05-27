@@ -168,7 +168,6 @@ class Chatflow(j.baseclasses.object):
             nodes = filter(j.sal.zosv2.nodes_finder.filter_is_free_to_use, nodes)
         elif not free_to_use:
             nodes = list(nodes)
-            nodes = filter(j.sal.zosv2.nodes_finder.filter_is_not_free_to_use, nodes)
         return list(nodes)
 
     def farms_check(
@@ -260,7 +259,7 @@ class Chatflow(j.baseclasses.object):
             raise j.exceptions.NotFound(f"Node {nodeid} doesn't seem to be up please choose another nodeid")
 
         if currency:
-            if (currency == "FreeTFT" and not node.free_to_use) or (currency != "FreeTFT" and node.free_to_use):
+            if currency == "FreeTFT" and not node.free_to_use:
                 raise j.exceptions.Value(
                     f"The specified node ({nodeid}) should support the same type of currency as the network you are using ({currency})"
                 )
