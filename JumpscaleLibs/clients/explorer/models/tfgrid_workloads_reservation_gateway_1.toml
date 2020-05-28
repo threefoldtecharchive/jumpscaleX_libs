@@ -6,7 +6,7 @@ addr = (S) # destination address
 port = (I) # 
 port_tls = (I)
 
-@url = tfgrid.workloads.reservation.gateway.reserve_proxy.1
+@url = tfgrid.workloads.reservation.gateway.reverse_proxy.1
 workload_id = (I)
 node_id = (S)
 domain = (S)

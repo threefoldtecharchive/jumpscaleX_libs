@@ -420,7 +420,7 @@ class Chatflow(j.baseclasses.object):
             count += len(reservation.data_reservation.containers)
             count += len(reservation.data_reservation.kubernetes)
             count += len(reservation.data_reservation.proxies)
-            count += len(reservation.data_reservation.reserve_proxies)
+            count += len(reservation.data_reservation.reverse_proxies)
             count += len(reservation.data_reservation.subdomains)
             count += len(reservation.data_reservation.domain_delegates)
             count += len(reservation.data_reservation.gateway4to6)
@@ -885,7 +885,7 @@ class Chatflow(j.baseclasses.object):
                 remote = get_arg(entrypoint, "-remote")
                 if remote:
                     info["Name Server"] = remote.split(":")[0]
-        for proxy in reservation.data_reservation.reserve_proxies:
+        for proxy in reservation.data_reservation.reverse_proxies:
             info["Domain"] = proxy.domain
         return info
 
