@@ -7,6 +7,7 @@ import time
 import json
 import base64
 import copy
+import datetime
 
 
 class Network:
@@ -1028,9 +1029,9 @@ class Chatflow(j.baseclasses.object):
         payment_obj.total_amount = total_amount
         payment_obj.transaction_fees = f"0.1 {currency}"
         payment_obj.payment_source = payment_source
-        dst_payments = {}
         for farmer in farmer_payments:
             farmer_name = self._explorer.farms.get(farm_id=farmer["farmer_id"]).name
-            dst_payments[farmer_name] = farmer["total_amount"]
-        payment_obj.farmer_payments = dst_payments
+            payment_obj.farmer_payments[farmer_name] = farmer["total_amount"]
+        a = datetime.datetime.utcnow()
+        payment_obj.time = "%s/%s/%s %s:%s" % (a.day, a.month, a.year, a.hour, a.minute)
         return payment_obj
