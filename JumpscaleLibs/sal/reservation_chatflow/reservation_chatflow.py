@@ -790,7 +790,9 @@ class Chatflow(j.baseclasses.object):
         customer_tid = j.me.tid
         reservations = self._explorer.reservations.list(customer_tid, "DEPLOY")
         networks = []
+        dupnames = {}
         for reservation in sorted(reservations, key=lambda res: res.id, reverse=True):
+            info = {}
             if reservation.metadata:
                 try:
                     metadata = self.reservation_metadata_decrypt(reservation.metadata)
@@ -822,9 +824,8 @@ class Chatflow(j.baseclasses.object):
                     metadata = {"form_info": meta}
                     metadata["form_info"].update(self.solution_exposed_info_get(reservation))
                     metadata["name"] = metadata["form_info"]["Domain"]
-                self.reservation_save(
-                    reservation.id, metadata["name"], urls[solution_type], form_info=metadata["form_info"]
-                )
+                info = metadata["form_info"]
+                name = metadata["name"]
             else:
                 solution_type = self.solution_type_check(reservation)
                 info = {}
@@ -846,7 +847,14 @@ class Chatflow(j.baseclasses.object):
                     info = self.solution_exposed_info_get(reservation)
                     info["Solution name"] = name
                     name = info["Domain"]
-                self.reservation_save(reservation.id, name, urls[solution_type], form_info=info)
+
+            count = dupnames.setdefault(solution_type, {}).setdefault(name, 1)
+            if count != 1:
+                dupnames[solution_type][name] = count + 1
+                name = f"{name}_{count}"
+            self.reservation_save(
+                reservation.id, name, urls[solution_type], form_info=info
+            )
 
     def solution_ubuntu_info_get(self, metadata, reservation):
         envs = reservation.data_reservation.containers[0].environment
