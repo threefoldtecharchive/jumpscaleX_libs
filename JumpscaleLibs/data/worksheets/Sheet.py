@@ -1,5 +1,6 @@
 from Jumpscale import j
 from .Row import *
+import matplotlib.pyplot as plt
 
 JSBASE = j.baseclasses.object
 
@@ -39,6 +40,7 @@ class Sheet(j.baseclasses.object):
         for key, item in self.rows.items():
             ddict["rows"][key] = item.export_()
         return ddict
+
 
     def import_(self, dict):
         self.name = dict["name"]
@@ -470,6 +472,51 @@ class Sheet(j.baseclasses.object):
                 r[key][x] = j.core.text.padleft(str(r[key][x]), max_size)
 
         return r
+
+    def graph(self,title, path, row_names=None,row_filters=None,row_labels=None,start=None,end=None):
+
+        assert row_names and len(row_names)>0
+        if not row_filters:
+            row_filters = [None for i in row_names]
+        if not isinstance(row_filters,list):
+            row_filters = [row_filters for i in row_names]
+        if not row_labels:
+            row_labels = [i for i in row_names]
+        #make sure all the right length
+        assert len(row_names)==len(row_filters)
+        assert len(row_names) == len(row_labels)
+
+        if not start:
+            start = 0
+        if not end:
+            end = self.nrcols
+        assert end<=self.nrcols
+        assert start<=self.nrcols
+
+        xx = [i for i in range(start,end)]
+        with plt.style.context('Solarize_Light2'):
+            for x in range(0,len(row_names)):
+                name = row_names[x]
+                filter = row_filters[x]
+                label = row_labels[x]
+                if name not in self.rows:
+                    raise j.exceptions.RuntimeError(f"cannot find row:{name}")
+                y=self.rows[name].cells[start:end]
+                if filter:
+                    y = [filter(i) for i in y]
+                plt.plot(xx,y,label=label)[0]
+        plt.title(title.replace("_"," "))
+        fig = plt.gcf()
+        fig.set_size_inches(10, 7)
+        plt.legend(loc='best')
+        # plt.show()
+        title=title.replace(" ","_")
+        title = title.replace("/", "_")
+        title=j.core.text.strip_to_ascii_dense(title)
+        path2=f"{path}/{title}.png"
+        plt.savefig(path2, dpi=200)
+        plt.close()
+        return f"{title}.png"
 
     def text_formatted(self, period="B", aggregate_type=None, exclude=None):
 

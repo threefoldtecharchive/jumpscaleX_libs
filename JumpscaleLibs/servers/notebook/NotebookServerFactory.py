@@ -44,6 +44,7 @@ class NotebookServerFactory(j.baseclasses.object):
             # make sure the prompt toolkit stays below 3
             j.builders.runtimes.python3.pip_package_install("prompt-toolkit==2.0.9", reset=True)
             j.builders.runtimes.python3.pip_package_install("ptpython==2.0.4", reset=True)
+
             C = """
             export NODE_OPTIONS=--max-old-space-size=4096
 

@@ -6,10 +6,11 @@ import requests
 import time
 import json
 import base64
+import copy
 
 
 class Network:
-    def __init__(self, network, expiration, bot, reservations, currency):
+    def __init__(self, network, expiration, bot, reservations, currency, resv_id):
         self._network = network
         self._expiration = expiration
         self.name = network.name
@@ -19,6 +20,7 @@ class Network:
         self._bot = bot
         self._fill_used_ips(reservations)
         self.currency = currency
+        self.resv_id = resv_id
 
     def _fill_used_ips(self, reservations):
         for reservation in reservations:
@@ -78,6 +80,19 @@ class Network:
             return self._sal.reservation_wait(self._bot, rid)
         return True
 
+    def copy(self, customer_tid):
+        explorer = j.clients.explorer.default
+        reservation = explorer.reservations.get(self.resv_id)
+        networks = self._sal.network_list(customer_tid, [reservation])
+        for key in networks.keys():
+            network, expiration, currency, resv_id = networks[key]
+            if network.name == self.name:
+                network_copy = Network(network, expiration, self._bot, [reservation], currency, resv_id)
+                break
+        if network_copy:
+            network_copy._used_ips = copy.copy(self._used_ips)
+        return network_copy
+
     def ask_ip_from_node(self, node, message):
         ip_range = self.get_node_range(node)
         freeips = []
@@ -87,7 +102,7 @@ class Network:
             ip = str(host)
             if ip not in self._used_ips:
                 freeips.append(ip)
-        ip_address = self._bot.drop_down_choice(message, freeips)
+        ip_address = self._bot.drop_down_choice(message, freeips, required=True)
         self._used_ips.append(ip_address)
         return ip_address
 
@@ -153,7 +168,6 @@ class Chatflow(j.baseclasses.object):
             nodes = filter(j.sal.zosv2.nodes_finder.filter_is_free_to_use, nodes)
         elif not free_to_use:
             nodes = list(nodes)
-            nodes = filter(j.sal.zosv2.nodes_finder.filter_is_not_free_to_use, nodes)
         return list(nodes)
 
     def farms_check(
@@ -177,8 +191,9 @@ class Chatflow(j.baseclasses.object):
         farms_message = f"Select 1 or more farms to distribute the {message} nodes on. If no selection is made, the farms will be chosen randomly"
         empty_farms = set()
         all_farms = self._explorer.farms.list()
+        retry = False
         while True:
-            farms = self.farms_select(bot, farms_message, currency=currency)
+            farms = self.farms_select(bot, farms_message, currency=currency, retry=retry)
             farms_with_no_resources = self.farms_check(
                 1, farm_names=farms, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
             )
@@ -190,8 +205,20 @@ class Chatflow(j.baseclasses.object):
                 raise StopChatFlow("No Farms available containing nodes that match the required resources")
             if message:
                 message = f"for {message}"
+            retry = True
+            resources_of_farm = ""
+            if cru:
+                resources_of_farm += f" cru={cru}/"
+            if sru:
+                resources_of_farm += f" sru={sru}/"
+            if mru:
+                resources_of_farm += f" mru={mru}/"
+            if hru:
+                resources_of_farm += f" hru={hru}/"
+            if currency:
+                resources_of_farm += f" and the currency={currency}"
             farms_message = (
-                f"""The following farms don't have enough resources {message}: """
+                f"""The following farms don't meet the criteria of having {resources_of_farm} {message}: """
                 + ", ".join(farms_with_no_resources)
                 + """.
                 Please reselect farms to check for resources or leave it empty
@@ -199,7 +226,7 @@ class Chatflow(j.baseclasses.object):
             )
 
     def nodes_get(
-        self, number_of_nodes, farm_id=None, farm_names=None, cru=None, sru=None, mru=None, hru=None, currency="TFT",
+        self, number_of_nodes, farm_id=None, farm_names=None, cru=None, sru=None, mru=None, hru=None, currency="TFT"
     ):
         nodes_distribution = self._nodes_distribute(number_of_nodes, farm_names)
         # to avoid using the same node with different networks
@@ -232,16 +259,18 @@ class Chatflow(j.baseclasses.object):
             raise j.exceptions.NotFound(f"Node {nodeid} doesn't seem to be up please choose another nodeid")
 
         if currency:
-            if (currency == "FreeTFT" and not node.free_to_use) or (currency != "FreeTFT" and node.free_to_use):
+            if currency == "FreeTFT" and not node.free_to_use:
                 raise j.exceptions.Value(
                     f"The specified node ({nodeid}) should support the same type of currency as the network you are using ({currency})"
                 )
         if query:
             for unit, value in query.items():
+                if unit == "currency":
+                    continue
                 freevalue = getattr(node.total_resources, unit) - getattr(node.used_resources, unit)
                 if freevalue < value:
                     raise j.exceptions.Value(
-                        f"Node {nodeid} does not have enough available resources for this request, please choose another one"
+                        f"Node {nodeid} does not have enough available {unit} resources for this request {value} required {freevalue} available, please choose another one"
                     )
         return node
 
@@ -252,24 +281,24 @@ class Chatflow(j.baseclasses.object):
         for n in networks.keys():
             names.append(n)
         if not names:
-            res = "<h2> You don't have any networks, please use the network chatflow to create one</h2>"
+            res = "You don't have any networks, please use the network chatflow to create one"
             res = j.tools.jinja2.template_render(text=res)
             bot.stop(res)
         while True:
-            result = bot.single_choice("Choose a network", names)
+            result = bot.single_choice("Choose a network", names, required=True)
             if result not in networks:
                 continue
-            network, expiration, currency = networks[result]
-            return Network(network, expiration, bot, reservations, currency)
+            network, expiration, currency, resv_id = networks[result]
+            return Network(network, expiration, bot, reservations, currency, resv_id)
 
-    def farms_select(self, bot, message=None, currency=None):
+    def farms_select(self, bot, message=None, currency=None, retry=False):
         message = message or "Select 1 or more farms to distribute nodes on"
         farms = self._explorer.farms.list()
         farm_names = []
         for f in farms:
             if j.sal.zosv2.nodes_finder.filter_farm_currency(f, currency):
                 farm_names.append(f.name)
-        farms_selected = bot.multi_list_choice(message, farm_names,)
+        farms_selected = bot.multi_list_choice(message, farm_names, retry=retry, auto_complete=True)
         return farms_selected
 
     def ip_range_get(self, bot):
@@ -314,7 +343,7 @@ class Chatflow(j.baseclasses.object):
         else:
             nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip6
 
-        for node in filter(nodefilter, access_nodes):
+        for node in filter(j.sal.zosv2.nodes_finder.filter_is_up, filter(nodefilter, access_nodes)):
             access_node = node
             break
         else:
@@ -369,7 +398,7 @@ class Chatflow(j.baseclasses.object):
                 msg = e.response.json()["error"]
             except (KeyError, json.JSONDecodeError):
                 msg = e.response.text
-            bot.stop(f"The following error occured: {msg}")
+            raise StopChatFlow(f"The following error occured: {msg}")
 
         rid = reservation_create.reservation_id
         reservation.id = rid
@@ -391,7 +420,7 @@ class Chatflow(j.baseclasses.object):
             count += len(reservation.data_reservation.containers)
             count += len(reservation.data_reservation.kubernetes)
             count += len(reservation.data_reservation.proxies)
-            count += len(reservation.data_reservation.reserve_proxies)
+            count += len(reservation.data_reservation.reverse_proxies)
             count += len(reservation.data_reservation.subdomains)
             count += len(reservation.data_reservation.domain_delegates)
             count += len(reservation.data_reservation.gateway4to6)
@@ -404,6 +433,14 @@ class Chatflow(j.baseclasses.object):
 
         reservation = self._explorer.reservations.get(rid)
         while True:
+            remaning_time = j.data.time.secondsToHRDelta(
+                reservation.data_reservation.expiration_provisioning - j.data.time.epoch
+            )
+            deploying_message = f"""
+            # Deploying...\n
+            Deployment will be cancelled if it is not successful in {remaning_time}
+            """
+            bot.md_show_update(j.core.text.strip(deploying_message), md=True)
             self._reservation_failed(bot, reservation)
             if is_finished(reservation):
                 return reservation.results
@@ -415,7 +452,7 @@ class Chatflow(j.baseclasses.object):
                 link = f"{self._explorer.url}/reservations/{reservation.id}"
                 res += f"<h2> <a href={link}>Full reservation info</a></h2>"
                 j.sal.zosv2.reservation_cancel(rid)
-                bot.stop(res)
+                bot.stop(res, md=True, html=True)
             time.sleep(1)
             reservation = self._explorer.reservations.get(rid)
 
@@ -426,6 +463,14 @@ class Chatflow(j.baseclasses.object):
 
         reservation = self._explorer.reservations.get(rid)
         while True:
+            remaning_time = j.data.time.secondsToHRDelta(
+                reservation.data_reservation.expiration_provisioning - j.data.time.epoch
+            )
+            deploying_message = f"""
+            # Payment being processed...\n
+            Deployment will be cancelled if payment is not successful in {remaning_time}
+            """
+            bot.md_show_update(j.core.text.strip(deploying_message), md=True)
             if reservation.next_action != "PAY":
                 return
             if is_expired(reservation):
@@ -436,7 +481,7 @@ class Chatflow(j.baseclasses.object):
                 link = f"{self._explorer.url}/reservations/{reservation.id}"
                 res += f"<h2> <a href={link}>Full reservation info</a></h2>"
                 j.sal.zosv2.reservation_cancel(rid)
-                bot.stop(res)
+                bot.stop(res, md=True, html=True)
             if threebot_app and reservation_create_resp:
                 self.escrow_qr_show(bot, reservation_create_resp, reservation.data_reservation.expiration_provisioning)
             time.sleep(5)
@@ -452,7 +497,7 @@ class Chatflow(j.baseclasses.object):
             link = f"{self._explorer.url}/reservations/{reservation.id}"
             res += f"<h2> <a href={link}>Full reservation info</a></h2>"
             j.sal.zosv2.reservation_cancel(reservation.id)
-            bot.stop(res)
+            bot.stop(res, md=True, html=True)
 
     def currency_get(self, reservation):
         currencies = reservation.data_reservation.currencies
@@ -482,7 +527,7 @@ class Chatflow(j.baseclasses.object):
                 names.add(network.name)
                 remaning = expiration - j.data.time.epoch
                 network_name = network.name + f" ({currency}) - ends in: " + j.data.time.secondsToHRDelta(remaning)
-                networks[network_name] = (network, expiration, currency)
+                networks[network_name] = (network, expiration, currency, reservation.id)
 
         return networks
 
@@ -502,14 +547,23 @@ class Chatflow(j.baseclasses.object):
             wallets[wallet.name] = wallet
         return wallets
 
-    def reservation_register_and_pay(self, reservation, expiration=None, customer_tid=None, currency=None, bot=None):
+    def reservation_register_and_pay(
+        self, reservation, expiration=None, customer_tid=None, currency=None, bot=None, wallet=None
+    ):
         if customer_tid and expiration and currency:
             reservation_create = self.reservation_register(
                 reservation, expiration, customer_tid=customer_tid, currency=currency, bot=bot
             )
         else:
             reservation_create = reservation
-        payment = self.payments_show(bot, reservation_create, currency)
+        if not wallet:
+            payment = self.payments_show(bot, reservation_create, currency)
+        else:
+            payment = {"wallet": None, "free": False}
+            if not (reservation_create.escrow_information and reservation_create.escrow_information.details):
+                payment["free"] = True
+            else:
+                payment["wallet"] = wallet
 
         resv_id = reservation_create.reservation_id
         if payment["wallet"]:
@@ -544,16 +598,21 @@ class Chatflow(j.baseclasses.object):
             wallet_names.append(w)
         wallet_names.append("3bot app")
 
+        payment_details = self.get_payment_details(escrow_info, currency)
+
         message = f"""
-Billing details:
-<h4> Escrow address: </h4>  {escrow_address} \n
-<h4> Escrow asset: </h4>  {escrow_asset} \n
-<h4> Total amount: </h4>  {total_amount} \n
-<h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
-"""
+        Billing details:
+        <h4> Wallet address: </h4>  {escrow_address} \n
+        <h4> Currency: </h4>  {escrow_asset} \n
+        <h4> Payment details: </h4> {payment_details} \n
+        <h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
+        """
+        retry = False
         while True:
-            result = bot.single_choice(message, wallet_names)
+
+            result = bot.single_choice(message, wallet_names, html=True, retry=retry)
             if result not in wallet_names:
+                retry = True
                 continue
             if result == "3bot app":
                 reservation = self._explorer.reservations.get(rid)
@@ -567,14 +626,15 @@ Billing details:
                         current_balance = balance.balance
                         if float(current_balance) >= total_amount:
                             return payment
+                retry = True
                 message = f"""
-<h2 style="color: #142850;"><b style="color: #00909e;">{total_amount} {currency}</b> are required, but only <b style="color: #00909e;">{current_balance} {currency}</b> are available in wallet <b style="color: #00909e;">{payment["wallet"].name}</b></h2>
-Billing details:
-<h4> Escrow address: </h4>  {escrow_address} \n
-<h4> Escrow asset: </h4>  {escrow_asset} \n
-<h4> Total amount: </h4>  {total_amount} \n
-<h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
-"""
+                <h2 style="color: #142850;"><b style="color: #00909e;">{total_amount} {currency}</b> are required, but only <b style="color: #00909e;">{current_balance} {currency}</b> are available in wallet <b style="color: #00909e;">{payment["wallet"].name}</b></h2>
+                Billing details:
+                <h4> Wallet address: </h4>  {escrow_address} \n
+                <h4> Currency: </h4>  {escrow_asset} \n
+                <h4> Payment details: </h4> {payment_details} \n
+                <h4> Choose a wallet name to use for payment or proceed with payment through 3bot app </h4>
+                """
 
     def escrow_qr_show(self, bot, reservation_create_resp, expiration_provisioning):
         """
@@ -583,29 +643,42 @@ Billing details:
         escrow_info = j.sal.zosv2.reservation_escrow_information_with_qrcodes(reservation_create_resp)
         escrow_address = escrow_info["escrow_address"]
         escrow_asset = escrow_info["escrow_asset"]
-        farmer_payments = escrow_info["farmer_payments"]
-        total_amount = escrow_info["total_amount"]
         reservationid = escrow_info["reservationid"]
         qrcode = escrow_info["qrcode"]
         remaning_time = j.data.time.secondsToHRDelta(expiration_provisioning - j.data.time.epoch)
+        payment_details = self.get_payment_details(escrow_info, escrow_asset.split(":")[0])
 
         message_text = f"""
-Scan the QR code with your application (do not change the message) or enter the information below manually and proceed with the payment make sure to add the reservationid as memo_text.
-<p>If no payment is made in {remaning_time} the reservation will be canceled</p>
+        <h3> Please make your payment </h3>
+        Scan the QR code with your application (do not change the message) or enter the information below manually and proceed with the payment. Make sure to add the reservationid as memo_text.
+        <p>If no payment is made in {remaning_time} the reservation will be canceled</p>
 
-<h4> Escrow address: </h4>  {escrow_address} \n
-<h4> Escrow asset: </h4>  {escrow_asset} \n
-<h4> Total amount: </h4>  {total_amount} \n
-<h4> Reservation id: </h4>  {reservationid} \n
+        <h4> Wallet address: </h4>  {escrow_address} \n
+        <h4> Currency: </h4>  {escrow_asset} \n
+        <h4> Reservation id: </h4>  {reservationid} \n
+        <h4> Payment details: </h4> {payment_details} \n
+        """
 
-<h4>Payment details:</h4> \n
-"""
-        for payment in farmer_payments:
-            message_text += f"""
-Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
-"""
+        bot.qrcode_show(data=qrcode, msg=message_text, scale=4, update=True, html=True)
 
-        bot.qrcode_show(qrcode, title="Please make your payment", msg=message_text, scale=4, update=True)
+    def get_payment_details(self, escrow_info, currency):
+        explorer = j.clients.explorer.default
+
+        farmer_payments = escrow_info["farmer_payments"]
+        total_amount = escrow_info["total_amount"]
+
+        payment_details = ""
+        payment_details += '<table style="width: 50%; font-family: arial, sans-serif; border-collapse: collapse;">'
+        for farmer in farmer_payments:
+            farmer_name = explorer.farms.get(farm_id=farmer["farmer_id"]).name
+            payment_details += (
+                f"<tr><td>Farmer {farmer_name}</td><td>{format(farmer['total_amount'],'.7f')} {currency}</td></tr>"
+            )
+        payment_details += f"<tr><td>Transaction Fees</td><td>{0.1} {currency}</td></tr>"
+        payment_details += f"<tr><td>Total amount</td><td>{format(total_amount + 0.1,'.7f')} {currency}</td></tr>"
+        payment_details += "</table>"
+
+        return payment_details
 
     def reservation_save(self, rid, name, url, form_info=None):
         form_info = form_info or []
@@ -629,7 +702,10 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         return reservation
 
     def reservation_metadata_add(self, reservation, metadata):
-        meta_json = metadata._json
+        if isinstance(metadata, dict):
+            meta_json = json.dumps(metadata)
+        else:
+            meta_json = metadata._json
         encrypted_metadata = base64.b85encode(j.me.encryptor.encrypt(meta_json.encode())).decode()
         reservation.metadata = encrypted_metadata
         return reservation
@@ -637,17 +713,33 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
     def reservation_metadata_decrypt(self, metadata_encrypted):
         return j.me.encryptor.decrypt(base64.b85decode(metadata_encrypted.encode())).decode()
 
-    def solution_name_add(self, bot, model):
+    def solution_name_add(self, bot, model, msg="Please add a name for your solution"):
         name_exists = False
+        retry = False
         while not name_exists:
-            solution_name = bot.string_ask("Please add a name for your solution", allow_empty=False)
+            solution_name = bot.string_ask(msg, required=True, retry=retry)
             find = model.find(name=solution_name)
             if len(find) > 0:
                 res = "# Please choose another name because this name already exist"
                 res = j.tools.jinja2.template_render(text=res)
-                bot.md_show(res)
+                retry = True
+                bot.md_show(res, md=True)
             else:
                 return solution_name
+
+    def network_name_add(self, bot, model):
+        name_exists = False
+        retry = False
+        while not name_exists:
+            network_name = bot.string_ask("Please enter a network name", required=True, field="name", retry=retry)
+            find = model.find(name=network_name)
+            if len(find) > 0:
+                res = "# Please choose another name because this name already exist"
+                res = j.tools.jinja2.template_render(text=res)
+                retry = True
+                bot.md_show(res, md=True)
+            else:
+                return network_name
 
     def solutions_get(self, url):
         try:
@@ -683,8 +775,11 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
             "ubuntu": "tfgrid.solutions.ubuntu.1",
             "flist": "tfgrid.solutions.flist.1",
             "minio": "tfgrid.solutions.minio.1",
+            "exposed": "tfgrid.solutions.exposed.1",
+            "delegated_domain": "tfgrid.solutions.delegated_domain.1",
             "kubernetes": "tfgrid.solutions.kubernetes.1",
             "network": "tfgrid.solutions.network.1",
+            "gitea": "tfgrid.solutions.gitea.1",
         }
 
         for _, url in urls.items():
@@ -702,9 +797,15 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                     metadata = json.loads(metadata)
                 except Exception:
                     continue
-                solution_type = metadata["form_info"]["chatflow"]
-                metadata["form_info"].pop("chatflow")
-                if solution_type == "ubuntu":
+
+                if "form_info" not in metadata:
+                    solution_type = self.solution_type_check(reservation)
+                else:
+                    solution_type = metadata["form_info"]["chatflow"]
+                    metadata["form_info"].pop("chatflow")
+                if solution_type == "unknown":
+                    continue
+                elif solution_type == "ubuntu":
                     metadata = self.solution_ubuntu_info_get(metadata, reservation)
                 elif solution_type == "flist":
                     metadata = self.solution_flist_info_get(metadata, reservation)
@@ -712,11 +813,21 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                     if metadata["name"] in networks:
                         continue
                     networks.append(metadata["name"])
+                elif solution_type == "gitea":
+                    metadata["form_info"]["Public key"] = reservation.data_reservation.containers[0].environment[
+                        "pub_key"
+                    ]
+                elif solution_type == "exposed":
+                    meta = metadata
+                    metadata = {"form_info": meta}
+                    metadata["form_info"].update(self.solution_exposed_info_get(reservation))
+                    metadata["name"] = metadata["form_info"]["Domain"]
                 self.reservation_save(
                     reservation.id, metadata["name"], urls[solution_type], form_info=metadata["form_info"]
                 )
             else:
                 solution_type = self.solution_type_check(reservation)
+                info = {}
                 name = f"unknown_{reservation.id}"
                 if solution_type == "unknown":
                     continue
@@ -725,7 +836,17 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                     if name in networks:
                         continue
                     networks.append(name)
-                self.reservation_save(reservation.id, name, urls[solution_type], form_info={})
+                elif solution_type == "delegated_domain":
+                    info = self.solution_domain_delegates_info_get(reservation)
+                    if not info.get("Solution name"):
+                        name = f"unknown_{reservation.id}"
+                    else:
+                        name = info["Solution name"]
+                elif solution_type == "exposed":
+                    info = self.solution_exposed_info_get(reservation)
+                    info["Solution name"] = name
+                    name = info["Domain"]
+                self.reservation_save(reservation.id, name, urls[solution_type], form_info=info)
 
     def solution_ubuntu_info_get(self, metadata, reservation):
         envs = reservation.data_reservation.containers[0].environment
@@ -740,6 +861,34 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         metadata["form_info"]["IP Address"] = reservation.data_reservation.containers[0].network_connection[0].ipaddress
         return metadata
 
+    def solution_domain_delegates_info_get(self, reservation):
+        delegated_domain = reservation.data_reservation.domain_delegates[0]
+        return {"Domain": delegated_domain.domain, "Gateway": delegated_domain.node_id}
+
+    def solution_exposed_info_get(self, reservation):
+        def get_arg(cmd, arg):
+            idx = cmd.index(arg)
+            if idx:
+                return cmd[idx + 1]
+            return None
+
+        info = {}
+        for container in reservation.data_reservation.containers:
+            if "tcprouter" in container.flist:
+                entrypoint = container.entrypoint.split()
+                local = get_arg(entrypoint, "-local")
+                if local:
+                    info["Port"] = local.split(":")[-1]
+                localtls = get_arg(entrypoint, "-local-tls")
+                if localtls:
+                    info["port-tls"] = localtls.split(":")[-1]
+                remote = get_arg(entrypoint, "-remote")
+                if remote:
+                    info["Name Server"] = remote.split(":")[0]
+        for proxy in reservation.data_reservation.reverse_proxies:
+            info["Domain"] = proxy.domain
+        return info
+
     def solution_flist_info_get(self, metadata, reservation):
         envs = reservation.data_reservation.containers[0].environment
         env_variable = ""
@@ -750,6 +899,8 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         metadata["form_info"]["Env variables"] = str(env_variable)
         metadata["form_info"]["Flist link"] = reservation.data_reservation.containers[0].flist
         metadata["form_info"]["Interactive"] = reservation.data_reservation.containers[0].interactive
+        if metadata["form_info"]["Interactive"]:
+            metadata["form_info"]["Port"] = "7681"
         metadata["form_info"]["Entry point"] = reservation.data_reservation.containers[0].entrypoint
         metadata["form_info"]["IP Address"] = reservation.data_reservation.containers[0].network_connection[0].ipaddress
         return metadata
@@ -758,9 +909,9 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         reservations = j.sal.zosv2.reservation_list(tid=customer_tid, next_action="DEPLOY")
         networks = self.network_list(customer_tid, reservations)
         for key in networks.keys():
-            network, expiration, currency = networks[key]
+            network, expiration, currency, resv_id = networks[key]
             if network.name == name:
-                return Network(network, expiration, bot, reservations, currency)
+                return Network(network, expiration, bot, reservations, currency, resv_id)
 
     def solution_type_check(self, reservation):
         containers = reservation.data_reservation.containers
@@ -778,7 +929,13 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
                 return "ubuntu"
             elif "minio" in containers[0].flist:
                 return "minio"
+            elif "gitea" in containers[0].flist:
+                return "gitea"
+            elif "tcprouter" in containers[0].flist:
+                return "exposed"
             return "flist"
+        elif reservation.data_reservation.domain_delegates:
+            return "delegated_domain"
         return "unknown"
 
     def delegate_domains_list(self, customer_tid, currency=None):
@@ -803,6 +960,8 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         unknowns = ["", None, "Uknown", "Unknown"]
         gateways = {}
         for g in j.sal.zosv2._explorer.gateway.list():
+            if not j.sal.zosv2.nodes_finder.filter_is_up(g):
+                continue
             location = []
             for area in ["continent", "country", "city"]:
                 areaname = getattr(g.location, area)
@@ -823,7 +982,7 @@ Farmer id : {payment['farmer_id']} , Amount :{payment['total_amount']}
         if not gateways:
             bot.stop("No available gateways")
         options = sorted(list(gateways.keys()))
-        gateway = bot.drop_down_choice("Please choose a gateway", options)
+        gateway = bot.drop_down_choice("Please choose a gateway", options, required=True)
         return gateways[gateway]
 
     def gateway_get_kube_network_ip(self, reservation_data):

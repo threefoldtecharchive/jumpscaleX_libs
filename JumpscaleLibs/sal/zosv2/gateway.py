@@ -7,7 +7,7 @@ from .id import _next_workload_id
 
 class GatewayGenerator:
     def __init__(self, explorer):
-        self._gateway = explorer.gateway
+        self._gateways = explorer.gateway
 
     def sub_domain(self, reservation, node_id, domain, ips):
         for ip in ips:
@@ -39,12 +39,12 @@ class GatewayGenerator:
         return p
 
     def tcp_proxy_reverse(self, reservation, node_id, domain, secret):
-        p = reservation.data_reservation.reserve_proxies.new()
+        p = reservation.data_reservation.reverse_proxies.new()
         p.node_id = node_id
         p.domain = domain
         p.workload_id = _next_workload_id(reservation)
 
-        node = self._gateway.get(node_id)
+        node = self._gateways.get(node_id)
         p.secret = encrypt_for_node(node.public_key_hex, secret)
 
         return p

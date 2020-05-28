@@ -32,14 +32,4 @@ class Explorer(JSConfigClient):
         self.users = Users(self._session, self.url)
         self.farms = Farms(self._session, self.url)
         self.reservations = Reservations(self._session, self.url)
-        self._gateway = Gateway(self._session, self.url)
-
-    @property
-    def gateway(self):
-        if self._gateway is None:
-            gatewayhost = urlparse(self.url).hostname.replace("explorer", "gateway")
-            gedisclient = j.clients.gedis.get(
-                name=f"{self.name}_gateway", host=gatewayhost, package_name="tfgrid.gateway"
-            )
-            self._gateway = gedisclient.actors.gateway
-        return self._gateway
+        self.gateway = Gateway(self._session, self.url)

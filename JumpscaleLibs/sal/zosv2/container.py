@@ -18,6 +18,8 @@ class ContainerGenerator:
         env={},
         cpu=1,
         memory=1024,
+        disk_size=256,
+        disk_type="SSD",
         entrypoint="",
         interactive=False,
         secret_env={},
@@ -26,32 +28,6 @@ class ContainerGenerator:
     ):
         """
         add a container to the reservation
-        
-        :param reservation: [description]
-        :type reservation: [type]
-        :param node_id: [description]
-        :type node_id: [type]
-        :param network_name: [description]
-        :type network_name: [type]
-        :param ip_address: [description]
-        :type ip_address: [type]
-        :param flist: [description]
-        :type flist: [type]
-        :param env: [description], defaults to {}
-        :type env: dict, optional
-        :param cpu: [description], defaults to 1
-        :type cpu: int, optional
-        :param memory: [description], defaults to 1024
-        :type memory: int, optional
-        :param entrypoint: [description], defaults to ""
-        :type entrypoint: str, optional
-        :param interactive: [description], defaults to False
-        :type interactive: bool, optional
-        :param storage_url: [description], defaults to "zdb://hub.grid.tf:9900"
-        :type storage_url: str, optional
-        :raises j.excpetions.Input: [description]
-        :return: [description]
-        :rtype: [type]
         """
 
         cont = reservation.data_reservation.containers.new()
@@ -82,6 +58,8 @@ class ContainerGenerator:
 
         cont.capacity.cpu = cpu
         cont.capacity.memory = memory
+        cont.capacity.disk_size = disk_size
+        cont.capacity.disk_type = disk_type
 
         return cont
 

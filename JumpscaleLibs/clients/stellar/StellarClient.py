@@ -18,6 +18,7 @@ import time
 import math
 from .balance import Balance, EscrowAccount, AccountBalances
 from .transaction import TransactionSummary, Effect
+from decimal import Decimal
 
 JSConfigClient = j.baseclasses.object_config
 
@@ -152,18 +153,22 @@ class StellarClient(JSConfigClient):
             balances.add_balance(Balance.from_horizon_response(response_balance))
         return balances
 
-    def get_balance(self):
-        """Gets balance for address
+    def get_balance(self, address=None):
+        """Gets balance for an address
         """
-        all_balances = self._get_free_balances()
-        for account in self._find_escrow_accounts():
+        if address is None:
+            address = self.address
+        all_balances = self._get_free_balances(address)
+        for account in self._find_escrow_accounts(address):
             all_balances.add_escrow_account(account)
         return all_balances
 
-    def _find_escrow_accounts(self):
+    def _find_escrow_accounts(self, address=None):
+        if address is None:
+            address = self.address
         escrow_accounts = []
         accounts_endpoint = self._get_horizon_server().accounts()
-        accounts_endpoint.signer(self.address)
+        accounts_endpoint.signer(address)
         old_cursor = "old"
         new_cursor = ""
         while new_cursor != old_cursor:
@@ -176,7 +181,7 @@ class StellarClient(JSConfigClient):
             accounts = response["_embedded"]["records"]
             for account in accounts:
                 account_id = account["account_id"]
-                if account_id == self.address:
+                if account_id == address:
                     continue  # Do not take the receiver's account
                 all_signers = account["signers"]
                 preauth_signers = [signer["key"] for signer in all_signers if signer["type"] == "preauth_tx"]
@@ -374,8 +379,8 @@ class StellarClient(JSConfigClient):
         """Transfer assets to another address
         :param destination_address: address of the destination.
         :type destination_address: str
-        :param amount: amount, can be a floating point number with 7 numbers after the decimal point expressed as a string.
-        :type amount: str
+        :param amount: amount, can be a floating point number with 7 numbers after the decimal point expressed as a Decimal or a string.
+        :type amount: Union[str, Decimal]
         :param asset: asset to transfer (if none is specified the default 'XLM' is used),
         if you wish to specify an asset it should be in format 'assetcode:issuer'. Where issuer is the address of the
         issuer of the asset.
@@ -416,7 +421,7 @@ class StellarClient(JSConfigClient):
         )
         transaction_builder.append_payment_op(
             destination=destination_address,
-            amount=str(amount),
+            amount=amount,
             asset_code=asset,
             asset_issuer=issuer,
             source=source_account.account_id,
@@ -430,7 +435,7 @@ class StellarClient(JSConfigClient):
         transaction = transaction_builder.build()
         transaction = transaction.to_xdr()
 
-        if asset == "TFT" or asset == "FreeTFT":
+        if asset in _NETWORK_KNOWN_TRUSTS[str(self.network)]:
             if fund_transaction:
                 transaction = self._fund_transaction(transaction=transaction)
                 transaction = transaction["transaction_xdr"]
@@ -468,7 +473,7 @@ class StellarClient(JSConfigClient):
             address = self.address
         tx_endpoint = self._get_horizon_server().transactions()
         tx_endpoint.for_account(address)
-        tx_endpoint.include_failed(False)
+        tx_endpoint.include_failed(True)
         transactions = []
         old_cursor = "old"
         new_cursor = ""
@@ -481,7 +486,8 @@ class StellarClient(JSConfigClient):
             new_cursor = parse.parse_qs(next_link_query)["cursor"][0]
             response_transactions = response["_embedded"]["records"]
             for response_transaction in response_transactions:
-                transactions.append(TransactionSummary.from_horizon_response(response_transaction))
+                if response_transaction['successful']:
+                    transactions.append(TransactionSummary.from_horizon_response(response_transaction))
         return transactions
 
     def get_transaction_effects(self, transaction_hash, address=None):
@@ -515,8 +521,8 @@ class StellarClient(JSConfigClient):
         """Transfer locked assets to another address
         :param destination_address: address of the destination.
         :type destination_address: str
-        :param amount: amount, can be a floating point number with 7 numbers after the decimal point expressed as a string.
-        :type amount: str
+        :param amount: amount, can be a floating point number with 7 numbers after the decimal point expressed as a Decimal or a string.
+        :type amount: Union[str, Decimal]
         :param asset_code: asset to transfer
         :type asset_code: str
         :param asset_issuer: if the asset_code is different from 'XlM', the issuer address
@@ -558,7 +564,7 @@ class StellarClient(JSConfigClient):
         unlock_hash = strkey.StrKey.encode_pre_auth_tx(preauth_tx_hash)
         self._create_unlockhash_transaction(unlock_hash=unlock_hash, transaction_xdr=preauth_tx.to_xdr())
 
-        self._set_account_signers(escrow_kp.public_key, destination_address, preauth_tx_hash, escrow_kp)
+        self._set_escrow_account_signers(escrow_kp.public_key, destination_address, preauth_tx_hash, escrow_kp)
         self._log_info("Unlock Transaction:")
         self._log_info(preauth_tx.to_xdr())
 
@@ -569,8 +575,10 @@ class StellarClient(JSConfigClient):
         horizon_server = self._get_horizon_server()
         escrow_account = horizon_server.load_account(escrow_kp.public_key)
         escrow_account.increment_sequence_number()
+
+        base_fee = horizon_server.fetch_base_fee()
         tx = (
-            TransactionBuilder(escrow_account)
+            TransactionBuilder(escrow_account,network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee)
             .append_set_options_op(master_weight=0, low_threshold=1, med_threshold=1, high_threshold=1)
             .add_time_bounds(unlock_time, 0)
             .build()
@@ -578,14 +586,16 @@ class StellarClient(JSConfigClient):
         tx.sign(escrow_kp)
         return tx
 
-    def _set_account_signers(self, address, public_key_signer, preauth_tx_hash, signer_kp):
+    def _set_escrow_account_signers(self, address, public_key_signer, preauth_tx_hash, signer_kp):
         horizon_server = self._get_horizon_server()
         if address == self.address:
             account = self.load_account()
         else:
             account = horizon_server.load_account(address)
+
+        base_fee = horizon_server.fetch_base_fee()
         tx = (
-            TransactionBuilder(account)
+            TransactionBuilder(account,network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee)
             .append_pre_auth_tx_signer(preauth_tx_hash, 1)
             .append_ed25519_public_key_signer(public_key_signer, 1)
             .append_set_options_op(master_weight=1, low_threshold=2, med_threshold=2, high_threshold=2)
@@ -601,30 +611,29 @@ class StellarClient(JSConfigClient):
             )
         )
 
-    def modify_signing_requirements(self, public_keys_signers, signature_count, low_treshold=1, high_treshold=2):
-        """modify_signing_requirements sets to amount of signatures required for the creation of multisig account. It also adds
-        the public keys of the signer to this account
+    def modify_signing_requirements(self, public_keys_signers, signature_count, low_treshold=0, high_treshold=2, master_weight=2):
+        """modify_signing_requirements sets the signing requirements for a multisig account. It also adds
+        the public keys of the signer to this account.
         :param public_keys_signers: list of public keys of signers.
         :type public_keys_signers: list
-        :param signature_count: amount of signatures requires to transfer funds.
-        :type signature_count: str
-        :param low_treshold: amount of signatures required for low security operations (transaction processing, allow trust, bump sequence)
-        :type low_treshold: str
-        :param high_treshold: amount of signatures required for high security operations (set options, account merge)
-        :type: str
+        :param signature_count: amount of signatures required to transfer funds.
+        :type signature_count: int
+        :param low_treshold: weight required for low security operations (transaction processing, allow trust, bump sequence)
+        :type low_treshold: int
+        :param high_treshold: weight required for high security operations (set options, account merge)
+        :type high_treshold: int
+        :param master_weight: A number from 0-255 (inclusive) representing the weight of the master key. If the weight of the master key is updated to 0, it is effectively disabled.
+        :type master_weight: int 
         """
-        if len(public_keys_signers) != signature_count - 1:
-            raise Exception(
-                "Number of public_keys must be 1 less than the signature count in order to set the signature count"
-            )
-
         account = self.load_account()
         source_keypair = Keypair.from_secret(self.secret)
 
-        transaction_builder = TransactionBuilder(account)
+        horizon_server = self._get_horizon_server()
+        base_fee = horizon_server.fetch_base_fee()
+        transaction_builder = TransactionBuilder(account,network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee)
         # set the signing options
         transaction_builder.append_set_options_op(
-            low_threshold=low_treshold, med_threshold=signature_count, high_threshold=high_treshold
+            low_threshold=low_treshold, med_threshold=signature_count, high_threshold=high_treshold, master_weight=master_weight
         )
 
         # For every public key given, add it as a signer to this account
@@ -635,7 +644,6 @@ class StellarClient(JSConfigClient):
         tx = transaction_builder.build()
         tx.sign(source_keypair)
 
-        horizon_server = self._get_horizon_server()
         try:
             response = horizon_server.submit_transaction(tx)
             self._log_info(response)
@@ -676,15 +684,17 @@ class StellarClient(JSConfigClient):
         """
 
         account = self.load_account()
-        tx = TransactionBuilder(account).append_ed25519_public_key_signer(public_key_signer, 0).build()
+
+        horizon_server = self._get_horizon_server()
+        base_fee = horizon_server.fetch_base_fee()
+        tx = TransactionBuilder(account,network_passphrase=_NETWORK_PASSPHRASES[str(self.network)], base_fee=base_fee).append_ed25519_public_key_signer(public_key_signer, 0).build()
 
         source_keypair = Keypair.from_secret(self.secret)
 
         tx.sign(source_keypair)
 
-        server = self._get_horizon_server()
         try:
-            response = server.submit_transaction(tx)
+            response = horizon_server.submit_transaction(tx)
             self._log_info(response)
             self._log_info("Multisig tx signed and sent")
         except BadRequestError:

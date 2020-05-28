@@ -36,15 +36,16 @@ class Reservations:
                 raise j.exceptions.Input("next_action should be of type int")
         return next_action
 
-    def iter(
-        self, customer_tid=None, next_action=None,
-    ):
+    def iter(self, customer_tid=None, next_action=None):
+        def filter_next_action(reservation):
+            return reservation.next_action == next_action
+
         query = {}
         if customer_tid:
             query["customer_tid"] = customer_tid
         if next_action:
             query["next_action"] = self._next_action(next_action)
-        yield from get_all(self._session, self._model, self._base_url, query)
+        yield from filter(filter_next_action, get_all(self._session, self._model, self._base_url, query))
 
     def get(self, reservation_id):
         url = self._base_url + f"/{reservation_id}"
@@ -53,7 +54,7 @@ class Reservations:
 
     def sign_provision(self, reservation_id, tid, signature):
         url = self._base_url + f"/{reservation_id}/sign/provision"
-        data = j.data.serializers.json.dumps({"signature": signature, "tid": tid, "epoch": j.data.time.epoch,})
+        data = j.data.serializers.json.dumps({"signature": signature, "tid": tid, "epoch": j.data.time.epoch})
         self._session.post(url, data=data)
         return True
 
