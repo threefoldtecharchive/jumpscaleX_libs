@@ -557,7 +557,7 @@ class Chatflow(j.baseclasses.object):
         else:
             reservation_create = reservation
         if not wallet:
-            payment = self.payments_show(bot, reservation_create, currency)
+            payment, payment_obj = self.payments_show(bot, reservation_create, currency)
         else:
             payment = {"wallet": None, "free": False}
             if not (reservation_create.escrow_information and reservation_create.escrow_information.details):
@@ -573,6 +573,8 @@ class Chatflow(j.baseclasses.object):
             self.payment_wait(bot, resv_id, threebot_app=True, reservation_create_resp=reservation_create)
 
         self.reservation_wait(bot, resv_id)
+        if payment_obj:
+            payment_obj.save()
         return resv_id
 
     def payments_show(self, bot, reservation_create_resp, currency):
@@ -581,10 +583,11 @@ class Chatflow(j.baseclasses.object):
         where a QR code is viewed for the user to scan and continue with their payment
         :rtype: wallet in case a wallet is used
         """
+
         payment = {"wallet": None, "free": False}
         if not (reservation_create_resp.escrow_information and reservation_create_resp.escrow_information.details):
             payment["free"] = True
-            return payment
+            return payment, None
         escrow_info = j.sal.zosv2.reservation_escrow_information_with_qrcodes(reservation_create_resp)
 
         escrow_address = escrow_info["escrow_address"]
@@ -611,13 +614,22 @@ class Chatflow(j.baseclasses.object):
         while True:
 
             result = bot.single_choice(message, wallet_names, html=True, retry=retry)
+
             if result not in wallet_names:
                 retry = True
                 continue
             if result == "3bot app":
                 reservation = self._explorer.reservations.get(rid)
                 self.escrow_qr_show(bot, reservation_create_resp, reservation.data_reservation.expiration_provisioning)
-                return payment
+                payment_obj = self.payment_create(
+                    rid=rid,
+                    currency=currency,
+                    escrow_address=escrow_address,
+                    escrow_asset=escrow_asset,
+                    total_amount=total_amount,
+                    payment_source=result,
+                )
+                return payment, payment_obj
             else:
                 payment["wallet"] = wallets[result]
                 balances = payment["wallet"].get_balance().balances
@@ -625,7 +637,15 @@ class Chatflow(j.baseclasses.object):
                     if balance.asset_code == currency:
                         current_balance = balance.balance
                         if float(current_balance) >= total_amount:
-                            return payment
+                            payment_obj = self.payment_create(
+                                rid=rid,
+                                currency=currency,
+                                escrow_address=escrow_address,
+                                escrow_asset=escrow_asset,
+                                total_amount=total_amount,
+                                payment_source=result,
+                            )
+                            return payment, payment_obj
                 retry = True
                 message = f"""
                 <h2 style="color: #142850;"><b style="color: #00909e;">{total_amount} {currency}</b> are required, but only <b style="color: #00909e;">{current_balance} {currency}</b> are available in wallet <b style="color: #00909e;">{payment["wallet"].name}</b></h2>
@@ -989,3 +1009,18 @@ class Chatflow(j.baseclasses.object):
         network_id = reservation_data["kubernetes"][0]["network_id"]
         ip = reservation_data["kubernetes"][0]["ipaddress"]
         return network_id, ip
+
+    def payment_create(
+        self, rid, currency, escrow_address=None, escrow_asset=None, total_amount=None, payment_source=None
+    ):
+        model = j.clients.bcdbmodel.get(url="tfgrid.solutions.payment.1")
+        payment_obj = model.new()
+        payment_obj.explorer = self._explorer.url
+        payment_obj.rid = rid
+        payment_obj.currency = currency
+        payment_obj.escrow_address = escrow_address
+        payment_obj.escrow_asset = escrow_asset
+        payment_obj.total_amount = total_amount
+        payment_obj.transaction_fees = f"0.1 {currency}"
+        payment_obj.payment_source = payment_source
+        return payment_obj
