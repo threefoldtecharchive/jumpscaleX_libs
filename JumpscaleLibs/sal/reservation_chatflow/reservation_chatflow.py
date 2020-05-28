@@ -67,7 +67,7 @@ class Network:
                 reservation, self._expiration, tid, currency=currency, bot=bot
             )
             rid = reservation_create.reservation_id
-            payment = j.sal.reservation_chatflow.payments_show(self._bot, reservation_create, currency)
+            payment, payment_obj = j.sal.reservation_chatflow.payments_show(self._bot, reservation_create, currency)
             if payment["free"]:
                 pass
             elif payment["wallet"]:
@@ -77,7 +77,10 @@ class Network:
                 j.sal.reservation_chatflow.payment_wait(
                     bot, rid, threebot_app=True, reservation_create_resp=reservation_create
                 )
-            return self._sal.reservation_wait(self._bot, rid)
+            res = self._sal.reservation_wait(self._bot, rid)
+            if payment_obj:
+                payment_obj.save()
+            return res
         return True
 
     def copy(self, customer_tid):
@@ -628,6 +631,7 @@ class Chatflow(j.baseclasses.object):
                     escrow_asset=escrow_asset,
                     total_amount=total_amount,
                     payment_source=result,
+                    farmer_payments=escrow_info["farmer_payments"],
                 )
                 return payment, payment_obj
             else:
@@ -644,6 +648,7 @@ class Chatflow(j.baseclasses.object):
                                 escrow_asset=escrow_asset,
                                 total_amount=total_amount,
                                 payment_source=result,
+                                farmer_payments=escrow_info["farmer_payments"],
                             )
                             return payment, payment_obj
                 retry = True
@@ -1011,7 +1016,7 @@ class Chatflow(j.baseclasses.object):
         return network_id, ip
 
     def payment_create(
-        self, rid, currency, escrow_address=None, escrow_asset=None, total_amount=None, payment_source=None
+        self, rid, currency, escrow_address, escrow_asset, total_amount, payment_source, farmer_payments
     ):
         model = j.clients.bcdbmodel.get(url="tfgrid.solutions.payment.1")
         payment_obj = model.new()
@@ -1023,4 +1028,9 @@ class Chatflow(j.baseclasses.object):
         payment_obj.total_amount = total_amount
         payment_obj.transaction_fees = f"0.1 {currency}"
         payment_obj.payment_source = payment_source
+        dst_payments = {}
+        for farmer in farmer_payments:
+            farmer_name = self._explorer.farms.get(farm_id=farmer["farmer_id"]).name
+            dst_payments[farmer_name] = farmer["total_amount"]
+        payment_obj.farmer_payments = dst_payments
         return payment_obj
