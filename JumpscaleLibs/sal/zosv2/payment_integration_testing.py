@@ -4,8 +4,8 @@ import random
 import os
 import pytest
 
-WALLET_NAME = ""
-WALLET_SECRET = ""
+WALLET_NAME = os.environ.get("WALLET_NAME")
+WALLET_SECRET = os.environ.get("WALLET_SECRET")
 
 TRANSACTION_FEES = 0.1
 
