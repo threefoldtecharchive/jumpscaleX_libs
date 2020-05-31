@@ -863,6 +863,8 @@ class Chatflow(j.baseclasses.object):
         envs.pop("pub_key")
         metadata["form_info"]["CPU"] = reservation.data_reservation.containers[0].capacity.cpu
         metadata["form_info"]["Memory"] = reservation.data_reservation.containers[0].capacity.memory
+        metadata["form_info"]["Root filesystem Type"] = str(reservation.data_reservation.containers[0].capacity.disk_type)
+        metadata["form_info"]["Root filesystem Size"] = reservation.data_reservation.containers[0].capacity.disk_size or 256
         for key, value in envs.items():
             env_variable += f"{key}={value},"
         metadata["form_info"]["Env variables"] = str(env_variable)
@@ -904,6 +906,8 @@ class Chatflow(j.baseclasses.object):
             env_variable += f"{key}={value}, "
         metadata["form_info"]["CPU"] = reservation.data_reservation.containers[0].capacity.cpu
         metadata["form_info"]["Memory"] = reservation.data_reservation.containers[0].capacity.memory
+        metadata["form_info"]["Root filesystem Type"] = str(reservation.data_reservation.containers[0].capacity.disk_type)
+        metadata["form_info"]["Root filesystem Size"] = reservation.data_reservation.containers[0].capacity.disk_size or 256
         metadata["form_info"]["Env variables"] = str(env_variable)
         metadata["form_info"]["Flist link"] = reservation.data_reservation.containers[0].flist
         metadata["form_info"]["Interactive"] = reservation.data_reservation.containers[0].interactive
