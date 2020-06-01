@@ -1,22 +1,26 @@
-from Jumpscale import j
+import random
 import time
-import random, uuid
+import uuid
 import os
-import pytest
 
-WALLET_NAME = ""
-WALLET_SECRET = ""
+import pytest
+from Jumpscale import j
+
+WALLET_NAME = os.environ.get("WALLET_NAME")
+WALLET_SECRET = os.environ.get("WALLET_SECRET")
+
+CURRENCY = "TFT"
 
 zos = j.sal.zosv2
 
 
-def rand_string(size=10):
+def rand_string():
     return str(uuid.uuid4()).replace("-", "")[1:10]
 
 
 def get_funded_wallet():
     if WALLET_NAME and WALLET_SECRET:
-        wallet = j.clients.stellar.get(WALLET_NAME, network="Test", secret=WALLET_SECRET)
+        wallet = j.clients.stellar.get(WALLET_NAME, network="TEST", secret=WALLET_SECRET)
         return wallet
     else:
         raise ValueError("Please provide add Values to the global variables WALLET_NAME and WALLET_SECRET")
@@ -26,24 +30,14 @@ def create_new_wallet():
     wallet_name = j.data.idgenerator.generateXCharID(10)
     wallet = j.clients.stellar.new(wallet_name, network="Test")
     wallet.activate_through_friendbot()
-    wallet.add_trustline("TFT", "GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3")
+    wallet.add_known_trustline("TFT")
     return wallet
 
 
-def get_wallet_balance(wallet, currency):
+def get_wallet_balance(wallet):
     coins = wallet.get_balance()
-    tft_amount = [coin.balance for coin in coins.balances if coin.asset_code == currency][0]
+    tft_amount = [coin.balance for coin in coins.balances if coin.asset_code == CURRENCY][0]
     return float(tft_amount)
-
-
-def check_if_wallet_refunded(wallet, expected_value, currency, timeout=60):
-    t = time.time()
-    while t + timeout > time.time():
-        currency_amount = get_wallet_balance(wallet, currency)
-        if expected_value == currency_amount:
-            return True
-        time.sleep(5)
-    return False
 
 
 def amount_paid_to_farmer(reservation_response):
@@ -74,12 +68,12 @@ def get_reservation_result(reservation_id, timeout):
     return result
 
 
-def reservation_payment(registered_reservation, currency):
+def reservation_payment(registered_reservation):
     # . Get wallet
     wallet = get_funded_wallet()
-    user_tft_amount = get_wallet_balance(wallet, currency)
-    needed_currency_ammount = amount_paid_to_farmer(registered_reservation)
-    if user_tft_amount < needed_currency_ammount:
+    user_tft_amount = get_wallet_balance(wallet, CURRENCY)
+    needed_CURRENCY_ammount = amount_paid_to_farmer(registered_reservation)
+    if user_tft_amount < needed_CURRENCY_ammount:
         return False
     res = zos.billing.payout_farmers(wallet, registered_reservation)
     if not [t for t in wallet.list_transactions() if res[0] == t.hash]:
@@ -87,40 +81,65 @@ def reservation_payment(registered_reservation, currency):
     return True
 
 
-def create_network_reservation(network_name=""):
+def create_network_reservation(NETWORK_NAME):
     r = zos.reservation_create()
-    network_name = network_name | rand_string()
     ip_range = "172.17.0.0/16"
-    network = zos.network.create(r, ip_range=ip_range, network_name=network_name)
+    network = zos.network.create(r, ip_range=ip_range, network_name=NETWORK_NAME)
 
-    nodes = zos.nodes_finder.nodes_search()
+    nodes = zos.nodes_finder.nodes_search(farm_name="freefarm")
     node = next(filter(zos.nodes_finder.filter_public_ip4, nodes))
     iprange = "172.24.{}.0/24".format(random.randint(3, 254))
     zos.network.add_node(network, node.node_id, iprange)
-    expiration = j.data.time.epoch + (60 * 5)  # 5 mins
+    expiration = j.data.time.epoch + (3600 + 300)  # 1 hour and 5 mins
     registered_reservation = zos.reservation_register(r, expiration)
     return registered_reservation
 
 
-def create_container_reservation(node_id, network_name):
+def test01_network_reservation():
+    """
+    Network reservation
+    """
+    NETWORK_NAME = rand_string()
+    registered_reservation = create_network_reservation(NETWORK_NAME)
+
+    # Check the reservation is Done, state should be "Ok"
+    assert get_reservation_state(registered_reservation.reservation_id) == "Ok", "Nothing deployed"
+
+
+def test02_create_container_reservation():
     """
     create a container reservation
     """
     r = zos.reservation_create()
+    nodes = zos.nodes_finder.nodes_search(sru=10)
+    node = random.choice(nodes)
+
+    # create a network with name <network_name> and add it to the reservation
+    NETWORK_NAME = rand_string()
+    create_network_reservation(NETWORK_NAME)
+
     zos.container.create(
         reservation=r,
-        node_id=node_id,
-        network_name=network_name,
+        node_id=node,
+        network_name=NETWORK_NAME,
         ip_address="172.24.1.{}".format(random.randint(3, 254)),
         flist="https://hub.grid.tf/zaibon/zaibon-ubuntu-ssh-0.0.2.flist",
         entrypoint="/sbin/my_init",
     )
-    expiration = j.data.time.epoch + (60 * 5)  # 5 mins
+    expiration = j.data.time.epoch + (3600 + 300)  # 1 hour and 5 mins
+
+    # Create a reservation, should succeed.
     registered_reservation = zos.reservation_register(r, expiration)
-    return registered_reservation
+    assert registered_reservation.reservation_id
+
+    payment_result = reservation_payment(registered_reservation, CURRENCY)
+    assert payment_result, "Payment fail"
+
+    # Check the reservation is Done, state should be "Ok"
+    assert get_reservation_state(registered_reservation.reservation_id) == "Ok", "Nothing deployed"
 
 
-def create_storage_reservation():
+def test04_create_storage_reservation():
     """
     create a storage reservation
     """
@@ -128,14 +147,23 @@ def create_storage_reservation():
     nodes = zos.nodes_finder.nodes_search(sru=10)
     node = random.choice(nodes)
     zos.zdb.create(
-        reservation=r, node_id=node.node_id, size=10, mode="seq", password="supersecret", disk_type="SSD", public=False
+        reservation=r, node_id=node.node_id, size=10, mode="seq", password="supersecret", disk_type="HDD", public=False
     )
-    expiration = j.data.time.epoch + (3600 * 24)
+    expiration = j.data.time.epoch + (3600 + 300)  # 1 hour and 5 mins
+
+    # Create a reservation, should succeed.
     registered_reservation = zos.reservation_register(r, expiration)
-    return registered_reservation
+    assert registered_reservation.reservation_id
+
+    # User should transfer the amount in TFT, should succeed
+    payment_result = reservation_payment(registered_reservation, CURRENCY)
+    assert payment_result, "Payment fail"
+
+    # Check the reservation is Done, state should be "Ok"
+    assert get_reservation_state(registered_reservation.reservation_id) == "Ok", "Nothing deployed"
 
 
-def create_minio_container_reservation(network_name):
+def test05_create_minio_container_reservation(network_name):
     """
     create a minio reservation
     """
@@ -157,13 +185,13 @@ def create_minio_container_reservation(network_name):
         size=10,
         mode="seq",
         password=zdb_password,
-        disk_type="SSD",
+        disk_type="HDD",
         public=False,
     )
-    volume = zos.volume.create(reservation_storage, minio_node.node_id, size=10, type="SSD")
-    expiration = j.data.time.epoch + (60 * 5)  # 5 mins
+    volume = zos.volume.create(reservation_storage, minio_node.node_id, size=10, type="HDD")
+    expiration = j.data.time.epoch + (3600 + 300)  # 1 hour and 5 mins
     zdb_rid = zos.reservation_register(reservation_storage, expiration)
-    payment_result = reservation_payment(zdb_rid, "TFT")
+    payment_result = reservation_payment(zdb_rid, CURRENCY)
     if not payment_result:
         return False  # payment fail
     results = get_reservation_result(zdb_rid.reservation_id, timeout=5)
@@ -199,8 +227,11 @@ def create_minio_container_reservation(network_name):
         container=container, volume_id=f"{zdb_rid.reservation_id}-{volume.workload_id}", mount_point="/data"
     )
 
-    minio_registered_reservation = zos.reservation_register(reservation_container, j.data.time.epoch + (60 * 60 * 3))
-    return minio_registered_reservation
+    # Create a reservation, should succeed.
+    minio_registered_reservation = zos.reservation_register(reservation_container, j.data.time.epoch + (3600 + 300))
+
+    # Check the reservation is Done, state should be "Ok".
+    assert get_reservation_state(minio_registered_reservation.reservation_id) == "Ok", "Nothing deployed"
 
 
 if __name__ == "__main__":
