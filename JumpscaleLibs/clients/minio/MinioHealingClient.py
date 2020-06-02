@@ -40,9 +40,10 @@ class MinioHealingClient(JSConfigClient):
 
         url = urljoin(self.url, "repair/")
         if bucket is not None:
-            url = urljoin(url, f"{bucket}/")
             if object_path is not None:
-                url = urljoin(url, f"{object_path}")
+                url = urljoin(url, f"{bucket}/{object_path}")
+            else:
+                url = urljoin(url, f"{bucket}")
 
         if report is None:
             resp = requests.post(url, params=getVars)
