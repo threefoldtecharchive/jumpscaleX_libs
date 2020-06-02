@@ -4,7 +4,7 @@ Minio Healing Client
 
 from Jumpscale import j
 import requests
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urljoin
 
 JSConfigClient = j.baseclasses.object_config
 
@@ -24,7 +24,7 @@ class MinioHealingClient(JSConfigClient):
         resp = requests.get(f"{self.url}/jobs")
         resp.raise_for_status()
         jobs = resp.json()
-    
+
         minio_jobs = []
         for job_id, job in jobs.items():
             minio_jobs.append(MinioJob(self.url, job_id=job_id, job=job))
@@ -49,21 +49,20 @@ class MinioHealingClient(JSConfigClient):
             resp = requests.post(url, params=getVars)
             resp.raise_for_status()
             return resp.text
-        else:   
+        else:
             resp = requests.post(url, params=getVars)
             resp.raise_for_status()
-            return self._read_response_chuncked(resp, report)
+            return read_response_chuncked(resp, report)
 
-    def _read_response_chuncked(self, response, file_path):
-        if file_path == "":
-            return Exception("you must provide a file path")
-        
-        with open(file_path, "w+") as f:
-            count = 1
-            block_size = 512
-            response.encoding = "utf-8"
-            for chunk in response.iter_content(chunk_size=block_size, decode_unicode=True):
-                f.write(chunk)                                                                                                                                                                                                                                   
+def read_response_chuncked(response, file_path):
+    if file_path == "":
+        return Exception("you must provide a file path")
+    
+    with open(file_path, "w+") as f:
+        block_size = 512
+        response.encoding = "utf-8"
+        for chunk in response.iter_content(chunk_size=block_size, decode_unicode=True):
+            f.write(chunk)
 
 class MinioJob(object):
     def __init__(self, url, job_id, job) -> None:
