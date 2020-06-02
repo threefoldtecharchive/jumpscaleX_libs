@@ -57,7 +57,7 @@ class MinioHealingClient(JSConfigClient):
 def read_response_chuncked(response, file_path):
     if file_path == "":
         return Exception("you must provide a file path")
-    
+
     with open(file_path, "w+") as f:
         block_size = 512
         response.encoding = "utf-8"
