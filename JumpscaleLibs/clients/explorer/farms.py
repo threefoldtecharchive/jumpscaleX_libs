@@ -53,7 +53,7 @@ class Farms:
 
         self._session.put(self._base_url + f"/farms/{farm.id}", auth=auth, headers=headers, json=farm._ddict)
         return True
-    
+
     def delete(self, farm_id, node_id, identity=None):
         me = identity if identity else j.me
         secret = me.encryptor.signing_key.encode(Base64Encoder)
