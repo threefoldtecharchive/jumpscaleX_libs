@@ -77,7 +77,7 @@ class MinioJob(object):
     @property
     def job_type(self):
         return self.__job["type"]
-    
+
     @property
     def location(self):
         return self.__job["location"]
@@ -85,7 +85,7 @@ class MinioJob(object):
     @property
     def blobs(self):
         return self.__job.get("blobs")
-    
+
     @property
     def objects(self):
         return self.__job.get("objects")
