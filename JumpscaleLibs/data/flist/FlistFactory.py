@@ -145,3 +145,7 @@ class Flist(object):
         self._zflist("close")
         j.sal.fs.remove(self.path)
         return True
+
+    def upload(self, path):
+        j.sal.process.setEnvironmentVariable(["ZFLIST_HUB"], ["https://playground.hub.grid.tf"])
+        self._zflist(f"hub upload {path}")

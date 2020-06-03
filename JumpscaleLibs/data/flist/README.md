@@ -27,3 +27,18 @@ new_flist.commit("/sandbox/code/test2.flist")
 #delete everything in temporary-point
 new_flist.close()
 ```
+
+
+## upload flist to hub (Guest):
+before upload to hub please export  ``ZFLIST_HUB_TOKEN`` on this [example](https://github.com/threefoldtech/0-flist/tree/development-v2-customhub#example)
+
+```python
+new_flist = j.data.flist.open("/tmp/test.flist") 
+new_flist.put_dir ("/tmp/test","/") 
+# list all things in flist
+new_flist.list_all()
+new_flist.commit("/sandbox/code/test2.flist") 
+new_flist.upload("/sandbox/code/test2.flist")
+```
+
+Then check it at ```https://playground.hub.grid.tf/guest```
