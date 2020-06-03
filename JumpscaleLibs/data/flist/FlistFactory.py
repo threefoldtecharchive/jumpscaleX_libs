@@ -62,13 +62,13 @@ class Flist(object):
     def _zflist(self, *args):
         return FlistFactory._zflist(self.path, self.hub, *args)
 
-    def put(self, src, dest):
+    def put(self, src, dest="/"):
         """
         insert local file into the flist
         """
         return self._zflist("put", src, dest)
 
-    def put_dir(self, src, dest):
+    def put_dir(self, src, dest="/"):
         """
         insert local directory into the flist (recursively)
         """
