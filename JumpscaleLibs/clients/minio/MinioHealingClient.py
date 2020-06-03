@@ -36,7 +36,7 @@ class MinioHealingClient(JSConfigClient):
         if report:
             getVars["bg"] = 1
         if dry_run:
-            getVars["dry_run"] = 1
+            getVars["dry-run"] = 1
 
         url = urljoin(self.url, "repair/")
         if bucket is not None:
