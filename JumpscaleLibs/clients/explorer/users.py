@@ -1,4 +1,9 @@
+from nacl.encoding import Base64Encoder
+
 from Jumpscale import j
+
+from .auth import HTTPSignatureAuth
+from .pagination import get_all, get_page
 
 
 class Users:
@@ -7,18 +12,42 @@ class Users:
         self._base_url = url
         self._model = j.data.schema.get_from_url("tfgrid.phonebook.user.1")
 
-    def list(self, name=None, email=None):
+    def list(self, name=None, email=None, page=None, identity=None):
+        me = identity if identity else j.me
+        secret = me.encryptor.signing_key.encode(Base64Encoder)
+
+        auth = HTTPSignatureAuth(key_id=str(me.tid), secret=secret, headers=["(created)", "date", "threebot-id"])
+        headers = {"threebot-id": str(me.tid)}
+
+        url = self._base_url + "/users"
+
         query = {}
         if name is not None:
             query["name"] = name
         if email is not None:
             query["email"] = email
-        resp = self._session.get(self._base_url + "/users", params=query)
-        users = []
-        for user_data in resp.json():
-            user = self._model.new(datadict=user_data)
-            users.append(user)
+
+        if page:
+            users, _ = get_page(self._session, page, self._model, url, query=query, auth=auth, headers=headers)
+        else:
+            users = list(self.iter(name=name, email=email, identity=identity))
+
         return users
+
+    def iter(self, name=None, email=None, identity=None):
+        me = identity if identity else j.me
+        secret = me.encryptor.signing_key.encode(Base64Encoder)
+
+        auth = HTTPSignatureAuth(key_id=str(me.tid), secret=secret, headers=["(created)", "date", "threebot-id"])
+        headers = {"threebot-id": str(me.tid)}
+
+        url = self._base_url + "/users"
+        query = {}
+        if name is not None:
+            query["name"] = name
+        if email is not None:
+            query["email"] = email
+        yield from get_all(self._session, self._model, url, query=query, auth=auth, headers=headers)
 
     def new(self):
         return self._model.new()
@@ -49,12 +78,18 @@ class Users:
         data["sender_signature_hex"] = signature.decode("utf8")
         self._session.put(self._base_url + f"/users/{user.id}", json=data)
 
-    def get(self, tid=None, name=None, email=None):
+    def get(self, tid=None, name=None, email=None, identity=None):
+        me = identity if identity else j.me
+        secret = me.encryptor.signing_key.encode(Base64Encoder)
+
+        auth = HTTPSignatureAuth(key_id=str(me.tid), secret=secret, headers=["(created)", "date", "threebot-id"])
+        headers = {"threebot-id": str(me.tid)}
+
         if tid is not None:
-            resp = self._session.get(self._base_url + f"/users/{tid}")
+            resp = self._session.get(self._base_url + f"/users/{tid}", auth=auth, headers=headers)
             return self._model.new(datadict=resp.json())
 
-        results = self.list(name=name, email=email)
+        results = self.list(name=name, email=email, identity=identity)
         if results:
             return results[0]
         raise j.exceptions.NotFound("user not found")
