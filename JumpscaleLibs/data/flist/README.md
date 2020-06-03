@@ -11,7 +11,7 @@
 ```python
 new_flist = j.data.flist.new() 
 new_flist.put("/sandbox/code/github/test.py","/") 
-new_flist.commit("/sandbox/code/test.flist") 
+new_flist.commit("/sandbox/code/app.flist") 
 #delete everything in temporary-point
 new_flist.close()
 ```
@@ -19,11 +19,11 @@ new_flist.close()
 ## open flist and edit on it:
 ### open flist , put dir from local , commit it
 ```python
-new_flist = j.data.flist.open("/tmp/test.flist") 
-new_flist.put_dir ("/tmp/test","/") 
+new_flist = j.data.flist.open("/tmp/app.flist") 
+new_flist.put_dir ("/tmp/app","/") 
 # list all things in flist
 new_flist.list_all()
-new_flist.commit("/sandbox/code/test2.flist") 
+new_flist.commit("/sandbox/code/app2.flist") 
 #delete everything in temporary-point
 new_flist.close()
 ```
@@ -33,12 +33,12 @@ new_flist.close()
 before upload to hub please export  ``ZFLIST_HUB_TOKEN`` on this [example](https://github.com/threefoldtech/0-flist/tree/development-v2-customhub#example)
 
 ```python
-new_flist = j.data.flist.open("/tmp/test.flist") 
-new_flist.put_dir ("/tmp/test","/") 
+new_flist = j.data.flist.open("/tmp/app.flist") 
+new_flist.put_dir ("/tmp/app","/") 
 # list all things in flist
 new_flist.list_all()
-new_flist.commit("/sandbox/code/test2.flist") 
-new_flist.upload("/sandbox/code/test2.flist")
+new_flist.commit("/sandbox/code/app2.flist") 
+new_flist.upload("/sandbox/code/app2.flist")
 ```
 
 Then check it at ```https://playground.hub.grid.tf/guest```
