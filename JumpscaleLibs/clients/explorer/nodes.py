@@ -55,21 +55,15 @@ class Nodes:
         resp = self._session.get(self._base_url + f"/nodes/{node_id}", params=params)
         return self._model.new(datadict=resp.json())
 
-    def configure_free_to_use(self, node_id, free, identity=None):
+    def configure_free_to_use(self, node_id, free):
         if not isinstance(free, bool):
             raise j.exceptions.Input("free must be a boolean")
 
-        me = identity if identity else j.me
-        secret = me.encryptor.signing_key.encode(Base64Encoder)
-
-        auth = HTTPSignatureAuth(key_id=str(me.tid), secret=secret, headers=["(created)", "date", "threebot-id"])
-        headers = {"threebot-id": str(me.tid)}
-
         data = {"free_to_use": free}
-        self._session.post(self._base_url + f"/nodes/{node_id}/configure_free", auth=auth, headers=headers, json=data)
+        self._session.post(self._base_url + f"/nodes/{node_id}/configure_free", json=data)
         return True
 
-    def configure_public_config(self, node_id, master_iface, ipv4, gw4, ipv6, gw6, identity=None):
+    def configure_public_config(self, node_id, master_iface, ipv4, gw4, ipv6, gw6):
         node = self.get(node_id)
 
         public_config = node.public_config
@@ -81,12 +75,6 @@ class Nodes:
         public_config.type = "MACVLAN"
         public_config.version += 1
 
-        me = identity if identity else j.me
-        secret = me.encryptor.signing_key.encode(Base64Encoder)
-
-        auth = HTTPSignatureAuth(key_id=str(me.tid), secret=secret, headers=["(created)", "date", "threebot-id"])
-        headers = {"threebot-id": str(me.tid)}
-
         data = public_config._ddict
-        self._session.post(self._base_url + f"/nodes/{node_id}/configure_public", auth=auth, headers=headers, json=data)
+        self._session.post(self._base_url + f"/nodes/{node_id}/configure_public", json=data)
         return True

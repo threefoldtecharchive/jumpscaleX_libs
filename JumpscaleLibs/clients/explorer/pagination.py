@@ -1,8 +1,8 @@
-def get_page(session, page, model, url, query=None, auth=None, headers=None):
+def get_page(session, page, model, url, query=None):
     if not query:
         query = {}
     query["page"] = page
-    resp = session.get(url, params=query, auth=auth, headers=headers)
+    resp = session.get(url, params=query)
     output = []
     for data in resp.json():
         obj = model.new(datadict=data)
@@ -11,9 +11,9 @@ def get_page(session, page, model, url, query=None, auth=None, headers=None):
     return output, pages
 
 
-def get_all(session, model, url, query=None, auth=None, headers=None):
-    iter, pages = get_page(session, 1, model, url, query, auth, headers)
+def get_all(session, model, url, query=None):
+    iter, pages = get_page(session, 1, model, url, query)
     yield from iter
     for i in range(2, pages + 1):
-        obj, _ = get_page(session, i, model, url, query, auth, headers)
+        obj, _ = get_page(session, i, model, url, query)
         yield from obj

@@ -12,13 +12,7 @@ class Users:
         self._base_url = url
         self._model = j.data.schema.get_from_url("tfgrid.phonebook.user.1")
 
-    def list(self, name=None, email=None, page=None, identity=None):
-        me = identity if identity else j.me
-        secret = me.encryptor.signing_key.encode(Base64Encoder)
-
-        auth = HTTPSignatureAuth(key_id=str(me.tid), secret=secret, headers=["(created)", "date", "threebot-id"])
-        headers = {"threebot-id": str(me.tid)}
-
+    def list(self, name=None, email=None, page=None):
         url = self._base_url + "/users"
 
         query = {}
@@ -28,26 +22,20 @@ class Users:
             query["email"] = email
 
         if page:
-            users, _ = get_page(self._session, page, self._model, url, query=query, auth=auth, headers=headers)
+            users, _ = get_page(self._session, page, self._model, url, query=query)
         else:
-            users = list(self.iter(name=name, email=email, identity=identity))
+            users = list(self.iter(name=name, email=email))
 
         return users
 
-    def iter(self, name=None, email=None, identity=None):
-        me = identity if identity else j.me
-        secret = me.encryptor.signing_key.encode(Base64Encoder)
-
-        auth = HTTPSignatureAuth(key_id=str(me.tid), secret=secret, headers=["(created)", "date", "threebot-id"])
-        headers = {"threebot-id": str(me.tid)}
-
+    def iter(self, name=None, email=None):
         url = self._base_url + "/users"
         query = {}
         if name is not None:
             query["name"] = name
         if email is not None:
             query["email"] = email
-        yield from get_all(self._session, self._model, url, query=query, auth=auth, headers=headers)
+        yield from get_all(self._session, self._model, url, query=query)
 
     def new(self):
         return self._model.new()
@@ -66,7 +54,7 @@ class Users:
         resp = self._session.post(url, json=data)
         return resp.json()["is_valid"]
 
-    def update(self, user, identity=None):
+    def update(self, user):
         me = identity if identity else j.me
         datatosign = ""
         datatosign += f"{user.id}{user.name}{user.email}"
@@ -78,18 +66,12 @@ class Users:
         data["sender_signature_hex"] = signature.decode("utf8")
         self._session.put(self._base_url + f"/users/{user.id}", json=data)
 
-    def get(self, tid=None, name=None, email=None, identity=None):
-        me = identity if identity else j.me
-        secret = me.encryptor.signing_key.encode(Base64Encoder)
-
-        auth = HTTPSignatureAuth(key_id=str(me.tid), secret=secret, headers=["(created)", "date", "threebot-id"])
-        headers = {"threebot-id": str(me.tid)}
-
+    def get(self, tid=None, name=None, email=None):
         if tid is not None:
-            resp = self._session.get(self._base_url + f"/users/{tid}", auth=auth, headers=headers)
+            resp = self._session.get(self._base_url + f"/users/{tid}")
             return self._model.new(datadict=resp.json())
 
-        results = self.list(name=name, email=email, identity=identity)
+        results = self.list(name=name, email=email)
         if results:
             return results[0]
         raise j.exceptions.NotFound("user not found")
