@@ -164,7 +164,7 @@ class Chatflow(j.baseclasses.object):
                 names_pointer = 0
         return nodes_distribution
 
-    def nodes_filter(self, nodes, free_to_use):
+    def nodes_filter(self, nodes, free_to_use, ip_version=None):
         nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, nodes)
         nodes = list(nodes)
         if free_to_use:
@@ -172,6 +172,20 @@ class Chatflow(j.baseclasses.object):
             nodes = filter(j.sal.zosv2.nodes_finder.filter_is_free_to_use, nodes)
         elif not free_to_use:
             nodes = list(nodes)
+
+        if ip_version:
+
+            use_ipv4 = ip_version == "IPv4"
+
+            if use_ipv4:
+                nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip4
+            else:
+                nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip6
+
+            nodes = filter(nodefilter, nodes)
+            if not nodes:
+                raise StopChatFlow("Could not find available access node")
+
         return list(nodes)
 
     def farms_check(
@@ -230,7 +244,16 @@ class Chatflow(j.baseclasses.object):
             )
 
     def nodes_get(
-        self, number_of_nodes, farm_id=None, farm_names=None, cru=None, sru=None, mru=None, hru=None, currency="TFT"
+        self,
+        number_of_nodes,
+        farm_id=None,
+        farm_names=None,
+        cru=None,
+        sru=None,
+        mru=None,
+        hru=None,
+        currency="TFT",
+        ip_version=None,
     ):
         nodes_distribution = self._nodes_distribute(number_of_nodes, farm_names)
         # to avoid using the same node with different networks
@@ -242,7 +265,7 @@ class Chatflow(j.baseclasses.object):
             nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
                 farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
             )
-            nodes = self.nodes_filter(nodes, currency == "FreeTFT")
+            nodes = self.nodes_filter(nodes, currency == "FreeTFT", ip_version=ip_version)
             for i in range(nodes_number):
                 try:
                     node = random.choice(nodes)
@@ -326,7 +349,16 @@ class Chatflow(j.baseclasses.object):
         return ip_range
 
     def network_create(
-        self, network_name, reservation, ip_range, customer_tid, ip_version, expiration=None, currency=None, bot=None
+        self,
+        network_name,
+        reservation,
+        access_node,
+        ip_range,
+        customer_tid,
+        ip_version,
+        expiration=None,
+        currency=None,
+        bot=None,
     ):
         """
         bot: Gedis chatbot object from chatflow
@@ -339,19 +371,7 @@ class Chatflow(j.baseclasses.object):
         network = j.sal.zosv2.network.create(reservation, ip_range, network_name)
         node_subnets = netaddr.IPNetwork(ip_range).subnet(24)
         network_config = dict()
-        access_nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(currency=currency)
         use_ipv4 = ip_version == "IPv4"
-
-        if use_ipv4:
-            nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip4
-        else:
-            nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip6
-
-        for node in filter(j.sal.zosv2.nodes_finder.filter_is_up, filter(nodefilter, access_nodes)):
-            access_node = node
-            break
-        else:
-            raise StopChatFlow("Could not find available access node")
 
         j.sal.zosv2.network.add_node(network, access_node.node_id, str(next(node_subnets)))
         wg_quick = j.sal.zosv2.network.add_access(network, access_node.node_id, str(next(node_subnets)), ipv4=use_ipv4)
