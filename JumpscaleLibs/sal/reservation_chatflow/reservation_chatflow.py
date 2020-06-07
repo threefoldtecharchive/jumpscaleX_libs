@@ -182,7 +182,7 @@ class Chatflow(j.baseclasses.object):
             else:
                 nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip6
 
-            nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, filter(nodefilter, nodes))
+            nodes = filter(nodefilter, nodes)
             if not nodes:
                 raise StopChatFlow("Could not find available access node")
 
