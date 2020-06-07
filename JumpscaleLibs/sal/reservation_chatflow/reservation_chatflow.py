@@ -230,7 +230,16 @@ class Chatflow(j.baseclasses.object):
             )
 
     def nodes_get(
-        self, number_of_nodes, farm_id=None, farm_names=None, cru=None, sru=None, mru=None, hru=None, currency="TFT"
+        self,
+        number_of_nodes,
+        farm_id=None,
+        farm_names=None,
+        cru=None,
+        sru=None,
+        mru=None,
+        hru=None,
+        currency="TFT",
+        ip_version=None,
     ):
         nodes_distribution = self._nodes_distribute(number_of_nodes, farm_names)
         # to avoid using the same node with different networks
@@ -243,15 +252,29 @@ class Chatflow(j.baseclasses.object):
                 farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
             )
             nodes = self.nodes_filter(nodes, currency == "FreeTFT")
-            for i in range(nodes_number):
-                try:
-                    node = random.choice(nodes)
-                    while node in nodes_selected:
+            if ip_version:
+                use_ipv4 = ip_version == "IPv4"
+
+                if use_ipv4:
+                    nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip4
+                else:
+                    nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip6
+
+                for node in filter(j.sal.zosv2.nodes_finder.filter_is_up, filter(nodefilter, nodes)):
+                    nodes_selected.append(node)
+                    break
+                else:
+                    raise StopChatFlow("Could not find available access node")
+            else:
+                for i in range(nodes_number):
+                    try:
                         node = random.choice(nodes)
-                except IndexError:
-                    raise StopChatFlow("Failed to find resources for this reservation")
-                nodes.remove(node)
-                nodes_selected.append(node)
+                        while node in nodes_selected:
+                            node = random.choice(nodes)
+                    except IndexError:
+                        raise StopChatFlow("Failed to find resources for this reservation")
+                    nodes.remove(node)
+                    nodes_selected.append(node)
         return nodes_selected
 
     def validate_node(self, nodeid, query=None, currency=None):
@@ -326,7 +349,16 @@ class Chatflow(j.baseclasses.object):
         return ip_range
 
     def network_create(
-        self, network_name, reservation, ip_range, customer_tid, ip_version, expiration=None, currency=None, bot=None
+        self,
+        network_name,
+        reservation,
+        access_node,
+        ip_range,
+        customer_tid,
+        ip_version,
+        expiration=None,
+        currency=None,
+        bot=None,
     ):
         """
         bot: Gedis chatbot object from chatflow
@@ -339,19 +371,7 @@ class Chatflow(j.baseclasses.object):
         network = j.sal.zosv2.network.create(reservation, ip_range, network_name)
         node_subnets = netaddr.IPNetwork(ip_range).subnet(24)
         network_config = dict()
-        access_nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(currency=currency)
         use_ipv4 = ip_version == "IPv4"
-
-        if use_ipv4:
-            nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip4
-        else:
-            nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip6
-
-        for node in filter(j.sal.zosv2.nodes_finder.filter_is_up, filter(nodefilter, access_nodes)):
-            access_node = node
-            break
-        else:
-            raise StopChatFlow("Could not find available access node")
 
         j.sal.zosv2.network.add_node(network, access_node.node_id, str(next(node_subnets)))
         wg_quick = j.sal.zosv2.network.add_access(network, access_node.node_id, str(next(node_subnets)), ipv4=use_ipv4)
