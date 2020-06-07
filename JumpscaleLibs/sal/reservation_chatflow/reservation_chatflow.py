@@ -164,7 +164,7 @@ class Chatflow(j.baseclasses.object):
                 names_pointer = 0
         return nodes_distribution
 
-    def nodes_filter(self, nodes, free_to_use):
+    def nodes_filter(self, nodes, free_to_use, ip_version=None):
         nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, nodes)
         nodes = list(nodes)
         if free_to_use:
@@ -172,6 +172,20 @@ class Chatflow(j.baseclasses.object):
             nodes = filter(j.sal.zosv2.nodes_finder.filter_is_free_to_use, nodes)
         elif not free_to_use:
             nodes = list(nodes)
+
+        if ip_version:
+
+            use_ipv4 = ip_version == "IPv4"
+
+            if use_ipv4:
+                nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip4
+            else:
+                nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip6
+
+            nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, filter(nodefilter, nodes))
+            if not nodes:
+                raise StopChatFlow("Could not find available access node")
+
         return list(nodes)
 
     def farms_check(
@@ -251,30 +265,16 @@ class Chatflow(j.baseclasses.object):
             nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
                 farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
             )
-            nodes = self.nodes_filter(nodes, currency == "FreeTFT")
-            if ip_version:
-                use_ipv4 = ip_version == "IPv4"
-
-                if use_ipv4:
-                    nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip4
-                else:
-                    nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip6
-
-                for node in filter(j.sal.zosv2.nodes_finder.filter_is_up, filter(nodefilter, nodes)):
-                    nodes_selected.append(node)
-                    break
-                else:
-                    raise StopChatFlow("Could not find available access node")
-            else:
-                for i in range(nodes_number):
-                    try:
+            nodes = self.nodes_filter(nodes, currency == "FreeTFT", ip_version=ip_version)
+            for i in range(nodes_number):
+                try:
+                    node = random.choice(nodes)
+                    while node in nodes_selected:
                         node = random.choice(nodes)
-                        while node in nodes_selected:
-                            node = random.choice(nodes)
-                    except IndexError:
-                        raise StopChatFlow("Failed to find resources for this reservation")
-                    nodes.remove(node)
-                    nodes_selected.append(node)
+                except IndexError:
+                    raise StopChatFlow("Failed to find resources for this reservation")
+                nodes.remove(node)
+                nodes_selected.append(node)
         return nodes_selected
 
     def validate_node(self, nodeid, query=None, currency=None):
