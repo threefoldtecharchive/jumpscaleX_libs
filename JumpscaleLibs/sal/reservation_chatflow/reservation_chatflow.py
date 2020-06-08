@@ -1047,7 +1047,8 @@ class Chatflow(j.baseclasses.object):
             if g.free_to_use:
                 if "FreeTFT" not in currencies:
                     currencies.append("FreeTFT")
-            reservation_currency = currencies
+                    
+            reservation_currency = ','.join(currencies)
 
             if currency and currency != reservation_currency:
                 continue
