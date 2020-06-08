@@ -1047,10 +1047,10 @@ class Chatflow(j.baseclasses.object):
             if g.free_to_use:
                 if "FreeTFT" not in currencies:
                     currencies.append("FreeTFT")
-                    
-            reservation_currency = ','.join(currencies)
 
-            if currency and currency != reservation_currency:
+            reservation_currency = ", ".join(currencies)
+
+            if currency and currency not in currencies:
                 continue
             gtext = f"{' - '.join(location)} ({reservation_currency}) ID: {g.node_id}"
             gateways[gtext] = g
