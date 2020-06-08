@@ -1024,6 +1024,7 @@ class Chatflow(j.baseclasses.object):
     def gateway_list(self, bot, currency=None):
         unknowns = ["", None, "Uknown", "Unknown"]
         gateways = {}
+        farms = {}
         for g in j.sal.zosv2._explorer.gateway.list():
             if not j.sal.zosv2.nodes_finder.filter_is_up(g):
                 continue
@@ -1032,10 +1033,22 @@ class Chatflow(j.baseclasses.object):
                 areaname = getattr(g.location, area)
                 if areaname not in unknowns:
                     location.append(areaname)
+            currencies = list()
+
+            farm_id = g.farm_id
+            if farm_id not in farms:
+                farms[farm_id] = j.sal.zosv2._explorer.farms.get(farm_id)
+
+            addresses = farms[farm_id].wallet_addresses
+            for address in addresses:
+                if address.asset not in currencies:
+                    currencies.append(address.asset)
+
             if g.free_to_use:
-                reservation_currency = "FreeTFT"
-            else:
-                reservation_currency = "TFT"
+                if "FreeTFT" not in currencies:
+                    currencies.append("FreeTFT")
+            reservation_currency = currencies
+
             if currency and currency != reservation_currency:
                 continue
             gtext = f"{' - '.join(location)} ({reservation_currency}) ID: {g.node_id}"
