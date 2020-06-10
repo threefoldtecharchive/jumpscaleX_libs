@@ -13,6 +13,7 @@ except (ModuleNotFoundError, ImportError):
     from stellar_sdk import Server, Keypair, TransactionBuilder, Network, TransactionEnvelope, strkey
 
 from stellar_sdk import Account as stellarAccount
+from stellar_sdk.exceptions import Ed25519SecretSeedInvalidError
 from urllib import parse
 import time
 import math
@@ -85,7 +86,10 @@ class StellarClient(JSConfigClient):
             kp = Keypair.random()
             self.secret = kp.secret
         else:
-            kp = Keypair.from_secret(self.secret)
+            try:
+                kp = Keypair.from_secret(self.secret)
+            except Ed25519SecretSeedInvalidError:
+                raise j.exceptions.Input("Invalid secret passed for stellar client")
         self.address = kp.public_key
 
     def _get_horizon_server(self):
