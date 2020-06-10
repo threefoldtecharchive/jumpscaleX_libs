@@ -89,6 +89,7 @@ class StellarClient(JSConfigClient):
             try:
                 kp = Keypair.from_secret(self.secret)
             except Ed25519SecretSeedInvalidError:
+                self.delete()
                 raise j.exceptions.Input("Invalid secret passed for stellar client")
         self.address = kp.public_key
 
