@@ -827,6 +827,7 @@ class Chatflow(j.baseclasses.object):
             "kubernetes": "tfgrid.solutions.kubernetes.1",
             "network": "tfgrid.solutions.network.1",
             "gitea": "tfgrid.solutions.gitea.1",
+            "monitoring": "tfgrid.solutions.monitoring.1",
         }
 
         for _, url in urls.items():

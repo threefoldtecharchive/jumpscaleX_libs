@@ -84,3 +84,10 @@ class ContainerGenerator:
         result = box.encrypt(value.encode())
 
         return binascii.hexlify(result).decode()
+
+    def add_logs(self, cont, channel_type, channel_host, channel_port, channel_name):
+        cont_logs = cont.logs.new()
+        cont_logs.type = channel_type
+        cont_logs.data.stdout = f"redis://{channel_host}:{channel_port}/{channel_name}-stdout"
+        cont_logs.data.stderr = f"redis://{channel_host}:{channel_port}/{channel_name}-stderr"
+        return cont_logs
