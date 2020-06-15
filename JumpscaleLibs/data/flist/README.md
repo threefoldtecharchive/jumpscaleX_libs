@@ -30,7 +30,7 @@ new_flist.close()
 
 
 ## upload flist to hub (Guest):
-before upload to hub please export  ``ZFLIST_HUB_TOKEN`` on this [example](https://github.com/threefoldtech/0-flist/tree/development-v2-customhub#example)
+before upload to hub please export  ``ZFLIST_HUB_TOKEN`` on this [example](https://github.com/threefoldtech/0-flist/tree/development-v2#example)
 
 ```python
 new_flist = j.data.flist.open("/tmp/app.flist") 
