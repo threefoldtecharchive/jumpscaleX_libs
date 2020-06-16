@@ -3,9 +3,9 @@ from .pagination import get_page, get_all
 
 
 class Reservations:
-    def __init__(self, session, url):
-        self._session = session
-        self._base_url = url + "/reservations"
+    def __init__(self, client):
+        self._session = client._session
+        self._client = client
         self._model = j.data.schema.get_from_url("tfgrid.workloads.reservation.1")
         self._reservation_create_model = j.data.schema.get_from_url("tfgrid.workloads.reservation.create.1")
 
@@ -15,6 +15,10 @@ class Reservations:
     def create(self, reservation):
         resp = self._session.post(self._base_url, json=reservation._ddict)
         return self._reservation_create_model.new(datadict=resp.json())
+
+    @property
+    def _base_url(self):
+        return self._client.url + "/reservations"
 
     def list(self, customer_tid=None, next_action=None, page=None):
         if page:

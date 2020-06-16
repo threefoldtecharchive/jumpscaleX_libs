@@ -7,9 +7,9 @@ from .pagination import get_all, get_page
 
 
 class Nodes:
-    def __init__(self, session, url):
-        self._session = session
-        self._base_url = url
+    def __init__(self, client):
+        self._client = client
+        self._session = self._client._session
         self._model = j.data.schema.get_from_url("tfgrid.directory.node.2")
 
     def _query(self, farm_id=None, country=None, city=None, cru=None, sru=None, mru=None, hru=None, proofs=False):
@@ -34,7 +34,7 @@ class Nodes:
     ):
 
         query = self._query(farm_id, country, city, cru, sru, mru, hru, proofs)
-        url = self._base_url + "/nodes"
+        url = self._client.url + "/nodes"
 
         if page:
             nodes, _ = get_page(self._session, page, self._model, url, query)
@@ -45,14 +45,14 @@ class Nodes:
 
     def iter(self, farm_id=None, country=None, city=None, cru=None, sru=None, mru=None, hru=None, proofs=False):
         query = self._query(farm_id, country, city, cru, sru, mru, hru, proofs)
-        url = self._base_url + "/nodes"
+        url = self._client.url + "/nodes"
         yield from get_all(self._session, self._model, url, query)
 
     def get(self, node_id, proofs=False):
         params = {}
         if proofs:
             params["proofs"] = "true"
-        resp = self._session.get(self._base_url + f"/nodes/{node_id}", params=params)
+        resp = self._session.get(self._client.url + f"/nodes/{node_id}", params=params)
         return self._model.new(datadict=resp.json())
 
     def configure_free_to_use(self, node_id, free, identity=None):
@@ -66,7 +66,7 @@ class Nodes:
         headers = {"threebot-id": str(me.tid)}
 
         data = {"free_to_use": free}
-        self._session.post(self._base_url + f"/nodes/{node_id}/configure_free", auth=auth, headers=headers, json=data)
+        self._session.post(self._client.url + f"/nodes/{node_id}/configure_free", auth=auth, headers=headers, json=data)
         return True
 
     def configure_public_config(self, node_id, master_iface, ipv4, gw4, ipv6, gw6, identity=None):
@@ -88,5 +88,5 @@ class Nodes:
         headers = {"threebot-id": str(me.tid)}
 
         data = public_config._ddict
-        self._session.post(self._base_url + f"/nodes/{node_id}/configure_public", auth=auth, headers=headers, json=data)
+        self._session.post(self._client.url + f"/nodes/{node_id}/configure_public", auth=auth, headers=headers, json=data)
         return True
