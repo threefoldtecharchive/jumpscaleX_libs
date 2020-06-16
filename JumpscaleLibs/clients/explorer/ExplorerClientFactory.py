@@ -23,7 +23,6 @@ class ExplorerClientFactory(JSConfigs):
             self.get(name="explorer", url=self._get_url(value), reload=True)._init()
             # update existing instance
             self._explorer.url = self._get_url(value)
-            self._explorer._init()  # force reload
 
     def _get_url(self, addr):
         proto = "http" if ":" in addr else "https"
