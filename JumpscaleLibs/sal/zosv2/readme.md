@@ -240,8 +240,8 @@ container = zos.container.create(
     node_id="72CP8QPhMSpF7MbSvNR1TYZFbTnbRiuyvq5xwcoRNAib",
     network_name='zaibon_testnet_0', # this assume this network is already provisioned on the node
     ip_address='172.24.2.15',
-    flist='https://hub.grid.tf/tf-official-apps/minio-2020-01-25T02-50-51Z.flist',
-    entrypoint='/bin/entrypoint',
+    flist='https://hub.grid.tf/tf-official-apps/minio:latest.flist',
+    entrypoint='', # use an empty entrypoint
     cpu=2,
     memory=2048,
     env={
@@ -250,6 +250,7 @@ container = zos.container.create(
         "PARITY":"1",
         "ACCESS_KEY":"minio",
         "SECRET_KEY":"passwordpassword",
+        "SSH_KEY": '<your ssh public key here>'
     })
 
 zos.volume.attach_existing(
