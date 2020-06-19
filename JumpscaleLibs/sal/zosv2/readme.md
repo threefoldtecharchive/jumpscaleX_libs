@@ -227,8 +227,14 @@ results = zos.reservation_result(zdb_rid)
 # we will need these IPs when creating the minio container
 namespace_config = []
 for result in results:
-    data = j.data.serializers.json.loads(result.data_json)
-    cfg = f"{data['Namespace']}:{password}@[{data['IP']}]:{data['Port']}"
+    if 'IPs' in result.data_json:
+        ip = result.data_json['IPs'][0]
+    elif 'IP' in result.data_json
+        ip = result.data_json['IP']
+    else:
+        raise j.exceptions.RuntimeError("missing IP field in the 0-DB result")
+
+    cfg = f"{result.data_json['Namespace']}:{password}@[{ip}]:{result.data_json['Port']}"
     namespace_config.append(cfg)
 
 
