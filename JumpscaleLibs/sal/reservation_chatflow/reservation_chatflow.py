@@ -64,6 +64,12 @@ class Network:
         if self._is_dirty:
             reservation = j.sal.zosv2.reservation_create()
             reservation.data_reservation.networks.append(self._network._ddict)
+            form_info = {"chatflow": "network", "Currency": self.currency, "Solution expiration": self._expiration}
+            res = j.sal.reservation_chatflow.solution_model_get(self.name, "tfgrid.solutions.network.1", form_info)
+
+            res.parent_network = self.resv_id
+            reservation = j.sal.reservation_chatflow.reservation_metadata_add(reservation, res)
+
             reservation_create = self._sal.reservation_register(
                 reservation, self._expiration, tid, currency=currency, bot=bot
             )
@@ -81,6 +87,14 @@ class Network:
             res = self._sal.reservation_wait(self._bot, rid)
             if payment_obj:
                 payment_obj.save()
+            # Update solution saved locally
+            model = j.clients.bcdbmodel.get(url="tfgrid.solutions.network.1", name="tfgrid_solutions")
+            solution = model.find(self.name)
+            if solution:
+                solution = solution[0]
+                solution.parent_network = self.resv_id
+                solution.rid = rid
+                solution.save()
             return res
         return True
 
@@ -814,6 +828,22 @@ class Chatflow(j.baseclasses.object):
         model = j.clients.bcdbmodel.get(url=url, name="tfgrid_solutions")
         solutions = model.find(name=solution_name)
         for solution in solutions:
+            # Cancel all parent networks if solution type is network
+            if "network" in url:
+                curr_network_resv = self._explorer.reservations.get(solution.rid)
+                while curr_network_resv:
+                    if curr_network_resv.metadata:
+                        try:
+                            network_metadata = self.reservation_metadata_decrypt(curr_network_resv.metadata)
+                            network_metadata = json.loads(network_metadata)
+                        except Exception:
+                            break
+                        if network_metadata["parent_network"]:
+                            parent_resv = self._explorer.reservations.get(network_metadata["parent_network"])
+                            j.sal.zosv2.reservation_cancel(parent_resv.id)
+                            curr_network_resv = parent_resv
+                            continue
+                    curr_network_resv = None
             j.sal.zosv2.reservation_cancel(solution.rid)
             solution.delete()
 
