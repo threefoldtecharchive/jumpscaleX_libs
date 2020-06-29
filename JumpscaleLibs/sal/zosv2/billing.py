@@ -40,7 +40,7 @@ class Billing:
         total_amount = "{0:f}".format(total_amount_dec)
 
         escrow_address = reservation_response.escrow_information.address
-        for balance in client.get_balances().balances:
+        for balance in client.get_balance().balances:
             if f"{balance.asset_code}:{balance.asset_issuer}" == asset:
                 if total_amount_dec > Decimal(balance.balance):
                     raise InsufficientFunds(f"Wallet {client.name} does not have enough funds to pay for {total_amount_dec:0f} {asset}")
