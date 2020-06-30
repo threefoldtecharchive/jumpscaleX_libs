@@ -31,9 +31,6 @@ class Billing:
         reservation_id = reservation_response.reservation_id
         asset = reservation_response.escrow_information.asset
         total_amount = sum([d.total_amount for d in reservation_response.escrow_information.details])
-        total_amount = Decimal(total_amount) / Decimal(1e7)
-        total_amount = '{0:f}'.format(total_amount)
-
         escrow_address = reservation_response.escrow_information.address
 
         total_amount_dec = Decimal(total_amount) / Decimal(1e7)
