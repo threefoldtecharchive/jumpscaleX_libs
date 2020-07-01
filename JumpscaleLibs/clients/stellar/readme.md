@@ -50,10 +50,10 @@ j.clients.stellar.my_wallet.transfer('<destination address>',"1000", asset="TFT:
 
 'AAAAAAbKy5zVPcXiRCYKwpv6SkIXXJRCV97nwH9PtRniy+7fAAAAZAADNQcAAAADAAAAAQAAAABeQs2iAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAFAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAAAAAAAAAAAAAAAAAAB4svu3wAAAEAE6w7jduF+Vx0zwKTlLkxCSaogT/q3nyso1VowS0tL6mLFJ0/+afCe4dbubvzXy9AuBbaF9h0vgslESCey0IcB'
 ```
+
 The returned string is the unlocktransaction
 
 ## Adding memo_text to a payment
-
 
 ```python
 j.clients.stellar.my_wallet.transfer('<destination address>',"10", asset="TFT:GA47YZA3PKFUZMPLQ3B5F2E3CJIB57TGGU7SPCQT2WAEYKN766PWIMB3", memo_text="test")
