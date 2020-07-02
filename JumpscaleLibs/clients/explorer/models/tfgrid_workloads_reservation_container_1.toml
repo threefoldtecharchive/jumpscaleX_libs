@@ -1,10 +1,6 @@
 
 
 @url = tfgrid.workloads.reservation.container.1
-#unique id inside the reservation is an autoincrement
-workload_id = (I)
-#links to unique node on the TFGrid
-node_id = (S)
 flist = (S)
 hub_url = (S)
 #env variables
@@ -25,8 +21,7 @@ stats_aggregator = (LO) !tfgrid.workloads.reservation.statsaggregator.1
 farmer_tid = (I)
 logs = (LO) !tfgrid.workloads.reservation.container.logs.1
 capacity = (O) !tfgrid.workloads.reservation.container.capacity.1
-
-
+info = (O) !tfgrid.workloads.reservation.info.1
 
 @url = tfgrid.workloads.reservation.container.mount.1
 volume_id = (S)

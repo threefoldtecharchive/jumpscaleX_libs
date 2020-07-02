@@ -67,3 +67,28 @@ details = (LO) !tfgrid.workloads.reservation.escrow.detail.1
 @url = tfgrid.workloads.reservation.escrow.detail.1
 farmer_id  = (I)
 total_amount = (I64)
+
+# type use after capacity pools are introduced
+# This contains all the common field for workloads deployment
+@url = tfgrid.workloads.reservation.info.1
+workload_id = (I)
+node_id = (S)
+pool_id = (I)
+description = "" (S)
+#id of threebot which pays for it
+customer_tid = (I)
+#signature with private key of customer of the json, this guarantees that the data did not change
+customer_signature = (S)
+#state, allows anyone to see what can happen next e.g. sign means waiting for everyone to sign
+#delete means its deployed now we need to wait till enough people sign to delete
+next_action = "create,sign,pay,deploy,delete,invalid,deleted" (E)
+signatures_provision = (LO) !tfgrid.workloads.reservation.signing.signature.1
+#need toget to consensus
+signing_request_provision = (O) !tfgrid.workloads.reservation.signing.request.1
+signing_request_delete = (O) !tfgrid.workloads.reservation.signing.request.1
+signatures_farmer = (LO) !tfgrid.workloads.reservation.signing.signature.1
+signatures_delete = (LO) !tfgrid.workloads.reservation.signing.signature.1
+epoch = (T)
+metadata = (S)
+result = (O) !tfgrid.workloads.reservation.result.1
+workload_type = "zdb,container,volume,network,kubernetes,proxy,reverse-proxy,subdomain,domain-delegate,gateway4to6,network_resource" (E)
