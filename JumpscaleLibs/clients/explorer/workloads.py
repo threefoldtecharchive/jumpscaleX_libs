@@ -53,9 +53,14 @@ class Workloads:
     def new(self):
         return self._model_info.new()
 
-    def create(self, reservation):
-        resp = self._session.post(self._base_url, json=reservation._ddict)
-        return self._reservation_create_model.new(datadict=resp.json())
+    def create(self, workload):
+        url = self._client.url + "/reservations"
+        data = workload._ddict
+        del data["info"]["result"]
+        info = data.pop("info")
+        data.update(info)
+        resp = self._session.post(url, json=data)
+        return resp.json().get("id")
 
     def list(self, node_id, customer_tid=None, next_action=None, page=None):
         url = self._base_url + f"/{node_id}"
@@ -71,7 +76,7 @@ class Workloads:
         else:
             workloads = list(self.iter(node_id, customer_tid, next_action))
 
-        return [w.workload() for w in workloads]
+        return workloads
 
     def _next_action(self, next_action):
         if next_action:
@@ -97,10 +102,10 @@ class Workloads:
         for w in get_all(self._session, Decoder, url, query):
             yield w.workload()
 
-    def get(self, reservation_id):
-        url = self._base_url + f"/{reservation_id}"
+    def get(self, workload_id):
+        url = self._base_url + f"/{workload_id}"
         resp = self._session.get(url)
-        return self._model_info.new(datadict=resp.json())
+        return Decoder.new(datadict=resp.json()).workload()
 
     def sign_provision(self, workload_id, tid, signature):
         url = self._base_url + f"/{workload_id}/sign/provision"

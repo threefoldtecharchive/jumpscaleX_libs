@@ -8,6 +8,9 @@ import binascii
 
 
 class ContainerGenerator:
+    def __init__(self):
+        self._model = j.data.schema.get_from_url("tfgrid.workloads.reservation.container.1")
+
     def create(
         self,
         reservation,
@@ -29,10 +32,9 @@ class ContainerGenerator:
         """
         add a container to the reservation
         """
-
-        cont = reservation.data_reservation.containers.new()
-        cont.node_id = node_id
-        cont.workload_id = _next_workload_id(reservation)
+        cont = self._model.new()
+        cont.info.node_id = node_id
+        cont.info.workload_type = "CONTAINER"
 
         cont.flist = flist
         cont.storage_url = storage_url
@@ -40,16 +42,6 @@ class ContainerGenerator:
         cont.secret_environment = secret_env
         cont.entrypoint = entrypoint
         cont.interactive = interactive
-
-        nw = None
-        for nw in reservation.data_reservation.networks:
-            if nw.name == network_name:
-                ip = netaddr.IPAddress(ip_address)
-                subnet = netaddr.IPNetwork(nw.iprange)
-                if ip not in subnet:
-                    raise j.exceptions.Input(
-                        f"ip address {str(ip)} is not in the range of the network resource of the node {str(subnet)}"
-                    )
 
         net = cont.network_connection.new()
         net.network_id = network_name
