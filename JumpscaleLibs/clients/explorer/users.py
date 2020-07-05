@@ -2,9 +2,9 @@ from Jumpscale import j
 
 
 class Users:
-    def __init__(self, session, url):
-        self._session = session
-        self._base_url = url
+    def __init__(self, client):
+        self._client = client
+        self._session = client._session
         self._model = j.data.schema.get_from_url("tfgrid.phonebook.user.1")
 
     def list(self, name=None, email=None):
@@ -13,7 +13,7 @@ class Users:
             query["name"] = name
         if email is not None:
             query["email"] = email
-        resp = self._session.get(self._base_url + "/users", params=query)
+        resp = self._session.get(self._client.url + "/users", params=query)
         users = []
         for user_data in resp.json():
             user = self._model.new(datadict=user_data)
@@ -24,11 +24,11 @@ class Users:
         return self._model.new()
 
     def register(self, user):
-        resp = self._session.post(self._base_url + "/users", json=user._ddict)
+        resp = self._session.post(self._client.url + "/users", json=user._ddict)
         return resp.json()["id"]
 
     def validate(self, tid, payload, signature):
-        url = self._base_url + f"/users/{tid}/validate"
+        url = self._client.url + f"/users/{tid}/validate"
         data = {
             "payload": payload,
             "signature": signature,
@@ -47,11 +47,11 @@ class Users:
         signature = me.encryptor.sign_hex(datatosign.encode("utf8"))
         data = user._ddict.copy()
         data["sender_signature_hex"] = signature.decode("utf8")
-        self._session.put(self._base_url + f"/users/{user.id}", json=data)
+        self._session.put(self._client.url + f"/users/{user.id}", json=data)
 
     def get(self, tid=None, name=None, email=None):
         if tid is not None:
-            resp = self._session.get(self._base_url + f"/users/{tid}")
+            resp = self._session.get(self._client.url + f"/users/{tid}")
             return self._model.new(datadict=resp.json())
 
         results = self.list(name=name, email=email)

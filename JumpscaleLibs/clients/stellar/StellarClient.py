@@ -13,11 +13,12 @@ except (ModuleNotFoundError, ImportError):
     from stellar_sdk import Server, Keypair, TransactionBuilder, Network, TransactionEnvelope, strkey
 
 from stellar_sdk import Account as stellarAccount
+from stellar_sdk.exceptions import Ed25519SecretSeedInvalidError
 from urllib import parse
 import time
 import math
 from .balance import Balance, EscrowAccount, AccountBalances
-from .transaction import TransactionSummary, Effect
+from .transaction import TransactionSummary, Effect, PaymentSummary
 from decimal import Decimal
 
 JSConfigClient = j.baseclasses.object_config
@@ -85,7 +86,11 @@ class StellarClient(JSConfigClient):
             kp = Keypair.random()
             self.secret = kp.secret
         else:
-            kp = Keypair.from_secret(self.secret)
+            try:
+                kp = Keypair.from_secret(self.secret)
+            except Ed25519SecretSeedInvalidError:
+                self.delete()
+                raise j.exceptions.Input("Invalid secret passed for stellar client")
         self.address = kp.public_key
 
     def _get_horizon_server(self):
@@ -464,7 +469,34 @@ class StellarClient(JSConfigClient):
                         return transaction.to_xdr()
             raise e
 
-    def list_transactions(self, address=None):
+
+
+    def list_payments(self, address=None, ):
+        """Get the transactions for an adddress
+        :param address: address of the effects.In None, the address of this wallet is taken
+        :type address: str
+        """
+        if address is None:
+            address = self.address
+        tx_endpoint = self._get_horizon_server().payments()
+        tx_endpoint.for_account(address)
+        tx_endpoint.limit(50)
+        payments = []
+        old_cursor = "old"
+        new_cursor = ""
+        while old_cursor != new_cursor:
+            old_cursor = new_cursor
+            tx_endpoint.cursor(new_cursor)
+            response = tx_endpoint.call()
+            next_link = response["_links"]["next"]["href"]
+            next_link_query = parse.urlsplit(next_link).query
+            new_cursor = parse.parse_qs(next_link_query)["cursor"][0]
+            response_payments = response["_embedded"]["records"]
+            for response_payment in response_payments:
+                payments.append(PaymentSummary.from_horizon_response(response_payment,address))
+        return payments
+
+    def list_transactions(self, address=None, ):
         """Get the transactions for an adddress
         :param address: address of the effects.In None, the address of this wallet is taken
         :type address: str
@@ -473,6 +505,7 @@ class StellarClient(JSConfigClient):
             address = self.address
         tx_endpoint = self._get_horizon_server().transactions()
         tx_endpoint.for_account(address)
+        tx_endpoint.limit(50)
         tx_endpoint.include_failed(True)
         transactions = []
         old_cursor = "old"

@@ -7,6 +7,7 @@ import time
 import json
 import base64
 import copy
+import datetime
 
 
 class Network:
@@ -63,11 +64,17 @@ class Network:
         if self._is_dirty:
             reservation = j.sal.zosv2.reservation_create()
             reservation.data_reservation.networks.append(self._network._ddict)
+            form_info = {"chatflow": "network", "Currency": self.currency, "Solution expiration": self._expiration}
+            res = j.sal.reservation_chatflow.solution_model_get(self.name, "tfgrid.solutions.network.1", form_info)
+
+            res.parent_network = self.resv_id
+            reservation = j.sal.reservation_chatflow.reservation_metadata_add(reservation, res)
+
             reservation_create = self._sal.reservation_register(
                 reservation, self._expiration, tid, currency=currency, bot=bot
             )
             rid = reservation_create.reservation_id
-            payment = j.sal.reservation_chatflow.payments_show(self._bot, reservation_create, currency)
+            payment, payment_obj = j.sal.reservation_chatflow.payments_show(self._bot, reservation_create, currency)
             if payment["free"]:
                 pass
             elif payment["wallet"]:
@@ -77,7 +84,18 @@ class Network:
                 j.sal.reservation_chatflow.payment_wait(
                     bot, rid, threebot_app=True, reservation_create_resp=reservation_create
                 )
-            return self._sal.reservation_wait(self._bot, rid)
+            res = self._sal.reservation_wait(self._bot, rid)
+            if payment_obj:
+                payment_obj.save()
+            # Update solution saved locally
+            model = j.clients.bcdbmodel.get(url="tfgrid.solutions.network.1", name="tfgrid_solutions")
+            solution = model.find(self.name)
+            if solution:
+                solution = solution[0]
+                solution.parent_network = self.resv_id
+                solution.rid = rid
+                solution.save()
+            return res
         return True
 
     def copy(self, customer_tid):
@@ -160,7 +178,7 @@ class Chatflow(j.baseclasses.object):
                 names_pointer = 0
         return nodes_distribution
 
-    def nodes_filter(self, nodes, free_to_use):
+    def nodes_filter(self, nodes, free_to_use, ip_version=None):
         nodes = filter(j.sal.zosv2.nodes_finder.filter_is_up, nodes)
         nodes = list(nodes)
         if free_to_use:
@@ -168,6 +186,20 @@ class Chatflow(j.baseclasses.object):
             nodes = filter(j.sal.zosv2.nodes_finder.filter_is_free_to_use, nodes)
         elif not free_to_use:
             nodes = list(nodes)
+
+        if ip_version:
+
+            use_ipv4 = ip_version == "IPv4"
+
+            if use_ipv4:
+                nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip4
+            else:
+                nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip6
+
+            nodes = filter(nodefilter, nodes)
+            if not nodes:
+                raise StopChatFlow("Could not find available access node")
+
         return list(nodes)
 
     def farms_check(
@@ -226,7 +258,16 @@ class Chatflow(j.baseclasses.object):
             )
 
     def nodes_get(
-        self, number_of_nodes, farm_id=None, farm_names=None, cru=None, sru=None, mru=None, hru=None, currency="TFT"
+        self,
+        number_of_nodes,
+        farm_id=None,
+        farm_names=None,
+        cru=None,
+        sru=None,
+        mru=None,
+        hru=None,
+        currency="TFT",
+        ip_version=None,
     ):
         nodes_distribution = self._nodes_distribute(number_of_nodes, farm_names)
         # to avoid using the same node with different networks
@@ -238,7 +279,7 @@ class Chatflow(j.baseclasses.object):
             nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(
                 farm_name=farm_name, cru=cru, sru=sru, mru=mru, hru=hru, currency=currency
             )
-            nodes = self.nodes_filter(nodes, currency == "FreeTFT")
+            nodes = self.nodes_filter(nodes, currency == "FreeTFT", ip_version=ip_version)
             for i in range(nodes_number):
                 try:
                     node = random.choice(nodes)
@@ -322,7 +363,16 @@ class Chatflow(j.baseclasses.object):
         return ip_range
 
     def network_create(
-        self, network_name, reservation, ip_range, customer_tid, ip_version, expiration=None, currency=None, bot=None
+        self,
+        network_name,
+        reservation,
+        access_node,
+        ip_range,
+        customer_tid,
+        ip_version,
+        expiration=None,
+        currency=None,
+        bot=None,
     ):
         """
         bot: Gedis chatbot object from chatflow
@@ -335,19 +385,7 @@ class Chatflow(j.baseclasses.object):
         network = j.sal.zosv2.network.create(reservation, ip_range, network_name)
         node_subnets = netaddr.IPNetwork(ip_range).subnet(24)
         network_config = dict()
-        access_nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(currency=currency)
         use_ipv4 = ip_version == "IPv4"
-
-        if use_ipv4:
-            nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip4
-        else:
-            nodefilter = j.sal.zosv2.nodes_finder.filter_public_ip6
-
-        for node in filter(j.sal.zosv2.nodes_finder.filter_is_up, filter(nodefilter, access_nodes)):
-            access_node = node
-            break
-        else:
-            raise StopChatFlow("Could not find available access node")
 
         j.sal.zosv2.network.add_node(network, access_node.node_id, str(next(node_subnets)))
         wg_quick = j.sal.zosv2.network.add_access(network, access_node.node_id, str(next(node_subnets)), ipv4=use_ipv4)
@@ -550,6 +588,7 @@ class Chatflow(j.baseclasses.object):
     def reservation_register_and_pay(
         self, reservation, expiration=None, customer_tid=None, currency=None, bot=None, wallet=None
     ):
+        payment_obj = None
         if customer_tid and expiration and currency:
             reservation_create = self.reservation_register(
                 reservation, expiration, customer_tid=customer_tid, currency=currency, bot=bot
@@ -557,7 +596,7 @@ class Chatflow(j.baseclasses.object):
         else:
             reservation_create = reservation
         if not wallet:
-            payment = self.payments_show(bot, reservation_create, currency)
+            payment, payment_obj = self.payments_show(bot, reservation_create, currency)
         else:
             payment = {"wallet": None, "free": False}
             if not (reservation_create.escrow_information and reservation_create.escrow_information.details):
@@ -573,6 +612,8 @@ class Chatflow(j.baseclasses.object):
             self.payment_wait(bot, resv_id, threebot_app=True, reservation_create_resp=reservation_create)
 
         self.reservation_wait(bot, resv_id)
+        if payment_obj:
+            payment_obj.save()
         return resv_id
 
     def payments_show(self, bot, reservation_create_resp, currency):
@@ -581,10 +622,11 @@ class Chatflow(j.baseclasses.object):
         where a QR code is viewed for the user to scan and continue with their payment
         :rtype: wallet in case a wallet is used
         """
+
         payment = {"wallet": None, "free": False}
         if not (reservation_create_resp.escrow_information and reservation_create_resp.escrow_information.details):
             payment["free"] = True
-            return payment
+            return payment, None
         escrow_info = j.sal.zosv2.reservation_escrow_information_with_qrcodes(reservation_create_resp)
 
         escrow_address = escrow_info["escrow_address"]
@@ -611,13 +653,23 @@ class Chatflow(j.baseclasses.object):
         while True:
 
             result = bot.single_choice(message, wallet_names, html=True, retry=retry)
+
             if result not in wallet_names:
                 retry = True
                 continue
             if result == "3bot app":
                 reservation = self._explorer.reservations.get(rid)
                 self.escrow_qr_show(bot, reservation_create_resp, reservation.data_reservation.expiration_provisioning)
-                return payment
+                payment_obj = self.payment_create(
+                    rid=rid,
+                    currency=currency,
+                    escrow_address=escrow_address,
+                    escrow_asset=escrow_asset,
+                    total_amount=total_amount,
+                    payment_source=result,
+                    farmer_payments=escrow_info["farmer_payments"],
+                )
+                return payment, payment_obj
             else:
                 payment["wallet"] = wallets[result]
                 balances = payment["wallet"].get_balance().balances
@@ -625,7 +677,16 @@ class Chatflow(j.baseclasses.object):
                     if balance.asset_code == currency:
                         current_balance = balance.balance
                         if float(current_balance) >= total_amount:
-                            return payment
+                            payment_obj = self.payment_create(
+                                rid=rid,
+                                currency=currency,
+                                escrow_address=escrow_address,
+                                escrow_asset=escrow_asset,
+                                total_amount=total_amount,
+                                payment_source=result,
+                                farmer_payments=escrow_info["farmer_payments"],
+                            )
+                            return payment, payment_obj
                 retry = True
                 message = f"""
                 <h2 style="color: #142850;"><b style="color: #00909e;">{total_amount} {currency}</b> are required, but only <b style="color: #00909e;">{current_balance} {currency}</b> are available in wallet <b style="color: #00909e;">{payment["wallet"].name}</b></h2>
@@ -767,6 +828,22 @@ class Chatflow(j.baseclasses.object):
         model = j.clients.bcdbmodel.get(url=url, name="tfgrid_solutions")
         solutions = model.find(name=solution_name)
         for solution in solutions:
+            # Cancel all parent networks if solution type is network
+            if "network" in url:
+                curr_network_resv = self._explorer.reservations.get(solution.rid)
+                while curr_network_resv:
+                    if curr_network_resv.metadata:
+                        try:
+                            network_metadata = self.reservation_metadata_decrypt(curr_network_resv.metadata)
+                            network_metadata = json.loads(network_metadata)
+                        except Exception:
+                            break
+                        if network_metadata["parent_network"]:
+                            parent_resv = self._explorer.reservations.get(network_metadata["parent_network"])
+                            j.sal.zosv2.reservation_cancel(parent_resv.id)
+                            curr_network_resv = parent_resv
+                            continue
+                    curr_network_resv = None
             j.sal.zosv2.reservation_cancel(solution.rid)
             solution.delete()
 
@@ -780,6 +857,7 @@ class Chatflow(j.baseclasses.object):
             "kubernetes": "tfgrid.solutions.kubernetes.1",
             "network": "tfgrid.solutions.network.1",
             "gitea": "tfgrid.solutions.gitea.1",
+            "monitoring": "tfgrid.solutions.monitoring.1",
         }
 
         for _, url in urls.items():
@@ -863,6 +941,12 @@ class Chatflow(j.baseclasses.object):
         envs.pop("pub_key")
         metadata["form_info"]["CPU"] = reservation.data_reservation.containers[0].capacity.cpu
         metadata["form_info"]["Memory"] = reservation.data_reservation.containers[0].capacity.memory
+        metadata["form_info"]["Root filesystem Type"] = str(
+            reservation.data_reservation.containers[0].capacity.disk_type
+        )
+        metadata["form_info"]["Root filesystem Size"] = (
+            reservation.data_reservation.containers[0].capacity.disk_size or 256
+        )
         for key, value in envs.items():
             env_variable += f"{key}={value},"
         metadata["form_info"]["Env variables"] = str(env_variable)
@@ -904,6 +988,12 @@ class Chatflow(j.baseclasses.object):
             env_variable += f"{key}={value}, "
         metadata["form_info"]["CPU"] = reservation.data_reservation.containers[0].capacity.cpu
         metadata["form_info"]["Memory"] = reservation.data_reservation.containers[0].capacity.memory
+        metadata["form_info"]["Root filesystem Type"] = str(
+            reservation.data_reservation.containers[0].capacity.disk_type
+        )
+        metadata["form_info"]["Root filesystem Size"] = (
+            reservation.data_reservation.containers[0].capacity.disk_size or 256
+        )
         metadata["form_info"]["Env variables"] = str(env_variable)
         metadata["form_info"]["Flist link"] = reservation.data_reservation.containers[0].flist
         metadata["form_info"]["Interactive"] = reservation.data_reservation.containers[0].interactive
@@ -967,6 +1057,7 @@ class Chatflow(j.baseclasses.object):
     def gateway_list(self, bot, currency=None):
         unknowns = ["", None, "Uknown", "Unknown"]
         gateways = {}
+        farms = {}
         for g in j.sal.zosv2._explorer.gateway.list():
             if not j.sal.zosv2.nodes_finder.filter_is_up(g):
                 continue
@@ -975,11 +1066,24 @@ class Chatflow(j.baseclasses.object):
                 areaname = getattr(g.location, area)
                 if areaname not in unknowns:
                     location.append(areaname)
+            currencies = list()
+
+            farm_id = g.farm_id
+            if farm_id not in farms:
+                farms[farm_id] = j.sal.zosv2._explorer.farms.get(farm_id)
+
+            addresses = farms[farm_id].wallet_addresses
+            for address in addresses:
+                if address.asset not in currencies:
+                    currencies.append(address.asset)
+
             if g.free_to_use:
-                reservation_currency = "FreeTFT"
-            else:
-                reservation_currency = "TFT"
-            if currency and currency != reservation_currency:
+                if "FreeTFT" not in currencies:
+                    currencies.append("FreeTFT")
+
+            reservation_currency = ", ".join(currencies)
+
+            if currency and currency not in currencies:
                 continue
             gtext = f"{' - '.join(location)} ({reservation_currency}) ID: {g.node_id}"
             gateways[gtext] = g
@@ -997,3 +1101,23 @@ class Chatflow(j.baseclasses.object):
         network_id = reservation_data["kubernetes"][0]["network_id"]
         ip = reservation_data["kubernetes"][0]["ipaddress"]
         return network_id, ip
+
+    def payment_create(
+        self, rid, currency, escrow_address, escrow_asset, total_amount, payment_source, farmer_payments
+    ):
+        model = j.clients.bcdbmodel.get(url="tfgrid.solutions.payment.1")
+        payment_obj = model.new()
+        payment_obj.explorer = self._explorer.url
+        payment_obj.rid = rid
+        payment_obj.currency = currency
+        payment_obj.escrow_address = escrow_address
+        payment_obj.escrow_asset = escrow_asset
+        payment_obj.total_amount = total_amount
+        payment_obj.transaction_fees = f"0.1 {currency}"
+        payment_obj.payment_source = payment_source
+        for farmer in farmer_payments:
+            farmer_name = self._explorer.farms.get(farm_id=farmer["farmer_id"]).name
+            payment_obj.farmer_payments[farmer_name] = farmer["total_amount"]
+        a = datetime.datetime.utcnow()
+        payment_obj.time = "%s/%s/%s %s:%s" % (a.day, a.month, a.year, a.hour, a.minute)
+        return payment_obj
