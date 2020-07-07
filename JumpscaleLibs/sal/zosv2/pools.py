@@ -18,6 +18,22 @@ class Pools:
         return self._pools.create(pool)
 
     def create(self, cu, su, farm, currencies=["TFT"], identity=None):
+        """
+        create a new capacity pool
+
+        :param cu: Amount of compute unit/sec to reserve
+        :type cu: int
+        :param su: Amount of storage unit/sec to reserve
+        :type su: int
+        :param farm: farm ID where to reserve the capacity
+        :type farm: int or str
+        :param currencies: list of currency accepted for payment, defaults to ["TFT"]
+        :type currencies: list, optional
+        :type identity: Jumpscale.tools.threebot.ThreebotMe.ThreebotMe
+        :return: true if the reservation has been cancelled successfully
+        :return: payment information
+        :rtype: tfgrid.workloads.pool.created.1
+        """
         me = identity if identity else j.me
 
         farm_id = farm
@@ -38,7 +54,27 @@ class Pools:
 
         return self._reserve(pool, identity=identity)
 
-    def extend(self, pool_id, cu, su, currencies=["TFT"], identity=None):
+    def extend(self, pool_id, cu, su, node_ids=None, currencies=["TFT"], identity=None):
+        """
+        Extend an existing capacity pool
+
+        You can extend the amount of cloud units reserved as well as the list of nodes
+        usable for this pool
+        
+
+        :param cu: Amount of compute unit/sec to add to the existing pool
+        :type cu: int
+        :param su: Amount of storage unit/sec to add to the existing pool
+        :type su: int
+        :param node_ids: if not None, the list of nodes IDs to link to the pool.
+        :type farm: list of str
+        :param currencies: list of currency accepted for payment, defaults to ["TFT"]
+        :type currencies: list, optional
+        :type identity: Jumpscale.tools.threebot.ThreebotMe.ThreebotMe
+        :return: true if the reservation has been cancelled successfully
+        :return: payment information
+        :rtype: tfgrid.workloads.pool.created.1
+        """
         p = self.get(pool_id)
 
         pool = self._pools.new()
@@ -51,10 +87,25 @@ class Pools:
         return self._reserve(pool, identity=identity)
 
     def get(self, pool_id):
+        """
+        return the detail of an existing capacity pool
+
+        :param pool_id: pool ID
+        :type pool_id: int
+        :return: capacity pool
+        :rtype: Pool
+        """
         return self._pools.get(pool_id)
 
     def iter(self):
+        """
+        return an iterator that will yield all the 
+        capacity pool own by the current user
+        """
         return self._pools.iter()
 
     def list(self, page=None):
+        """
+        list all the capacity pool own by the current user
+        """
         return self._pools.list()
