@@ -11,7 +11,8 @@ class Decoder:
 
     @classmethod
     def new(cls, datadict):
-        return cls(data=datadict)
+        obj = cls(data=datadict)
+        return obj.workload()
 
     def __init__(self, data):
         self.data = data
@@ -62,19 +63,17 @@ class Workloads:
         resp = self._session.post(url, json=data)
         return resp.json().get("id")
 
-    def list(self, node_id, customer_tid=None, next_action=None, page=None):
-        url = self._base_url + f"/{node_id}"
+    def list(self, customer_tid=None, next_action=None, page=None):
+        url = self._client.url + "/workload"
         if page:
-            query = {
-                "from": "0",
-            }
-            # if customer_tid:
-            #     query["customer_tid"] = customer_tid
-            # if next_action:
-            #     query["next_action"] = self._next_action(next_action)
-            workloads, _ = get_page(self._session, page, Decoder, self._base_url, query)
+            query = {}
+            if customer_tid:
+                query["customer_tid"] = customer_tid
+            if next_action:
+                query["next_action"] = self._next_action(next_action)
+            workloads, _ = get_page(self._session, page, Decoder, url, query)
         else:
-            workloads = list(self.iter(node_id, customer_tid, next_action))
+            workloads = list(self.iter(customer_tid, next_action))
 
         return workloads
 
@@ -86,26 +85,25 @@ class Workloads:
                 raise j.exceptions.Input("next_action should be of type int")
         return next_action
 
-    def iter(self, node_id, customer_tid=None, next_action=None):
-        # def filter_next_action(reservation):
-        #     return reservation.next_action == next_action
-        url = self._base_url + f"/{node_id}"
+    def iter(self, customer_tid=None, next_action=None):
+        def filter_next_action(reservation):
+            if next_action is None:
+                return True
+            return reservation.next_action == next_action
 
-        query = {
-            "from": "0",
-        }
-        # if customer_tid:
-        #     query["customer_tid"] = customer_tid
-        # if next_action:
-        #     query["next_action"] = self._next_action(next_action)
-        # yield from filter(filter_next_action, get_all(self._session, self._model, self._base_url, query))
-        for w in get_all(self._session, Decoder, url, query):
-            yield w.workload()
+        url = self._client.url + "/workload"
+
+        query = {}
+        if customer_tid:
+            query["customer_tid"] = customer_tid
+        if next_action:
+            query["next_action"] = self._next_action(next_action)
+        yield from filter(filter_next_action, get_all(self._session, Decoder, url, query))
 
     def get(self, workload_id):
-        url = self._base_url + f"/{workload_id}"
+        url = url = self._client.url + f"/workload/{workload_id}"
         resp = self._session.get(url)
-        return Decoder.new(datadict=resp.json()).workload()
+        return Decoder.new(datadict=resp.json())
 
     def sign_provision(self, workload_id, tid, signature):
         url = self._base_url + f"/{workload_id}/sign/provision"

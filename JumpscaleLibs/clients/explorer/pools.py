@@ -21,15 +21,16 @@ class Pools:
         resp = self._session.post(self._base_url, json=pool._ddict)
         return self._model_created.new(datadict=resp.json())
 
-    def list(self, customer_tid=None, next_action=None, page=None):
+    def list(self, customer_tid=None, page=None):
         if page:
             reservations, _ = get_page(self._session, page, self._model, self._base_url)
         else:
             reservations = list(self.iter())
         return reservations
 
-    def iter(self):
-        url = self._base_url + f"/owner/{j.me.tid}"
+    def iter(self, customer_tid=None):
+        tid = customer_tid if customer_tid else j.me.tid
+        url = self._base_url + f"/owner/{tid}"
         yield from get_all(self._session, self._model, url)
 
     def get(self, pool_id):

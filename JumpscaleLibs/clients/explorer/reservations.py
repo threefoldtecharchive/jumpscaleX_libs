@@ -35,6 +35,8 @@ class Reservations:
 
     def iter(self, customer_tid=None, next_action=None):
         def filter_next_action(reservation):
+            if next_action is None:
+                return True
             return reservation.next_action == next_action
 
         query = {}
