@@ -18,6 +18,6 @@ def _next_workload_id(reservation):
         "domain_delegates",
     ]:
         for workload in getattr(reservation.data_reservation, _type):
-            if workload.workload_id < _NULL_INT and max < workload.workload_id:
+            if workload.info.workload_id < _NULL_INT and max < workload.info.workload_id:
                 max = workload.workload_id
     return max + 1

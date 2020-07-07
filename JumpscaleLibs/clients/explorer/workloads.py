@@ -48,7 +48,7 @@ class Workloads:
 
     @property
     def _base_url(self):
-        return self._client.url + "/reservations/workloads"
+        return self._client.url + "/workload"
 
     def new(self):
         return self._model_info.new()
@@ -60,10 +60,10 @@ class Workloads:
         info = data.pop("info")
         data.update(info)
         resp = self._session.post(url, json=data)
-        return resp.json().get("id")
+        return resp.json().get("reservation_id")
 
     def list(self, node_id, customer_tid=None, next_action=None, page=None):
-        url = self._base_url + f"/{node_id}"
+        url = self._client.url + f"/reservations/workloads/{node_id}"
         if page:
             query = {
                 "from": "0",

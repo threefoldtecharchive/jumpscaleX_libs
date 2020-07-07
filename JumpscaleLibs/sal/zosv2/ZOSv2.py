@@ -10,6 +10,8 @@ from .volumes import VolumesGenerator
 from .zdb import ZDBGenerator
 from .billing import Billing
 from .gateway import GatewayGenerator
+from .pools import Pools
+from .workloads import Workloads
 
 
 class Zosv2(j.baseclasses.object):
@@ -26,6 +28,16 @@ class Zosv2(j.baseclasses.object):
         self._kubernetes = K8sGenerator(self._explorer)
         self._billing = Billing()
         self._gateway = GatewayGenerator(self._explorer)
+        self._pools = Pools(self._explorer)
+        self._workloads = Workloads(self._explorer)
+
+    @property
+    def pools(self):
+        return self._pools
+
+    @property
+    def workloads(self):
+        return self._workloads
 
     @property
     def network(self):

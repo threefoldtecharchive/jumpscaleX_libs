@@ -16,13 +16,13 @@ class Workloads:
     def get(self, workload_id):
         return self._workloads.get(workload_id)
 
-    def deploy(self, workload, pool_id, identity=None):
+    def deploy(self, workload, pool_id, expiration_provisioning=None, identity=None):
         me = identity if identity else j.me
         workload.info.customer_tid = me.tid
         workload.info.workload_id = 1
         workload.info.pool_id = pool_id
         workload.info.epoch = j.data.time.epoch
-        workload.info.expiration_provisioning = workload.info.epoch + (5 * 60)
+        workload.info.expiration_provisioning = expiration_provisioning
         workload.info.next_action = "deploy"
         # allow user to delete the workload
         workload.info.signing_request_delete.signers = [1]
