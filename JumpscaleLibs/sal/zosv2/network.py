@@ -6,62 +6,53 @@ from Jumpscale import j
 
 from .id import _next_workload_id
 
-"""
-net = j.sal.zosv2.network.create("10.10.0.0/16", "workload_net_1", 9)
-j.sal.zosv2.network.add_node(net, "qzuTJJVd5boi6Uyoco1WWnSgzTb7q8uN79AjBT9x9N3", "10.10.20.0/24")
-wg = j.sal.zosv2.network.add_access(net, "10.10.20.0/24", ipv4=True)
-j.sal.zosv2.workloads.deploy(net, 9, 1594138070)
-"""
-
 
 class NetworkGenerator:
     def __init__(self, explorer):
         self._nodes = explorer.nodes
         self._farms = explorer.farms
-        self._model = j.data.schema.get_from_url("tfgrid.workloads.network_resource.1")
 
     def _load_network(self, network):
-        network.public_endpoints = get_endpoints(self._nodes.get(network.info.node_id))
+        for nr in network.network_resources:
+            nr.public_endpoints = get_endpoints(self._nodes.get(nr.node_id))
+
         network.access_points = extract_access_points(network)
 
     def _cleanup_network(self, network):
-        if hasattr(network, "public_endpoints"):
-            delattr(network, "public_endpoints")
+        for nr in network.network_resources:
+            if hasattr(nr, "public_endpoints"):
+                delattr(nr, "public_endpoints")
 
         if hasattr(network, "access_points"):
             delattr(network, "access_points")
 
-    def create(self, ip_range, network_name, pool_id, customer_tid=None):
+    def create(self, reservation, ip_range, network_name=None):
         """
-                add a network into the reservation
-
-                :param workload: root reservation object, the network will be added to it
-                :type reservation: tfgrid.workloads.reservation.1
-                :param ip_range: subnet of the network, it must have a network mask of /16
-                :type ip_range: str
-                :param network_name: identifier of the network, if not specified a randon name will be generated
-                :type network_name: str, optional
-                :return: new network object
-                :rtype: tfgrid.workloads.reservation.1
-                """
+        add a network into the reservation
+        :param reservation: root reservation object, the network will be added to it
+        :type reservation: tfgrid.workloads.reservation.1
+        :param ip_range: subnet of the network, it must have a network mask of /16
+        :type ip_range: str
+        :param network_name: identifier of the network, if not specified a randon name will be generated
+        :type network_name: str, optional
+        :return: new network object
+        :rtype: tfgrid.workloads.reservation.1
+        """
         network = netaddr.IPNetwork(ip_range)
         if not is_private(network):
             raise j.exceptions.Input("ip_range must be a private network range (RFC 1918)")
         if network.prefixlen != 16:
             raise j.exceptions.Input("network mask of ip range must be a /16")
 
-        network = self._model.new()
+        network = reservation.data_reservation.networks.new()
+        network.workload_id = _next_workload_id(reservation)
         network.name = network_name if network_name else j.data.idgenerator.generateXCharID(16)
         network.iprange = ip_range
-        network.info.pool_id = pool_id
-        network.info.customer_tid = customer_tid if customer_tid else j.me.tid
-        network.info.workload_type = "NETWORK_RESOURCE"
         return network
 
     def add_node(self, network, node_id, ip_range, wg_port=None):
         """
         add a 0-OS node into the network
-
         :param network: network object where to add the network resource
         :type network: tfgrid.workloads.reservation.network.1
         :param node_id: node_id of the node we want to add to the network
@@ -84,11 +75,13 @@ class NetworkGenerator:
 
         _, wg_private_encrypted, wg_public = j.tools.wireguard.generate_zos_keys(node.public_key_hex)
 
-        network.iprange = ip_range
-        network.info.node_id = node_id
-        network.wireguard_listen_port = wg_port
-        network.wireguard_public_key = wg_public
-        network.wireguard_private_key_encrypted = wg_private_encrypted
+        nr = network.network_resources.new()
+
+        nr.iprange = ip_range
+        nr.node_id = node_id
+        nr.wireguard_listen_port = wg_port
+        nr.wireguard_public_key = wg_public
+        nr.wireguard_private_key_encrypted = wg_private_encrypted
 
         try:
             self._load_network(network)
@@ -96,13 +89,14 @@ class NetworkGenerator:
         finally:
             self._cleanup_network(network)
 
-    def add_access(self, network, ip_range, wg_public_key=None, ipv4=False):
+    def add_access(self, network, node_id, ip_range, wg_public_key=None, ipv4=False):
         """
         add an external access to the network. use this function is you want to allow
         a member to your network that is not a 0-OS node. User laptop, external server,...
-
         :param network: network object where to add the network resource
         :type network: tfgrid.workloads.reservation.network.1
+        :param node_id: node_id of the node to use a access point into the network
+        :type node_id: str
         :param ip_range: subnet to allocate to the member,  network mask should be a /24 and be part of the network subnet
         :type ip_range: str
         :param wg_public_key: public key of the new member. If none a new key pair will be generated automatically
@@ -112,6 +106,10 @@ class NetworkGenerator:
         :return: wg-quick configuration
         :rtype: str
         """
+        if not node_id:
+            raise j.exceptions.Input("node_id cannot be none or empty")
+
+        node = self._nodes.get(node_id)
 
         if netaddr.IPNetwork(ip_range).prefixlen != 24:
             raise j.exceptions.Input("ip_range should have a netmask of /24, not /%d", ip_range.prefixlen)
@@ -119,17 +117,25 @@ class NetworkGenerator:
         try:
             self._load_network(network)
 
-            if len(network.public_endpoints) == 0:
+            access_point_nr = None
+            for nr in network.network_resources:
+                if node_id == nr.node_id:
+                    access_point_nr = nr
+
+            if access_point_nr is None:
+                raise j.exceptions.Input("can not add access through a node which is not in the network")
+
+            if len(access_point_nr.public_endpoints) == 0:
                 raise j.exceptions.Input("access node must have at least 1 public endpoint")
 
             endpoint = ""
-            wg_port = network.wireguard_listen_port
-            for ep in network.public_endpoints:
+            wg_port = access_point_nr.wireguard_listen_port
+            for ep in access_point_nr.public_endpoints:
                 if ipv4 and ep.version == 4:
                     endpoint = f"{str(ep.ip)}:{wg_port}"
                     break
                 if not ipv4 and ep.version == 6:
-                    ip = str(network.public_endpoints[0].ip)
+                    ip = str(access_point_nr.public_endpoints[0].ip)
                     endpoint = f"[{ip}]:{wg_port}"
                     break
 
@@ -144,7 +150,7 @@ class NetworkGenerator:
                 wg_public_key = wg_public.encode(Base64Encoder)
 
             network.access_points.append(
-                AccessPoint(node_id=network.info.node_id, subnet=ip_range, wg_public_key=wg_public_key, ip4=ipv4)
+                AccessPoint(node_id=node_id, subnet=ip_range, wg_public_key=wg_public_key, ip4=ipv4)
             )
 
             generate_peers(network)
@@ -153,21 +159,152 @@ class NetworkGenerator:
             self._cleanup_network(network)
 
         return generate_wg_quick(
-            wg_private_key.decode(), ip_range, network.wireguard_public_key, network.iprange, endpoint
+            wg_private_key.decode(), ip_range, access_point_nr.wireguard_public_key, network.iprange, endpoint
         )
 
 
 def generate_peers(network):
-    if has_ipv4(network):
-        allowed_ips = [network.iprange, wg_routing_ip(network.iprange)]
-        peer = network.peers.new()
-        peer.iprange = str(network.iprange)
-        for pep in network.public_endpoints:
-            if pep.version == 4:
-                peer.endpoint = f"{str(pep.ip)}.{network.wireguard_listen_port}"
-                break
-        peer.allowed_iprange = [str(x) for x in allowed_ips]
-        peer.public_key = network.wireguard_public_key
+
+    public_nr = None
+    if has_hidden_nodes(network):
+        public_nr = find_public_node(network.network_resources)
+
+    # We also need to inform nodes how to route the external access subnets.
+    # Working with the knowledge that these external subnets come in through
+    # the network through a single access point, which is part of the network
+    # and thus already routed, we can map the external subnets to the subnet
+    # of the access point, and add these external subnets to all peers who also
+    # have the associated internal subnet.
+
+    # Map the network subnets to their respective node ids first for easy access later
+    internal_subnets = {}
+    for nr in network.network_resources:
+        internal_subnets[nr.node_id] = nr.iprange
+
+    external_subnet = {}
+    for ap in network.access_points:
+        internal_sub = internal_subnets[ap.node_id]
+        if internal_sub not in external_subnet:
+            external_subnet[internal_sub] = []
+        external_subnet[internal_sub].append(ap.subnet)
+
+    # Maintain a mapping of access point nodes to the subnet and wg key they give access
+    # to, as these need to be added as peers as well for these nodes
+    access_points = {}
+    for ap in network.access_points:
+        if ap.node_id not in access_points:
+            access_points[ap.node_id] = []
+        access_points[ap.node_id].append(ap)
+
+    # Find all hidden nodes, and collect their subnets. Also collect the subnets
+    # of public IPv6 only nodes, since hidden nodes need IPv4 to connect.
+    hidden_subnets = {}
+    # also maintain subnets from nodes who have only IPv6 since this will also
+    # need to be routed for hidden nodes
+    ipv6_only_subnets = {}
+    for nr in network.network_resources:
+        if len(nr.public_endpoints) == 0:
+            hidden_subnets[nr.node_id] = nr.iprange
+            continue
+
+        if not has_ipv4(nr):
+            ipv6_only_subnets[nr.node_id] = nr.iprange
+
+    for nr in network.network_resources:
+
+        nr.peers = []
+        for onr in network.network_resources:
+            # skip ourself
+            if nr.node_id == onr.node_id:
+                continue
+
+            endpoint = ""
+
+            allowed_ips = [onr.iprange, wg_routing_ip(onr.iprange)]
+
+            if len(nr.public_endpoints) == 0:
+                # If node is hidden, set only public peers (with IPv4), and set first public peer to
+                # contain all hidden subnets, except for the one owned by the node
+                if not has_ipv4(onr):
+                    continue
+
+                # Also add all other subnets if this is the pub node
+                if public_nr and onr.node_id == public_nr.node_id:
+                    for owner, subnet in hidden_subnets.items():
+                        # Do not add our own subnet
+                        if owner == nr.node_id:
+                            continue
+
+                        allowed_ips.append(subnet)
+                        allowed_ips.append(wg_routing_ip(subnet))
+
+                    for subnet in ipv6_only_subnets.values():
+                        allowed_ips.append(subnet)
+                        allowed_ips.append(wg_routing_ip(subnet))
+
+                    for pep in onr.public_endpoints:
+                        if pep.version == 4:
+                            endpoint = f"{str(pep.ip)}.{onr.wireguard_listen_port}"
+                            break
+
+                # Endpoint must be IPv4
+                for pep in onr.public_endpoints:
+                    if pep.version == 4:
+                        endpoint = f"{str(pep.ip)}:{onr.wireguard_listen_port}"
+                        break
+
+            elif len(onr.public_endpoints) == 0 and has_ipv4(nr):
+                # if the peer is hidden but we have IPv4,  we can connect to it, but we don't know an endpoint.
+                endpoint = ""
+            else:
+                # if we are not hidden, we add all other nodes, unless we don't
+                # have IPv4, because then we also can't connect to hidden nodes.
+                # Ignore hidden nodes if we don't have IPv4
+                if not has_ipv4(nr) and len(onr.public_endpoints) == 0:
+                    continue
+
+                # both nodes are public therefore we can connect over IPv6
+
+                # if this is the selected public_nr - also need to add allowedIPs for the hidden nodes
+                if public_nr and onr.node_id == public_nr.node_id:
+                    for subnet in hidden_subnets.values():
+                        allowed_ips.append(subnet)
+                        allowed_ips.append(wg_routing_ip(subnet))
+
+                # Since the node is not hidden, we know that it MUST have at least 1 IPv6 address
+                for pep in onr.public_endpoints:
+                    if pep.version == 6:
+                        endpoint = f"[{str(pep.ip)}]:{onr.wireguard_listen_port}"
+                        break
+
+                # as a fallback assign IPv4
+                if endpoint == "":
+                    for pep in onr.public_endpoint:
+                        if pep.version == 4:
+                            endpoint = f"{pep.ip}:{onr.wireguard_listen_port}"
+                            break
+
+            # Add subnets for external access
+            for aip in allowed_ips:
+                for subnet in external_subnet.get(aip, []):
+                    allowed_ips.append(subnet)
+                    allowed_ips.append(wg_routing_ip(subnet))
+
+            peer = nr.peers.new()
+            peer.iprange = str(onr.iprange)
+            peer.endpoint = endpoint
+            peer.allowed_iprange = [str(x) for x in allowed_ips]
+            peer.public_key = onr.wireguard_public_key
+
+        #  Add configured external access peers
+        for ea in access_points.get(nr.node_id, []):
+            allowed_ips = [str(ea.subnet), wg_routing_ip(ea.subnet)]
+
+            peer = nr.peers.new()
+            peer.iprange = ea.subnet
+            peer.endpoint = ""
+            peer.allowed_iprange = [str(x) for x in allowed_ips]
+            peer.public_key = ea.wg_public_key
 
 
 def has_hidden_nodes(network):
@@ -251,19 +388,21 @@ def extract_access_points(network):
     # gather all actual nodes, using their wg pubkey as key in the map (NodeID
     # can't be seen in the actual peer struct)
     actual_nodes = {}
-    actual_nodes[network.wireguard_public_key] = None
+    for nr in network.network_resources:
+        actual_nodes[nr.wireguard_public_key] = None
 
     aps = []
-    for peer in network.peers:
-        if peer.public_key not in actual_nodes:
-            # peer is not a node so it must be external
-            ap = AccessPoint(
-                node_id=network.info.node_id,
-                subnet=peer.iprange,
-                wg_public_key=peer.public_key,
-                # we can't infer if we use IPv6 or IPv4
-            )
-            aps.append(ap)
+    for nr in network.network_resources:
+        for peer in nr.peers:
+            if peer.public_key not in actual_nodes:
+                # peer is not a node so it must be external
+                ap = AccessPoint(
+                    node_id=nr.node_id,
+                    subnet=peer.iprange,
+                    wg_public_key=peer.public_key,
+                    # we can't infer if we use IPv6 or IPv4
+                )
+                aps.append(ap)
     return aps
 
 
