@@ -7,10 +7,10 @@ from Jumpscale import j
 from .id import _next_workload_id
 
 """
-net = j.sal.zosv2._workload_network.create("10.10.0.0/16", "workload_net_1", 9)
-j.sal.zosv2._workload_network.add_node(net, "qzuTJJVd5boi6Uyoco1WWnSgzTb7q8uN79AjBT9x9N3", "10.10.20.0/24")
-wg = j.sal.zosv2._workload_network.add_access(net, "10.10.20.0/24", ipv4=True)
-j.sal.zosv2._workloads.deploy(net, 9, 1594138070)
+net = j.sal.zosv2.network.create("10.10.0.0/16", "workload_net_1", 9)
+j.sal.zosv2.network.add_node(net, "qzuTJJVd5boi6Uyoco1WWnSgzTb7q8uN79AjBT9x9N3", "10.10.20.0/24")
+wg = j.sal.zosv2.network.add_access(net, "10.10.20.0/24", ipv4=True)
+j.sal.zosv2.workloads.deploy(net, 9, 1594138070)
 """
 
 
