@@ -64,7 +64,7 @@ class NetworkGenerator:
 
         return network
 
-    def add_node(self, network, node_id, ip_range, wg_port=None):
+    def add_node(self, network, node_id, ip_range, capacity_pool_id, wg_port=None):
         """
         add a 0-OS node into the network
 
@@ -92,6 +92,7 @@ class NetworkGenerator:
 
         nr = self._model.new()
         nr.info.workload_type = "NETWORK_RESOURCE"
+        nr.info.pool_id = capacity_pool_id
         network.network_resources.append(nr)
 
         nr.network_iprange = network.iprange

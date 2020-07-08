@@ -6,7 +6,7 @@ class VolumesGenerator:
     def __init__(self):
         self._model = j.data.schema.get_from_url("tfgrid.workloads.reservation.volume.1")
 
-    def create(self, reservation, node_id, size=5, type="HDD"):
+    def create(self, reservation, node_id, capacity_pool_id, size=5, type="HDD"):
         """
         add a volume to the reservation
         
@@ -26,6 +26,7 @@ class VolumesGenerator:
             raise j.excpetions.Input("volume type can only be SSD or HDD")
 
         volume = self._model.new()
+        volume.info.pool_id = capacity_pool_id
         volume.size = size
         volume.type = type
         volume.info.node_id = node_id

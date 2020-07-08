@@ -18,6 +18,7 @@ class ContainerGenerator:
         network_name,
         ip_address,
         flist,
+        capacity_pool_id,
         env={},
         cpu=1,
         memory=1024,
@@ -35,6 +36,7 @@ class ContainerGenerator:
         cont = self._model.new()
         cont.info.node_id = node_id
         cont.info.workload_type = "CONTAINER"
+        cont.info.pool_id = capacity_pool_id
 
         cont.flist = flist
         cont.storage_url = storage_url

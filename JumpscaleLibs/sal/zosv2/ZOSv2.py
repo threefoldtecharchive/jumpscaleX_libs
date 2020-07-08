@@ -12,6 +12,7 @@ from .billing import Billing
 from .gateway import GatewayGenerator
 from .pools import Pools
 from .workloads import Workloads
+from .reservation import Reservation
 
 
 class Zosv2(j.baseclasses.object):
@@ -87,7 +88,7 @@ class Zosv2(j.baseclasses.object):
     def reservation_register(
         self,
         reservation,
-        expiration_date,
+        # expiration_date,
         identity=None,
         expiration_provisioning=None,
         customer_tid=None,
@@ -116,23 +117,10 @@ class Zosv2(j.baseclasses.object):
         if expiration_provisioning is None:
             expiration_provisioning = j.data.time.epoch + (15 * 60)
 
-        dr = reservation.data_reservation
-        dr.currencies = currencies
-
-        dr.expiration_provisioning = expiration_provisioning
-        dr.expiration_reservation = expiration_date
-        dr.signing_request_delete.quorum_min = 0
-        dr.signing_request_provision.quorum_min = 0
-
-        # make the reservation cancellable by the user that registered it
-        if me.tid not in dr.signing_request_delete.signers:
-            dr.signing_request_delete.signers.append(me.tid)
-        dr.signing_request_delete.quorum_min = len(dr.signing_request_delete.signers)
-
-        reservation.json = dr._json
-        reservation.customer_signature = me.encryptor.sign_hex(reservation.json.encode())
-
-        return self._explorer.reservations.create(reservation)
+        ids = []
+        for workload in reservation.sorted:
+            ids.append(self.workloads.deploy(workload))
+        return ids
 
     def reservation_accept(self, reservation, identity=None):
         """

@@ -9,7 +9,7 @@ class ZDBGenerator:
         self._nodes = explorer.nodes
         self._model = j.data.schema.get_from_url("tfgrid.workloads.reservation.zdb.1")
 
-    def create(self, reservation, node_id, size, mode, password, disk_type="SSD", public=False):
+    def create(self, reservation, node_id, size, mode, password, capacity_pool_id, disk_type="SSD", public=False):
         """
         add a 0-db namespace workload to the reservation
         
@@ -36,6 +36,7 @@ class ZDBGenerator:
             raise j.excpetions.Input("mode can only be 'seq' or 'user'")
 
         zdb = self._model.new()
+        db.info.pool_id = capacity_pool_id
         zdb.workload_id = _next_workload_id(reservation)
         zdb.node_id = node_id
         zdb.size = size

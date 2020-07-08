@@ -17,7 +17,7 @@ _order = [
 
 class Reservation:
     def __init__(self):
-        self._workloads = []
+        self.workloads = []
 
     @property
     def sorted(self):
