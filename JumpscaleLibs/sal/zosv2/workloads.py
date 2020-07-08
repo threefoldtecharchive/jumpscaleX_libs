@@ -29,4 +29,4 @@ class Workloads:
         signature = sign_workload(workload, me.encryptor.signing_key)
         workload.info.customer_signature = j.data.hash.bin2hex(signature)
         print(workload.info.customer_signature)
-        self._workloads.create(workload)
+        return self._workloads.create(workload)
