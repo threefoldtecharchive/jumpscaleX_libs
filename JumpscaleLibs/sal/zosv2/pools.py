@@ -17,7 +17,7 @@ class Pools:
 
         return self._pools.create(pool)
 
-    def create(self, cu, su, farm, currencies=["TFT"], identity=None):
+    def create(self, cu, su, farm, currencies=None, identity=None):
         """
         create a new capacity pool
 
@@ -34,7 +34,8 @@ class Pools:
         :return: payment information
         :rtype: tfgrid.workloads.pool.created.1
         """
-        me = identity if identity else j.me
+        if not currencies:
+            currencies = ["TFT"]
 
         farm_id = farm
         if isinstance(farm, str):
@@ -54,13 +55,12 @@ class Pools:
 
         return self._reserve(pool, identity=identity)
 
-    def extend(self, pool_id, cu, su, node_ids=None, currencies=["TFT"], identity=None):
+    def extend(self, pool_id, cu, su, node_ids=None, currencies=None, identity=None):
         """
         Extend an existing capacity pool
 
         You can extend the amount of cloud units reserved as well as the list of nodes
         usable for this pool
-        
 
         :param cu: Amount of compute unit/sec to add to the existing pool
         :type cu: int
@@ -76,6 +76,9 @@ class Pools:
         :rtype: tfgrid.workloads.pool.created.1
         """
         p = self.get(pool_id)
+
+        if not currencies:
+            currencies = ["TFT"]
 
         pool = self._pools.new()
         pool.data_reservation.pool_id = p.pool_id
@@ -99,7 +102,7 @@ class Pools:
 
     def iter(self):
         """
-        return an iterator that will yield all the 
+        return an iterator that will yield all the
         capacity pool own by the current user
         """
         return self._pools.iter()
