@@ -61,7 +61,7 @@ class Workloads:
         info = data.pop("info")
         data.update(info)
         resp = self._session.post(url, json=data)
-        return resp.json().get("id")
+        return resp.json().get("reservation_id")
 
     def list(self, customer_tid=None, next_action=None, page=None):
         url = self._client.url + "/workload"
