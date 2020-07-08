@@ -75,6 +75,8 @@ workload_id = (I)
 node_id = (S)
 pool_id = (I)
 description = "" (S)
+# referene to an old reservation, used in conversion
+reference = "" (S) 
 #till whe is request for provisioning valid, if not signed in required time then obsolete
 expiration_provisioning = (T)
 #id of threebot which pays for it
