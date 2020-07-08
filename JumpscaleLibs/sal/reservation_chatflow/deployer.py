@@ -2,6 +2,7 @@ from Jumpscale import j
 from Jumpscale.servers.gedis.GedisChatBot import StopChatFlow
 import netaddr
 from collections import defaultdict
+import base64
 
 
 class NetworkView:
@@ -255,7 +256,19 @@ class ChatflowDeployer(j.baseclasses.object):
         name = bot.string_ask("Please enter a name for you workload", required=True, field="name")
         return name
 
-    def deploy_network(self, name, reservation, access_node, ip_range, ip_version, pool_id):
+    def encrypt_metadata(self, metadata):
+        if isinstance(metadata, dict):
+            metadata = j.data.serializers.json.dumps(metadata)
+        encrypted_metadata = base64.b85encode(j.me.encryptor.encrypt(metadata.encode())).decode()
+        return encrypted_metadata
+
+    def decrypt_metadata(self, encrypted_metadata):
+        try:
+            return j.me.encryptor.decrypt(base64.b85decode(encrypted_metadata.encode())).decode()
+        except:
+            return ""
+
+    def deploy_network(self, name, reservation, access_node, ip_range, ip_version, pool_id, **metadata):
         network = j.sal.zosv2.network.create(reservation, ip_range, name)
         node_subnets = netaddr.IPNetwork(ip_range).subnet(24)
         network_config = dict()
@@ -269,21 +282,29 @@ class ChatflowDeployer(j.baseclasses.object):
 
         ids = []
         parent_id = None
+        encrypted_metadata = ""
+        if metadata:
+            encrypted_metadata = self.encrypt_metadata(metadata)
         for workload in network.network_resources:
             workload.info.description = j.data.serializers.json.dumps({"parent_id": parent_id})
+            workload.metadata = encrypted_metadata
             ids.append(j.sal.zosv2.workloads.deploy(workload))
             parent_id = ids[-1]
         network_config["ids"] = ids
         network_config["rid"] = ids[0]
         return network_config
 
-    def add_network_node(self, name, node):
+    def add_network_node(self, name, node, **metadata):
         network_view = NetworkView(name)
         network = network_view.add_node(node)
         parent_id = network_view.network_workloads[-1].id
         ids = []
+        encrypted_metadata = ""
+        if metadata:
+            encrypted_metadata = self.encrypt_metadata(metadata)
         for workload in network.network_resources:
             workload.info.description = j.data.serializers.json.dumps({"parent_id": parent_id})
+            workload.metadata = encrypted_metadata
             ids.append(j.sal.zosv2.workloads.deploy(workload))
             parent_id = ids[-1]
         return {"ids": ids, "rid": ids[0]}
@@ -302,10 +323,10 @@ class ChatflowDeployer(j.baseclasses.object):
             if workload.info.expiration_provisioning < j.data.time.epoch:
                 raise StopChatFlow(f"Workload {workload_id} failed to deploy in time")
 
-    def list_networks(self):
+    def list_networks(self, next_action="DEPLOY"):
         self.load_user_workloads()
-        networks = {}  # name -> last child network resource
-        for workload in self.workloads["DEPLOY"]["NETWORK_RESOURCE"]:
+        networks = {}  # name: last child network resource
+        for workload in self.workloads[next_action]["NETWORK_RESOURCE"]:
             networks[workload.name] = workload
         all_workloads = []
         for workload_list in self.workloads.values():
@@ -314,3 +335,115 @@ class ChatflowDeployer(j.baseclasses.object):
         for network_name in networks:
             network_views[network_name] = NetworkView(network_name, all_workloads)
         return network_views
+
+    def deploy_volume(self, pool_id, node_id, size, volume_type="SSD", **metadata):
+        reservation = j.sal.zosv2.reservation_create()
+        volume = j.sal.zosv2.volume.create(reservation, node_id, pool_id, size, volume_type)
+        if metadata:
+            volume.info.metadata = self.encrypt_metadata(metadata)
+        return j.sal.zosv2.workloads.deploy(volume)
+
+    def deploy_container(
+        self,
+        pool_id,
+        node_id,
+        network_name,
+        ip_address,
+        flist,
+        env=None,
+        cpu=1,
+        memory=1024,
+        disk_size=256,
+        disk_type="SSD",
+        entrypoint="",
+        interactive=False,
+        secret_env=None,
+        volumes=None,
+        log_config=None,
+        **metadata,
+    ):
+        """
+        volumes: dict {"mountpoint (/)": volume_id}
+        log_Config: dict. keys ("channel_type", "channel_host", "channel_port", "channel_name")
+        """
+        resevation = j.sal.zosv2.reservation_create()
+        encrypted_secret_env = {}
+        if secret_env:
+            for key, val in secret_env.items():
+                encrypted_secret_env[key] = j.sal.zosv2.container.encrypt_secret(node_id, val)
+        container = j.sal.zosv2.container.create(
+            resevation,
+            node_id,
+            network_name,
+            ip_address,
+            flist,
+            pool_id,
+            env,
+            cpu,
+            memory,
+            disk_size,
+            disk_type,
+            entrypoint,
+            interactive,
+            secret_env,
+        )
+        if volumes:
+            for mount_point, vol_id in volumes.items():
+                j.sal.zosv2.volume.attach_existing(container, vol_id, mount_point)
+        if metadata:
+            container.info.metadata = self.encrypt_metadata(metadata)
+        if log_config:
+            j.sal.zosv2.container.add_logs(container, **log_config)
+        return j.sal.zosv2.workloads.deploy(container)
+
+    def ask_container_resources(self, bot, cpu=True, memory=True, disk_size=True, disk_type=False):
+        form = bot.new_form()
+        if cpu:
+            cpu_answer = form.int_ask("Please specify how many cpus", default=1)
+        if memory:
+            memory_answer = form.int_ask("Please specify how much memory", default=1024)
+        if disk_size:
+            disk_size_answer = form.int_ask("Please specify the size of root filesystem", default=256)
+        if disk_type:
+            disk_type_answer = form.single_choice("Please choose the root filesystem disktype", ["SSD", "HDD"])
+        form.ask()
+        resources = {}
+        if cpu:
+            resources["cpu"] = cpu_answer.value
+        if memory:
+            resources["memory"] = memory_answer.value
+        if disk_size:
+            resources["disk_size"] = disk_size_answer.value
+        if disk_type:
+            resources["disk_type"] = disk_type_answer.value
+        return resources
+
+    def ask_container_logs(self, bot, solution_name=None):
+        logs_config = {}
+        form = bot.new_form()
+        channel_type = form.string_ask("Please add the channel type", default="redis", required=True)
+        channel_host = form.string_ask("Please add the IP address where the logs will be output to", required=True)
+        channel_port = form.int_ask("Please add the port available where the logs will be output to", required=True)
+        channel_name = form.string_ask(
+            "Please add the channel name to be used. The channels will be in the form NAME-stdout and NAME-stderr",
+            default=solution_name,
+            required=True,
+        )
+        form.ask()
+        logs_config["channel_type"] = channel_type.value
+        logs_config["channel_host"] = channel_host.value
+        logs_config["channel_port"] = channel_port.value
+        logs_config["channel_name"] = channel_name.value
+        return logs_config
+
+    def schedule_container(self, pool_id, cru=None, sru=None, mru=None, hru=None, ip_version=None):
+        pool = j.sal.zosv2.pools.get(pool_id)
+        res = self.check_pool_capacity(pool, cru, sru)
+        if not res[0]:
+            raise StopChatFlow(
+                f"Not enough resources in pool {pool_id}\n available cu: {res[1]} available su: {res[2]}"
+            )
+        farm_id = self.get_pool_farm_id(pool_id)
+        farm_name = j.sal.zosv2._explorer.farms.get(farm_id).name
+        query = {"cru": cru, "sru": sru, "mru": mru, "hru": hru, "ip_version": ip_version}
+        return j.sal.reservation_chatflow.nodes_get(1, farm_names=[farm_name], **query)[0]
