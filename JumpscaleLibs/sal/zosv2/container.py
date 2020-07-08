@@ -1,4 +1,3 @@
-import netaddr
 from Jumpscale import j
 import base58
 from nacl import signing
