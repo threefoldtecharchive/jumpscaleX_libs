@@ -50,7 +50,7 @@ class Billing:
 
         transaction_hashes = []
         try:
-            txhash = client.transfer(escrow_address, total_amount, asset=asset, memo_text=str(reservation_id))
+            txhash = client.transfer(escrow_address, total_amount, asset=asset, memo_text=f"p-{reservation_id}")
             transaction_hashes.append(txhash)
         except BadRequestError as e:
             raise e
