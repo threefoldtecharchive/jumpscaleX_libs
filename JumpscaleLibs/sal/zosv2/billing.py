@@ -27,23 +27,28 @@ class Billing:
         """
         # TODO check the wallet client use the right asset to pay the reservation
 
-        transaction_hashes = []
+        total_amount = reservation_response.escrow_information.amount
+        if total_amount <= 0:
+            return []  # nothing to pay,early return
+
         reservation_id = reservation_response.reservation_id
         asset = reservation_response.escrow_information.asset
-        total_amount = sum([d.total_amount for d in reservation_response.escrow_information.details])
         escrow_address = reservation_response.escrow_information.address
 
         total_amount_dec = Decimal(total_amount) / Decimal(1e7)
         total_amount = "{0:f}".format(total_amount_dec)
 
-        escrow_address = reservation_response.escrow_information.address
         for balance in client.get_balance().balances:
             if f"{balance.asset_code}:{balance.asset_issuer}" == asset:
                 if total_amount_dec > Decimal(balance.balance):
-                    raise InsufficientFunds(f"Wallet {client.name} does not have enough funds to pay for {total_amount_dec:0f} {asset}")
+                    raise InsufficientFunds(
+                        f"Wallet {client.name} does not have enough funds to pay for {total_amount_dec:0f} {asset}"
+                    )
                 break
         else:
             raise MissingTrustLine(f"Wallet {client.name} does not have a valid trustline to pay for {asset}")
+
+        transaction_hashes = []
         try:
             txhash = client.transfer(escrow_address, total_amount, asset=asset, memo_text=str(reservation_id))
             transaction_hashes.append(txhash)
