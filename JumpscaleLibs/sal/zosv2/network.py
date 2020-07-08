@@ -4,8 +4,6 @@ import random
 import netaddr
 from Jumpscale import j
 
-from .id import _next_workload_id
-
 
 class Network:
     class Info:

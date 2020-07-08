@@ -1,5 +1,3 @@
-from .network import Network
-
 _order = [
     "NETWORK_RESOURCE",
     "NETWORK",

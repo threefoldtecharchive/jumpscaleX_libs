@@ -2,7 +2,6 @@ import netaddr
 from Jumpscale import j
 
 from .crypto import encrypt_for_node
-from .id import _next_workload_id
 
 
 class GatewayGenerator:
@@ -77,7 +76,6 @@ class GatewayGenerator:
 
         gw.public_key = public_key
         gw.node_id = node_id
-        gw.workload_id = _next_workload_id(reservation)
 
         reservation.workloads.append(gw)
 

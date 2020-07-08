@@ -1,7 +1,6 @@
 from .crypto import encrypt_for_node
 
 from Jumpscale import j
-from .id import _next_workload_id
 
 
 class ZDBGenerator:
@@ -37,7 +36,6 @@ class ZDBGenerator:
 
         zdb = self._model.new()
         db.info.pool_id = capacity_pool_id
-        zdb.workload_id = _next_workload_id(reservation)
         zdb.node_id = node_id
         zdb.size = size
         zdb.mode = mode

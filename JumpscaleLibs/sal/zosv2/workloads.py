@@ -1,4 +1,3 @@
-from .id import _next_workload_id
 from Jumpscale import j
 from .signature import sign_workload
 

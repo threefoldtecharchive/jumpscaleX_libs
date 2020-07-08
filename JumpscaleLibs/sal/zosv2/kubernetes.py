@@ -1,7 +1,6 @@
 from Jumpscale import j
 
 from .crypto import encrypt_for_node
-from .id import _next_workload_id
 
 
 class K8sGenerator:
