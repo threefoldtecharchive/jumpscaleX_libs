@@ -1,6 +1,63 @@
 from Jumpscale import j
 from Jumpscale.servers.gedis.GedisChatBot import StopChatFlow
 import netaddr
+from collections import defaultdict
+
+
+class NetworkView:
+    def __init__(self, name, workloads=None):
+        self.name = name
+        if not workloads:
+            workloads = j.sal.zosv2.workloads.list(j.me.tid)
+        self.workloads = workloads
+        self.used_ips = []
+        self.network_workloads = []
+        self._fill_used_ips(self.workloads)
+        self._init_network_workloads(self.workloads)
+        self.pool_id = self.network_workloads[0].info.pool_id
+        self.iprange = self.network_resources[0].network_iprange
+
+    def _fill_used_ips(self, workloads):
+        for workload in workloads:
+            if workload.info.next_action != "DEPLOY":
+                continue
+            if workload.info.workload_type == "KUBERNETES":
+                self.used_ips.append(workload.ipaddress)
+            elif workload.info.workload_type == "CONTAINER":
+                for conn in workload.network_connection:
+                    if conn.network_id == self.name:
+                        self._fill_used_ips(conn.ipaddress)
+
+    def _init_network_workloads(self, workloads):
+        for workload in workloads:
+            if workload.info.workload_type == "NETWORK_RESOURCE" and workload.name == self.name:
+                self.network_workloads.append(workload)
+
+    def add_node(self, node):
+        used_ip_ranges = set()
+        for workload in self.network_workloads:
+            if workload.info.node_id == node.node_id:
+                return
+            used_ip_ranges.add(workload.iprange)
+            for peer in workload.peers:
+                used_ip_ranges.add(peer.iprange)
+        else:
+            network_range = netaddr.IPNetwork(self.iprange)
+            for idx, subnet in enumerate(network_range.subnet(24)):
+                if str(subnet) not in used_ip_ranges:
+                    break
+            else:
+                self._bot.stop("Failed to find free network")
+            reservation = j.sal.zosv2.reservation_create()
+            network = j.sal.zosv2.network.create(reservation, self.iprange, self.name)
+            j.sal.zosv2.network.add_node(network, node.node_id, str(subnet), self.pool_id)
+            return network
+
+    def get_node_range(self, node):
+        for workload in self.network_workloads:
+            if workload.info.node_id == node.node_id:
+                return workload.iprange
+        self._bot.stop(f"Node {node.node_id} is not part of network")
 
 
 class ChatflowDeployer(j.baseclasses.object):
@@ -9,6 +66,12 @@ class ChatflowDeployer(j.baseclasses.object):
     def _init(self, **kwargs):
         j.data.bcdb.get("tfgrid_solutions")
         self._explorer = j.clients.explorer.default
+        self.workloads = defaultdict(list)
+
+    def load_user_workloads(self):
+        all_workloads = j.sal.zosv2.workloads.list(j.me.tid)
+        for workload in all_workloads:
+            self.workloads[workload.info.workload_type].append(workload)
 
     def validate_user(self, user_info):
         if not j.core.myenv.config.get("THREEBOT_CONNECT", False):
@@ -212,6 +275,12 @@ class ChatflowDeployer(j.baseclasses.object):
         network_config["ids"] = ids
         network_config["rid"] = ids[0]
         return network_config
+
+    def add_network_node(self, name, node):
+        network_view = NetworkView(name)
+        network = network_view.add_node(node)
+        # FIXME: how to get the parent id?
+        # parent_id = network_view.network_workloads[-1].
 
     def wait_workload(self, workload_id, bot):
         while True:
