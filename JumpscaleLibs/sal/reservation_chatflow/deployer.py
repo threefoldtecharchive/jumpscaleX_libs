@@ -15,7 +15,7 @@ class NetworkView:
         self._fill_used_ips(self.workloads)
         self._init_network_workloads(self.workloads)
         self.pool_id = self.network_workloads[0].info.pool_id
-        self.iprange = self.network_resources[0].network_iprange
+        self.iprange = self.network_workloads[0].network_iprange
 
     def _fill_used_ips(self, workloads):
         for workload in workloads:
@@ -66,12 +66,13 @@ class ChatflowDeployer(j.baseclasses.object):
     def _init(self, **kwargs):
         j.data.bcdb.get("tfgrid_solutions")
         self._explorer = j.clients.explorer.default
-        self.workloads = defaultdict(list)
+        self.workloads = defaultdict(lambda: defaultdict(list))  # Next Action: workload_type: [workloads]
 
     def load_user_workloads(self):
         all_workloads = j.sal.zosv2.workloads.list(j.me.tid)
+        self.workloads = defaultdict(lambda: defaultdict(list))
         for workload in all_workloads:
-            self.workloads[workload.info.workload_type].append(workload)
+            self.workloads[str(workload.info.next_action)][str(workload.info.workload_type)].append(workload)
 
     def validate_user(self, user_info):
         if not j.core.myenv.config.get("THREEBOT_CONNECT", False):
@@ -279,8 +280,13 @@ class ChatflowDeployer(j.baseclasses.object):
     def add_network_node(self, name, node):
         network_view = NetworkView(name)
         network = network_view.add_node(node)
-        # FIXME: how to get the parent id?
-        # parent_id = network_view.network_workloads[-1].
+        parent_id = network_view.network_workloads[-1].id
+        ids = []
+        for workload in network.network_resources:
+            workload.info.description = j.data.serializers.json.dumps({"parent_id": parent_id})
+            ids.append(j.sal.zosv2.workloads.deploy(workload))
+            parent_id = ids[-1]
+        return {"ids": ids, "rid": ids[0]}
 
     def wait_workload(self, workload_id, bot):
         while True:
@@ -291,7 +297,20 @@ class ChatflowDeployer(j.baseclasses.object):
             Deployment will be cancelled if it is not successful in {remaning_time}
             """
             bot.md_show_update(j.core.text.strip(deploying_message), md=True)
-            if workload.info.result:
+            if workload.info.result.data_json:
                 return workload.info.result.state == "ok"
             if workload.info.expiration_provisioning < j.data.time.epoch:
                 raise StopChatFlow(f"Workload {workload_id} failed to deploy in time")
+
+    def list_networks(self):
+        self.load_user_workloads()
+        networks = {}  # name -> last child network resource
+        for workload in self.workloads["DEPLOY"]["NETWORK_RESOURCE"]:
+            networks[workload.name] = workload
+        all_workloads = []
+        for workload_list in self.workloads.values():
+            all_workloads += workload_list
+        network_views = {}
+        for network_name in networks:
+            network_views[network_name] = NetworkView(network_name, all_workloads)
+        return network_views
