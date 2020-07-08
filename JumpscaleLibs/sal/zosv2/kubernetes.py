@@ -9,7 +9,7 @@ class K8sGenerator:
         self._model = j.data.schema.get_from_url("tfgrid.workloads.reservation.k8s.1")
         self._nodes = explorer.nodes
 
-    def add_master(self, node_id, network_name, cluster_secret, ip_address, size, ssh_keys=[]):
+    def add_master(self, reservation, node_id, network_name, cluster_secret, ip_address, size, ssh_keys=[]):
         if size not in [1, 2]:
             raise j.exceptions.Input("size can only be 1 or 2")
 
@@ -26,9 +26,11 @@ class K8sGenerator:
             ssh_keys = [ssh_keys]
         master.ssh_keys = ssh_keys
 
+        reservation.workloads.append(master)
+
         return master
 
-    def add_worker(self, node_id, network_name, cluster_secret, ip_address, size, master_ip, ssh_keys=[]):
+    def add_worker(self, reservation, node_id, network_name, cluster_secret, ip_address, size, master_ip, ssh_keys=[]):
         worker = self.add_master(
             reservation=reservation,
             node_id=node_id,
@@ -39,4 +41,7 @@ class K8sGenerator:
             ssh_keys=ssh_keys,
         )
         worker.master_ips = [master_ip]
+
+        reservation.workloads.append(worker)
+
         return worker

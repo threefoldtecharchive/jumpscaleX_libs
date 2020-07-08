@@ -6,7 +6,7 @@ class VolumesGenerator:
     def __init__(self):
         self._model = j.data.schema.get_from_url("tfgrid.workloads.reservation.volume.1")
 
-    def create(self, node_id, size=5, type="HDD"):
+    def create(self, reservation, node_id, size=5, type="HDD"):
         """
         add a volume to the reservation
         
@@ -30,6 +30,9 @@ class VolumesGenerator:
         volume.type = type
         volume.info.node_id = node_id
         volume.info.workload_type = "VOLUME"
+
+        reservation.workloads.append(volume)
+
         return volume
 
     def attach(self, container, volume, mount_point):

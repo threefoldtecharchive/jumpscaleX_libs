@@ -53,6 +53,8 @@ class ContainerGenerator:
         cont.capacity.disk_size = disk_size
         cont.capacity.disk_type = disk_type
 
+        reservation.workloads.append(cont)
+
         return cont
 
     def corex_connect(self, ip, port=7681):

@@ -82,7 +82,7 @@ class Zosv2(j.baseclasses.object):
         :return: reservation (tfgrid.workloads.reservation.1)
         :rtype: BCDBModel
         """
-        return self._explorer.reservations.new()
+        return Reservation()
 
     def reservation_register(
         self,

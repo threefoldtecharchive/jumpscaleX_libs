@@ -7,14 +7,27 @@ from Jumpscale import j
 from .id import _next_workload_id
 
 
+class Network:
+    class Info:
+        def __init__(self):
+            self.workload_type = "NETWORK_RESOURCE"
+
+    def __init__(self, name, iprange):
+        self.info = self.Info()
+        self.name = name
+        self.iprange = iprange
+        self.network_resources = []
+
+
 class NetworkGenerator:
     def __init__(self, explorer):
         self._nodes = explorer.nodes
         self._farms = explorer.farms
+        self._model = j.data.schema.get_from_url("tfgrid.workloads.network_resource.1")
 
     def _load_network(self, network):
         for nr in network.network_resources:
-            nr.public_endpoints = get_endpoints(self._nodes.get(nr.node_id))
+            nr.public_endpoints = get_endpoints(self._nodes.get(nr.info.node_id))
 
         network.access_points = extract_access_points(network)
 
@@ -45,10 +58,10 @@ class NetworkGenerator:
         if network.prefixlen != 16:
             raise j.exceptions.Input("network mask of ip range must be a /16")
 
-        network = reservation.data_reservation.networks.new()
-        network.workload_id = _next_workload_id(reservation)
-        network.name = network_name if network_name else j.data.idgenerator.generateXCharID(16)
-        network.iprange = ip_range
+        name = network_name if network_name else j.data.idgenerator.generateXCharID(16)
+        network = Network(name, ip_range)
+        reservation.workloads.append(network)
+
         return network
 
     def add_node(self, network, node_id, ip_range, wg_port=None):
@@ -77,10 +90,15 @@ class NetworkGenerator:
 
         _, wg_private_encrypted, wg_public = j.tools.wireguard.generate_zos_keys(node.public_key_hex)
 
-        nr = network.network_resources.new()
+        nr = self._model.new()
+        nr.info.workload_type = "NETWORK_RESOURCE"
+        network.network_resources.append(nr)
+
+        nr.network_iprange = network.iprange
+        nr.name = network.name
 
         nr.iprange = ip_range
-        nr.node_id = node_id
+        nr.info.node_id = node_id
         nr.wireguard_listen_port = wg_port
         nr.wireguard_public_key = wg_public
         nr.wireguard_private_key_encrypted = wg_private_encrypted
@@ -122,7 +140,7 @@ class NetworkGenerator:
 
             access_point_nr = None
             for nr in network.network_resources:
-                if node_id == nr.node_id:
+                if node_id == nr.info.node_id:
                     access_point_nr = nr
 
             if access_point_nr is None:
@@ -182,7 +200,7 @@ def generate_peers(network):
     # Map the network subnets to their respective node ids first for easy access later
     internal_subnets = {}
     for nr in network.network_resources:
-        internal_subnets[nr.node_id] = nr.iprange
+        internal_subnets[nr.info.node_id] = nr.iprange
 
     external_subnet = {}
     for ap in network.access_points:
@@ -207,18 +225,18 @@ def generate_peers(network):
     ipv6_only_subnets = {}
     for nr in network.network_resources:
         if len(nr.public_endpoints) == 0:
-            hidden_subnets[nr.node_id] = nr.iprange
+            hidden_subnets[nr.info.node_id] = nr.iprange
             continue
 
         if not has_ipv4(nr):
-            ipv6_only_subnets[nr.node_id] = nr.iprange
+            ipv6_only_subnets[nr.info.node_id] = nr.iprange
 
     for nr in network.network_resources:
 
         nr.peers = []
         for onr in network.network_resources:
             # skip ourself
-            if nr.node_id == onr.node_id:
+            if nr.info.node_id == onr.info.node_id:
                 continue
 
             endpoint = ""
@@ -232,10 +250,10 @@ def generate_peers(network):
                     continue
 
                 # Also add all other subnets if this is the pub node
-                if public_nr and onr.node_id == public_nr.node_id:
+                if public_nr and onr.info.node_id == public_nr.info.node_id:
                     for owner, subnet in hidden_subnets.items():
                         # Do not add our own subnet
-                        if owner == nr.node_id:
+                        if owner == nr.info.node_id:
                             continue
 
                         allowed_ips.append(subnet)
@@ -269,7 +287,7 @@ def generate_peers(network):
                 # both nodes are public therefore we can connect over IPv6
 
                 # if this is the selected public_nr - also need to add allowedIPs for the hidden nodes
-                if public_nr and onr.node_id == public_nr.node_id:
+                if public_nr and onr.info.node_id == public_nr.info.node_id:
                     for subnet in hidden_subnets.values():
                         allowed_ips.append(subnet)
                         allowed_ips.append(wg_routing_ip(subnet))
@@ -300,7 +318,7 @@ def generate_peers(network):
             peer.public_key = onr.wireguard_public_key
 
         #  Add configured external access peers
-        for ea in access_points.get(nr.node_id, []):
+        for ea in access_points.get(nr.info.node_id, []):
             allowed_ips = [str(ea.subnet), wg_routing_ip(ea.subnet)]
 
             peer = nr.peers.new()
@@ -400,7 +418,7 @@ def extract_access_points(network):
             if peer.public_key not in actual_nodes:
                 # peer is not a node so it must be external
                 ap = AccessPoint(
-                    node_id=nr.node_id,
+                    node_id=nr.info.node_id,
                     subnet=peer.iprange,
                     wg_public_key=peer.public_key,
                     # we can't infer if we use IPv6 or IPv4
