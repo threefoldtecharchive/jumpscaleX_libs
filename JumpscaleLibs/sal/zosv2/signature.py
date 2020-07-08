@@ -85,6 +85,7 @@ def container_challenge(container):
     b.write(str(container.capacity.memory))
     b.write(str(container.capacity.disk_size))
     b.write(str(container.capacity.disk_type))
+    return b.getvalue()
 
 
 def volume_challenge(volume):
