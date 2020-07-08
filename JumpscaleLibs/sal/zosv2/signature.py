@@ -38,6 +38,7 @@ def workload_info_challenge(info):
     b.write(str(info.workload_id))
     b.write(str(info.node_id))
     b.write(str(info.pool_id))
+    b.write(str(info.reference))
     b.write(str(info.customer_tid))
     b.write(str(info.workload_type))
     b.write(str(info.expiration_provisioning))
