@@ -409,6 +409,7 @@ class ChatflowDeployer(j.baseclasses.object):
         secret_env=None,
         volumes=None,
         log_config=None,
+        public_ipv6=False,
         **metadata,
     ):
         """
@@ -435,6 +436,7 @@ class ChatflowDeployer(j.baseclasses.object):
             entrypoint,
             interactive,
             secret_env,
+            public_ipv6=public_ipv6,
         )
         if volumes:
             for mount_point, vol_id in volumes.items():
