@@ -499,10 +499,12 @@ class ChatflowDeployer(j.baseclasses.object):
         return j.sal.reservation_chatflow.nodes_get(1, farm_names=[farm_name], **query)[0]
 
     def ask_container_placement(
-        self, bot, pool_id, cru=None, sru=None, mru=None, hru=None, ip_version=None, free_to_use=False
-    ):
+        self, bot, pool_id, cru=None, sru=None, mru=None, hru=None, ip_version=None, free_to_use=False, workload_name=None
+    ):  
+        if not workload_name:
+            workload_name = "your workload"
         manual_choice = bot.single_choice(
-            "Do you want to manually select a node deployment or automatically?", ["YES", "NO"]
+            f"Do you want to manually select a node for deployment or automatically for {workload_name}?", ["YES", "NO"]
         )
         if manual_choice == "NO":
             return None
@@ -513,7 +515,7 @@ class ChatflowDeployer(j.baseclasses.object):
         if not nodes:
             raise StopChatFlow("Failed to find resources for this reservation")
         node_messages = {node.node_id: node for node in nodes}
-        node_id = bot.drop_down_choice("Please choose the node you want to deploy on", list(node_messages.keys()))
+        node_id = bot.drop_down_choice(f"Please choose the node you want to deploy {workload_name} on", list(node_messages.keys()))
         return node_messages[node_id]
 
     def delegate_domain(self, pool_id, gateway_id, domain_name, **metadata):
