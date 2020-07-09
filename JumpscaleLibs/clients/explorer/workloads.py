@@ -86,6 +86,8 @@ class Workloads:
         return next_action
 
     def iter(self, customer_tid=None, next_action=None):
+        next_action = self._next_action(next_action)
+
         def filter_next_action(reservation):
             if next_action is None:
                 return True
@@ -97,7 +99,7 @@ class Workloads:
         if customer_tid:
             query["customer_tid"] = customer_tid
         if next_action:
-            query["next_action"] = self._next_action(next_action)
+            query["next_action"] = next_action
         yield from filter(filter_next_action, get_all(self._session, Decoder, url, query))
 
     def get(self, workload_id):
@@ -116,7 +118,7 @@ class Workloads:
 
         if isinstance(signature, bytes):
             signature = j.data.hash.bin2hex(signature)
-        print("signature",signature)
+
         data = j.data.serializers.json.dumps({"signature": signature, "tid": tid, "epoch": j.data.time.epoch})
         self._session.post(url, data=data)
         return True

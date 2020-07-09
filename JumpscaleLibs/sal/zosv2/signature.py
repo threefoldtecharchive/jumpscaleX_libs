@@ -78,7 +78,6 @@ def _workload_info_challenge(info):
     b.write(str(info.reference))
     b.write(str(info.customer_tid))
     b.write(str(info.workload_type))
-    b.write(str(info.expiration_provisioning))
     b.write(str(info.epoch))
     b.write(str(info.description))
     b.write(str(info.metadata))
