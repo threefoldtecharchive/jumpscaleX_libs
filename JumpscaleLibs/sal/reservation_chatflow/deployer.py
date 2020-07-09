@@ -60,11 +60,10 @@ class NetworkView:
                 return workload.iprange
         self._bot.stop(f"Node {node.node_id} is not part of network")
 
-    @classmethod
-    def copy(cls):
-        return cls(cls.name)
+    def copy(self):
+        return NetworkView(self.name)
 
-    def get_node_free_ips(self, node, message):
+    def get_node_free_ips(self, node):
         ip_range = self.get_node_range(node)
         freeips = []
         hosts = netaddr.IPNetwork(ip_range).iter_hosts()
@@ -344,6 +343,8 @@ class ChatflowDeployer(j.baseclasses.object):
         return {"ids": ids, "rid": ids[0]}
 
     def wait_workload(self, workload_id, bot):
+        # TODO: Remove return
+        return True
         expiration_provisioning = j.data.time.getEpochDeltaTime("15m")
         while True:
             workload = j.sal.zosv2.workloads.get(workload_id)
