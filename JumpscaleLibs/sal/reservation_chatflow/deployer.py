@@ -60,6 +60,31 @@ class NetworkView:
                 return workload.iprange
         self._bot.stop(f"Node {node.node_id} is not part of network")
 
+    @classmethod
+    def copy(cls):
+        return cls(cls.name)
+
+    def get_node_free_ips(self, node, message):
+        ip_range = self.get_node_range(node)
+        freeips = []
+        hosts = netaddr.IPNetwork(ip_range).iter_hosts()
+        next(hosts)  # skip ip used by node
+        for host in hosts:
+            ip = str(host)
+            if ip not in self.used_ips:
+                freeips.append(ip)
+        return freeips
+
+    def get_free_ip(self, node):
+        ip_range = self.get_node_range(node)
+        hosts = netaddr.IPNetwork(ip_range).iter_hosts()
+        next(hosts)  # skip ip used by node
+        for host in hosts:
+            ip = str(host)
+            if ip not in self.used_ips:
+                return ip
+        return None
+
 
 class ChatflowDeployer(j.baseclasses.object):
     __jslocation__ = "j.sal.chatflow_deployer"
@@ -67,13 +92,19 @@ class ChatflowDeployer(j.baseclasses.object):
     def _init(self, **kwargs):
         j.data.bcdb.get("tfgrid_solutions")
         self._explorer = j.clients.explorer.default
-        self.workloads = defaultdict(lambda: defaultdict(list))  # Next Action: workload_type: [workloads]
+        self.workloads = defaultdict(
+            lambda: defaultdict(lambda: defaultdict(list))
+        )  # Next Action: workload_type: pool_id: [workloads]
 
     def load_user_workloads(self):
         all_workloads = j.sal.zosv2.workloads.list(j.me.tid)
-        self.workloads = defaultdict(lambda: defaultdict(list))
+        keys = list(self.workloads.keys())
+        for key in keys:
+            self.workloads.pop(key)
         for workload in all_workloads:
-            self.workloads[str(workload.info.next_action)][str(workload.info.workload_type)].append(workload)
+            self.workloads[str(workload.info.next_action)][str(workload.info.workload_type)][
+                workload.info.pool_id
+            ].append(workload)
 
     def validate_user(self, user_info):
         if not j.core.myenv.config.get("THREEBOT_CONNECT", False):
@@ -294,8 +325,9 @@ class ChatflowDeployer(j.baseclasses.object):
         network_config["rid"] = ids[0]
         return network_config
 
-    def add_network_node(self, name, node, **metadata):
-        network_view = NetworkView(name)
+    def add_network_node(self, name, node, network_view=None, **metadata):
+        if not network_view:
+            network_view = NetworkView(name)
         network = network_view.add_node(node)
         if not network:
             return
@@ -325,18 +357,31 @@ class ChatflowDeployer(j.baseclasses.object):
             if workload.info.expiration_provisioning < j.data.time.epoch:
                 raise StopChatFlow(f"Workload {workload_id} failed to deploy in time")
 
-    def list_networks(self, next_action="DEPLOY"):
+    def list_networks(self, next_action="DEPLOY", capacity_pool_id=None):
         self.load_user_workloads()
         networks = {}  # name: last child network resource
-        for workload in self.workloads[next_action]["NETWORK_RESOURCE"]:
-            networks[workload.name] = workload
+        for pool_id in self.workloads[next_action]["NETWORK_RESOURCE"]:
+            if capacity_pool_id and capacity_pool_id != pool_id:
+                continue
+            for workload in self.workloads[next_action]["NETWORK_RESOURCE"][pool_id]:
+                networks[workload.name] = workload
         all_workloads = []
-        for workload_list in self.workloads.values():
-            all_workloads += workload_list
+        for pools_workloads in self.workloads[next_action].values():
+            for pool_id, workload_list in pools_workloads.items():
+                if capacity_pool_id and capacity_pool_id != pool_id:
+                    continue
+                all_workloads += workload_list
         network_views = {}
         for network_name in networks:
             network_views[network_name] = NetworkView(network_name, all_workloads)
         return network_views
+
+    def select_network(self, bot, pool_id):
+        network_views = self.list_networks(capacity_pool_id=pool_id)
+        if not network_views:
+            raise StopChatFlow(f"There are no available networks in this pool: {pool_id}")
+        network_name = bot.single_choice("Please select a network", list(network_views.keys()))
+        return network_views[network_name]
 
     def deploy_volume(self, pool_id, node_id, size, volume_type="SSD", **metadata):
         reservation = j.sal.zosv2.reservation_create()
@@ -449,3 +494,21 @@ class ChatflowDeployer(j.baseclasses.object):
         farm_name = j.sal.zosv2._explorer.farms.get(farm_id).name
         query = {"cru": cru, "sru": sru, "mru": mru, "hru": hru, "ip_version": ip_version}
         return j.sal.reservation_chatflow.nodes_get(1, farm_names=[farm_name], **query)[0]
+
+    def ask_container_placement(
+        self, bot, pool_id, cru=None, sru=None, mru=None, hru=None, ip_version=None, free_to_use=False
+    ):
+        manual_choice = bot.single_choice(
+            "Do you want to manually select a node deployment or automatically?", ["YES", "NO"]
+        )
+        if manual_choice == "NO":
+            return None
+        farm_id = self.get_pool_farm_id(pool_id)
+        nodes = j.sal.zosv2.nodes_finder.nodes_by_capacity(farm_id=farm_id, cru=cru, sru=sru, mru=mru, hru=hru)
+        nodes = list(nodes)
+        nodes = j.sal.reservation_chatflow.nodes_filter(nodes, free_to_use, ip_version)
+        if not nodes:
+            raise StopChatFlow("Failed to find resources for this reservation")
+        node_messages = {node.node_id: node for node in nodes}
+        node_id = bot.drop_down_choice("Please choose the node you want to deploy on", list(node_messages.keys()))
+        return node_messages[node_id]
