@@ -104,24 +104,23 @@ def _container_challenge(container):
     b = StringIO()
     b.write(str(container.flist))
     b.write(str(container.hub_url))
-    b.write(str(container.environment))
     b.write(str(container.entrypoint))
-    b.write("true" if container.interactive else "false")
+    b.write(str(container.interactive).lower())
     for k, v in container.environment.items():
-        b.write(f"{k}={v}")
+        b.write(str(f"{k}={v}"))
     for k, v in container.secret_environment.items():
-        b.write(f"{k}={v}")
+        b.write(str(f"{k}={v}"))
     for v in container.volumes:
         b.write(str(v.volume_id))
         b.write(str(v.mountpoint))
     for nc in container.network_connection:
         b.write(str(nc.network_id))
         b.write(str(nc.ipaddress))
-        b.write(str(nc.public_ip6))
+        b.write(str(nc.public_ip6).lower())
     b.write(str(container.capacity.cpu))
     b.write(str(container.capacity.memory))
     b.write(str(container.capacity.disk_size))
-    b.write(str(container.capacity.disk_type))
+    b.write(str(container.capacity.disk_type).lower())
     return b.getvalue()
 
 
