@@ -163,29 +163,6 @@ class Zosv2(j.baseclasses.object):
         """
         return self._explorer.reservations.get(reservation_id)
 
-    def reservation_cancel(self, reservation_id, identity=None):
-        """
-        Cancel a reservation
-
-        you can only cancel your own reservation
-        Once a reservation is cancelled, it is marked as to be deleted in BCDB
-        the 0-OS node then detects it an will decomission the workloads from the reservation
-
-        :param reservation_id: reservation id
-        :type reservation_id: int
-        :param identity: identity to use
-        :type identity: Jumpscale.tools.threebot.ThreebotMe.ThreebotMe
-        :return: true if the reservation has been cancelled successfully
-        :rtype: bool
-        """
-        me = identity if identity else j.me
-
-        reservation = self.reservation_get(reservation_id)
-        payload = j.me.encryptor.payload_build(reservation.id, reservation.json.encode())
-        signature = me.encryptor.sign_hex(payload)
-
-        return self._explorer.reservations.sign_delete(reservation_id=reservation_id, tid=me.tid, signature=signature)
-
     def reservation_list(self, tid=None, next_action=None):
         tid = tid if tid else j.me.tid
         return self._explorer.reservations.list(customer_tid=tid, next_action=next_action)
