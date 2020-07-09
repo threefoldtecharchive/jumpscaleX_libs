@@ -342,7 +342,7 @@ class ChatflowDeployer(j.baseclasses.object):
             parent_id = ids[-1]
         return {"ids": ids, "rid": ids[0]}
 
-    def wait_workload(self, workload_id, bot):
+    def wait_workload(self, workload_id, bot=None):
         expiration_provisioning = j.data.time.getEpochDeltaTime("15m")
         while True:
             workload = j.sal.zosv2.workloads.get(workload_id)
@@ -351,7 +351,8 @@ class ChatflowDeployer(j.baseclasses.object):
             # Deploying...\n
             Deployment will be cancelled if it is not successful in {remaning_time}
             """
-            bot.md_show_update(j.core.text.strip(deploying_message), md=True)
+            if bot:
+                bot.md_show_update(j.core.text.strip(deploying_message), md=True)
             if workload.info.result.workload_id:
                 return workload.info.result.state == "ok"
             if expiration_provisioning < j.data.time.epoch:
@@ -515,7 +516,78 @@ class ChatflowDeployer(j.baseclasses.object):
         node_id = bot.drop_down_choice("Please choose the node you want to deploy on", list(node_messages.keys()))
         return node_messages[node_id]
 
-    def delegate_domain(self, pool_id, gateway_id, domain_name):
+    def delegate_domain(self, pool_id, gateway_id, domain_name, **metadata):
         reservation = j.sal.zosv2.reservation_create()
         domain_delegate = j.sal.zosv2.gateway.delegate_domain(reservation, gateway_id, domain_name, pool_id)
         return j.sal.zosv2.workloads.deploy(domain_delegate)
+
+    def deploy_kubernetes_master(
+        self, pool_id, node_id, network_name, cluster_secret, ssh_keys, ip_address, size=1, **metadata
+    ):
+        reservation = j.sal.zosv2.reservation_create()
+        master = j.sal.zosv2.kubernetes.add_master(
+            reservation, node_id, network_name, cluster_secret, ip_address, size, ssh_keys, pool_id
+        )
+        if metadata:
+            master.info.metadata = self.encrypt_metadata(metadata)
+        return j.sal.zosv2.workloads.deploy(master)
+
+    def deploy_kubernetes_worker(
+        self, pool_id, node_id, network_name, cluster_secret, ssh_keys, ip_address, master_ip, size=1, **metadata
+    ):
+        reservation = j.sal.zosv2.reservation_create()
+        worker = j.sal.zosv2.kubernetes.add_worker(
+            reservation, node_id, network_name, cluster_secret, ip_address, size, master_ip, ssh_keys, pool_id
+        )
+        if metadata:
+            worker.info.metadata = self.encrypt_metadata(metadata)
+        return j.sal.zosv2.workloads.deploy(worker)
+
+    def deploy_kubernetes_cluster(
+        self, pool_id, node_ids, network_name, cluster_secret, ssh_keys, size=1, ip_addresses=None, **metadata
+    ):
+        """
+        deplou k8s cluster with the same number of nodes as specifed in node_ids
+
+        Args:
+            node_ids: list() of node ids to deploy on. first node_id is used for matser reservation
+            ip_addresses: if specified it will be mapped 1-1 with node_ids for workloads. if not specified it will choose any free_ip from the node
+
+        Return:
+            list: [{"node_id": "ip_address"}, ...] first dict is master's result
+        """
+        result = []  # [{"node_id": id,  "ip_address": ip, "reservation_id": 16}] first dict is master's result
+        if ip_addresses and len(ip_addresses) != node_ids:
+            raise StopChatFlow("length of ip")
+
+        if not ip_addresses:
+            # get free_ips for the nodes
+            ip_addresses = []
+            for node_id in node_ids:
+                node = j.sal.zosv2._explorer.nodes.get(node_id)
+                res = self.add_network_node(network_name, node)
+                if res:
+                    for wid in res["ids"]:
+                        success = j.sal.chatflow_deployer.wait_workload(wid)
+                        if not success:
+                            raise StopChatFlow(f"Failed to add node {node.node_id} to network {wid}")
+                network_view = NetworkView(network_name)
+                address = network_view.get_free_ip(node)
+                if not address:
+                    raise StopChatFlow(f"No free IPs for network {network_name} on the specifed node {node_id}")
+                ip_addresses.append(address)
+
+        # deploy_master
+        master_ip = ip_addresses[0]
+        master_resv_id = self.deploy_kubernetes_master(
+            pool_id, node_ids[0], network_name, cluster_secret, ssh_keys, master_ip, size, **metadata
+        )
+        result.append({"node_id": node_ids[0], "ip_address": master_ip, "reservation_id": master_resv_id})
+        for i in range(1, len(node_ids)):
+            node_id = node_ids[i]
+            ip_address = ip_addresses[i]
+            resv_id = self.deploy_kubernetes_worker(
+                pool_id, node_id, network_name, cluster_secret, ssh_keys, ip_address, master_ip, size, **metadata
+            )
+            result.append({"node_id": node_id, "ip_address": ip_address, "reservation_id": resv_id})
+        return result
