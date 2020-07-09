@@ -7,6 +7,7 @@ class Pools:
         self._pools = explorer.pools
         self._farms = explorer.farms
         self._nodes = explorer.nodes
+        self._gateways = explorer.gateway
 
     def _reserve(self, pool, identity=None):
         me = identity if identity else j.me
@@ -45,6 +46,9 @@ class Pools:
         node_ids = []
         for node in self._nodes.iter(farm_id=farm_id):
             node_ids.append(node.node_id)
+
+        for gw in self._gateways.iter(farm_id=farm_id):
+            node_ids.append(gw.node_id)
 
         pool = self._pools.new()
         pool.data_reservation.pool_id = 0
