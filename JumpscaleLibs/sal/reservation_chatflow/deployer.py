@@ -352,7 +352,7 @@ class ChatflowDeployer(j.baseclasses.object):
             Deployment will be cancelled if it is not successful in {remaning_time}
             """
             bot.md_show_update(j.core.text.strip(deploying_message), md=True)
-            if workload.info.result.data_json:
+            if workload.info.result.workload_id:
                 return workload.info.result.state == "ok"
             if workload.info.expiration_provisioning < j.data.time.epoch:
                 raise StopChatFlow(f"Workload {workload_id} failed to deploy in time")
