@@ -1,5 +1,5 @@
 from Jumpscale import j
-from .signature import sign_workload
+from .signature import sign_workload, sign_delete_request, sign_provision_request
 
 
 class Workloads:
@@ -29,3 +29,9 @@ class Workloads:
         workload.info.customer_signature = j.data.hash.bin2hex(signature)
         print(workload.info.customer_signature)
         return self._workloads.create(workload)
+
+    def decomission(self, workload_id, identity=None):
+        me = identity if identity else j.me
+        workload = self.get(workload_id)
+        signature = sign_delete_request(workload, me.tid, me.encryptor.signing_key)
+        return self._workloads.sign_delete(workload_id, me.tid, signature)

@@ -112,7 +112,11 @@ class Workloads:
         return True
 
     def sign_delete(self, workload_id, tid, signature):
-        url = self._base_url + f"/{workload_id}/sign/delete"
+        url = self._client.url + f"/reservations/{workload_id}/sign/delete"
+
+        if isinstance(signature, bytes):
+            signature = j.data.hash.bin2hex(signature)
+        print("signature",signature)
         data = j.data.serializers.json.dumps({"signature": signature, "tid": tid, "epoch": j.data.time.epoch})
         self._session.post(url, data=data)
         return True

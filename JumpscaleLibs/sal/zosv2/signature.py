@@ -1,39 +1,76 @@
 import hashlib
-from io import StringIO
+from io import StringIO, SEEK_END
 
 from Jumpscale import j
 
 
 def sign_workload(workload, signing_key):
-    h = hash_workload(workload)
+    challenge = _hash_signing_challenge(workload)
+    h = _hash(challenge)
     signature = signing_key.sign(h)
     return signature.signature
 
 
-def hash_workload(workload):
-    _encoders = {
-        "ZDB": zdb_challenge,
-        "CONTAINER": container_challenge,
-        "VOLUME": volume_challenge,
-        # "network": network_challenge,
-        "KUBERNETES": k8s_challenge,
-        "PROXY": proxy_challenge,
-        "REVERSE-PROXY": reverse_proxy_challenge,
-        "SUBDOMAIN": subdomain_challenge,
-        "DOMAIN-DELEGATE": delegate_challenge,
-        "GATEWAY4TO6": gateway4to6_challenge,
-        "NETWORK_RESOURCE": network_resource_challenge,
-    }
-    b = StringIO()
-    b.write(workload_info_challenge(workload.info))
-    enc = _encoders.get(str(workload.info.workload_type))
-    b.write(enc(workload))
-    challenge = b.getvalue()
-    h = hashlib.sha256(challenge.encode("utf-8"))
+def sign_provision_request(workload, tid, signing_key):
+    challenge = _hash_signing_challenge(workload)
+
+    # append the user tid to the workload signing challenge
+    b = StringIO(challenge)
+    b.seek(0, SEEK_END)
+    b.write("provision")
+    b.write(str(tid))
+
+    h = _hash(b.getvalue())
+    signature = signing_key.sign(h)
+
+    return signature.signature
+
+
+def sign_delete_request(workload, tid, signing_key):
+    challenge = _hash_signing_challenge(workload)
+
+    # append the user tid to the workload signing challenge
+    b = StringIO(challenge)
+    b.seek(0, SEEK_END)
+    b.write("delete")
+    b.write(str(tid))
+
+    h = _hash(b.getvalue())
+    signature = signing_key.sign(h)
+
+    return signature.signature
+
+
+def _hash(challenge):
+    if isinstance(challenge, str):
+        challenge = challenge.encode("utf-8")
+
+    h = hashlib.sha256(challenge)
     return h.digest()
 
 
-def workload_info_challenge(info):
+def _hash_signing_challenge(workload):
+    _encoders = {
+        "ZDB": _zdb_challenge,
+        "CONTAINER": _container_challenge,
+        "VOLUME": _volume_challenge,
+        # "network": _network_challenge,
+        "KUBERNETES": _k8s_challenge,
+        "PROXY": _proxy_challenge,
+        "REVERSE-PROXY": _reverse_proxy_challenge,
+        "SUBDOMAIN": _subdomain_challenge,
+        "DOMAIN-DELEGATE": _delegate_challenge,
+        "GATEWAY4TO6": _gateway4to6_challenge,
+        "NETWORK_RESOURCE": _network_resource_challenge,
+    }
+    b = StringIO()
+    b.write(_workload_info_challenge(workload.info))
+    enc = _encoders.get(str(workload.info.workload_type))
+    b.write(enc(workload))
+    return b.getvalue()
+
+
+def _workload_info_challenge(info):
     b = StringIO()
     b.write(str(info.workload_id))
     b.write(str(info.node_id))
@@ -48,7 +85,7 @@ def workload_info_challenge(info):
     return b.getvalue()
 
 
-def signing_request_challenge(sr):
+def _signing_request_challenge(sr):
     b = StringIO()
     for s in sr.signers:
         b.write(str(s))
@@ -56,7 +93,7 @@ def signing_request_challenge(sr):
     return b.getvalue()
 
 
-def signature_challenge(s):
+def _signature_challenge(s):
     b = StringIO()
     b.write(str(s.tid))
     b.write(str(s.signature))
@@ -64,7 +101,7 @@ def signature_challenge(s):
     return b.getvalue()
 
 
-def container_challenge(container):
+def _container_challenge(container):
     b = StringIO()
     b.write(str(container.flist))
     b.write(str(container.hub_url))
@@ -89,14 +126,14 @@ def container_challenge(container):
     return b.getvalue()
 
 
-def volume_challenge(volume):
+def _volume_challenge(volume):
     b = StringIO()
     b.write(str(volume.size))
     b.write(str(volume.type))
     return b.getvalue()
 
 
-def zdb_challenge(zdb):
+def _zdb_challenge(zdb):
     b = StringIO()
     b.write(str(zdb.size))
     b.write(str(zdb.mode))
@@ -106,7 +143,7 @@ def zdb_challenge(zdb):
     return b.getvalue()
 
 
-def k8s_challenge(k8s):
+def _k8s_challenge(k8s):
     b = StringIO()
     b.write(str(k8s.size))
     b.write(k8s.network_id)
@@ -119,7 +156,7 @@ def k8s_challenge(k8s):
     return b.getvalue()
 
 
-def proxy_challenge(proxy):
+def _proxy_challenge(proxy):
     b = StringIO()
     b.write(str(proxy.domain))
     b.write(str(proxy.addr))
@@ -128,14 +165,14 @@ def proxy_challenge(proxy):
     return b.getvalue()
 
 
-def reverse_proxy_challenge(reverse_proxy):
+def _reverse_proxy_challenge(reverse_proxy):
     b = StringIO()
     b.write(str(reverse_proxy.domain))
     b.write(str(reverse_proxy.secret))
     return b.getvalue()
 
 
-def subdomain_challenge(subdomain):
+def _subdomain_challenge(subdomain):
     b = StringIO()
     b.write(str(subdomain.domain))
     for ip in subdomain.ips:
@@ -143,19 +180,19 @@ def subdomain_challenge(subdomain):
     return b.getvalue()
 
 
-def delegate_challenge(delegate):
+def _delegate_challenge(delegate):
     b = StringIO()
     b.write(str(delegate.domain))
     return b.getvalue()
 
 
-def gateway4to6_challenge(gateway4to6):
+def _gateway4to6_challenge(gateway4to6):
     b = StringIO()
     b.write(str(gateway4to6.public_key))
     return b.getvalue()
 
 
-def network_resource_challenge(network):
+def _network_resource_challenge(network):
     b = StringIO()
     b.write(str(network.name))
     b.write(str(network.network_iprange))
