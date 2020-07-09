@@ -344,9 +344,10 @@ class ChatflowDeployer(j.baseclasses.object):
         return {"ids": ids, "rid": ids[0]}
 
     def wait_workload(self, workload_id, bot):
+        expiration_provisioning = j.data.time.getEpochDeltaTime("15m")
         while True:
             workload = j.sal.zosv2.workloads.get(workload_id)
-            remaning_time = j.data.time.secondsToHRDelta(workload.info.expiration_provisioning - j.data.time.epoch)
+            remaning_time = j.data.time.secondsToHRDelta(expiration_provisioning - j.data.time.epoch)
             deploying_message = f"""
             # Deploying...\n
             Deployment will be cancelled if it is not successful in {remaning_time}
@@ -354,7 +355,7 @@ class ChatflowDeployer(j.baseclasses.object):
             bot.md_show_update(j.core.text.strip(deploying_message), md=True)
             if workload.info.result.workload_id:
                 return workload.info.result.state == "ok"
-            if workload.info.expiration_provisioning < j.data.time.epoch:
+            if expiration_provisioning < j.data.time.epoch:
                 raise StopChatFlow(f"Workload {workload_id} failed to deploy in time")
 
     def list_networks(self, next_action="DEPLOY", capacity_pool_id=None):
