@@ -35,7 +35,7 @@ class ZDBGenerator:
             raise j.excpetions.Input("mode can only be 'seq' or 'user'")
 
         zdb = self._model.new()
-        db.info.pool_id = capacity_pool_id
+        zdb.info.pool_id = capacity_pool_id
         zdb.node_id = node_id
         zdb.size = size
         zdb.mode = mode
