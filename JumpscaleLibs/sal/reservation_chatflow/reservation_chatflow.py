@@ -1035,11 +1035,13 @@ class Chatflow(j.baseclasses.object):
                 domains[dom.domain] = dom
         return domains
 
-    def gateway_list(self, bot, currency=None):
+    def gateway_list(self, bot, currency=None, pool_farm_id=None):
         unknowns = ["", None, "Uknown", "Unknown"]
         gateways = {}
         farms = {}
         for g in j.sal.zosv2._explorer.gateway.list():
+            if pool_farm_id and g.farm_id != pool_farm_id:
+                continue
             if not j.sal.zosv2.nodes_finder.filter_is_up(g):
                 continue
             location = []
