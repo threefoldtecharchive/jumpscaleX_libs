@@ -297,6 +297,8 @@ class ChatflowDeployer(j.baseclasses.object):
     def add_network_node(self, name, node, **metadata):
         network_view = NetworkView(name)
         network = network_view.add_node(node)
+        if not network:
+            return
         parent_id = network_view.network_workloads[-1].id
         ids = []
         encrypted_metadata = ""
