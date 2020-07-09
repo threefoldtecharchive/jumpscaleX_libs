@@ -3,6 +3,7 @@ domain = (S)
 addr = (S) # destination address
 port = (I) # 
 port_tls = (I)
+info = (O) !tfgrid.workloads.reservation.info.1
 
 @url = tfgrid.workloads.reservation.gateway.reverse_proxy.1
 domain = (S)

@@ -134,9 +134,9 @@ def _volume_challenge(volume):
 def _zdb_challenge(zdb):
     b = StringIO()
     b.write(str(zdb.size))
-    b.write(str(zdb.mode))
+    b.write(str(zdb.mode).lower())
     b.write(str(zdb.password))
-    b.write(str(zdb.disk_type))
+    b.write(str(zdb.disk_type).lower())
     b.write(str(zdb.public).lower())
     return b.getvalue()
 
@@ -144,9 +144,9 @@ def _zdb_challenge(zdb):
 def _k8s_challenge(k8s):
     b = StringIO()
     b.write(str(k8s.size))
+    b.write(k8s.cluster_secret)
     b.write(k8s.network_id)
     b.write(str(k8s.ipaddress))
-    b.write(k8s.cluster_secret)
     for ip in k8s.master_ips:
         b.write(str(ip))
     for key in k8s.ssh_keys:

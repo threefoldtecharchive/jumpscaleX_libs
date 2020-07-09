@@ -40,7 +40,7 @@ class GatewayGenerator:
 
         return d
 
-    def tcp_proxy(self, reservation, node_id, domain, addr, port, capacity_pool_id, port_tls=None):
+    def tcp_proxy(self, reservation, node_id, domain, addr, port, port_tls, capacity_pool_id):
         p = self._model_proxy.new()
         p.info.pool_id = capacity_pool_id
         p.info.node_id = node_id
