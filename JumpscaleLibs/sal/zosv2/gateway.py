@@ -33,7 +33,7 @@ class GatewayGenerator:
         d = self._model_delegate.new()
         d.info.pool_id = capacity_pool_id
         d.info.node_id = node_id
-        d.info.workload_type = "SUBDOMAIN"
+        d.info.workload_type = "DOMAIN-DELEGATE"
         d.domain = domain
 
         reservation.workloads.append(d)

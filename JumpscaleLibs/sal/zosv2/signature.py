@@ -202,8 +202,8 @@ def _network_resource_challenge(network):
         b.write(str(p.public_key))
         b.write(str(p.endpoint))
         b.write(str(p.iprange))
-    for iprange in p.allowed_iprange:
-        b.write(str(iprange))
+        for iprange in p.allowed_iprange:
+            b.write(str(iprange))
     return b.getvalue()
 
 

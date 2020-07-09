@@ -1,3 +1,5 @@
+from .network import Network
+
 _order = [
     "NETWORK_RESOURCE",
     "NETWORK",
@@ -22,7 +24,14 @@ class Reservation:
         """
         return the list of workload sorted in the other they should be deployed on the node
         """
-        return sorted(self.workloads, key=lambda w: _order.index(w.info.workload_type))
+        workloads = sorted(self.workloads, key=lambda w: _order.index(w.info.workload_type))
+        out = []
+        for w in workloads:
+            if isinstance(w, Network):
+                out.extend(w.network_resources)
+            else:
+                out.append(w)
+        return out
 
     def __repr__(self):
         per_type = {}
