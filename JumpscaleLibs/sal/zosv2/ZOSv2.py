@@ -90,7 +90,6 @@ class Zosv2(j.baseclasses.object):
         reservation,
         # expiration_date,
         identity=None,
-        expiration_provisioning=None,
         customer_tid=None,
         currencies=["TFT"],
     ):
@@ -103,9 +102,6 @@ class Zosv2(j.baseclasses.object):
         :type expiration_date: int
         :param identity: identity to use
         :type identity: Jumpscale.tools.threebot.ThreebotMe.ThreebotMe
-        :param expiration_provisioning: timestamp of the date when to reservation should be provisionned
-                                        if the reservation is not provisioning before this time, it will never be provionned
-        :type expiration_provisioning: int, optional
         :param currencies: list of currency asset code you want pay the reservation with
         :type: currencies: list of string
         :return: reservation create result
@@ -113,9 +109,6 @@ class Zosv2(j.baseclasses.object):
         """
         me = identity if identity else j.me
         reservation.customer_tid = me.tid
-
-        if expiration_provisioning is None:
-            expiration_provisioning = j.data.time.epoch + (15 * 60)
 
         ids = []
         for workload in reservation.sorted:

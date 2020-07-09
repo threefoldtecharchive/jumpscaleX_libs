@@ -20,7 +20,6 @@ class Workloads:
         workload.info.customer_tid = me.tid
         workload.info.workload_id = 1
         workload.info.epoch = j.data.time.epoch
-        workload.info.expiration_provisioning = workload.info.epoch + (5 * 60)
         workload.info.next_action = "deploy"
         # allow user to delete the workload
         workload.info.signing_request_delete.signers = [1]
