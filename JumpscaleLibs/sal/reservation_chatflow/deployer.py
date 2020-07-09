@@ -413,13 +413,13 @@ class ChatflowDeployer(j.baseclasses.object):
         volumes: dict {"mountpoint (/)": volume_id}
         log_Config: dict. keys ("channel_type", "channel_host", "channel_port", "channel_name")
         """
-        resevation = j.sal.zosv2.reservation_create()
+        reservation = j.sal.zosv2.reservation_create()
         encrypted_secret_env = {}
         if secret_env:
             for key, val in secret_env.items():
                 encrypted_secret_env[key] = j.sal.zosv2.container.encrypt_secret(node_id, val)
         container = j.sal.zosv2.container.create(
-            resevation,
+            reservation,
             node_id,
             network_name,
             ip_address,
@@ -512,3 +512,8 @@ class ChatflowDeployer(j.baseclasses.object):
         node_messages = {node.node_id: node for node in nodes}
         node_id = bot.drop_down_choice("Please choose the node you want to deploy on", list(node_messages.keys()))
         return node_messages[node_id]
+
+    def delegate_domain(self, pool_id, gateway_id, domain_name):
+        reservation = j.sal.zosv2.reservation_create()
+        domain_delegate = j.sal.zosv2.gateway.delegate_domain(reservation, gateway_id, domain_name, pool_id)
+        return j.sal.zosv2.workloads.deploy(domain_delegate)
