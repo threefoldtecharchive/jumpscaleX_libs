@@ -343,8 +343,6 @@ class ChatflowDeployer(j.baseclasses.object):
         return {"ids": ids, "rid": ids[0]}
 
     def wait_workload(self, workload_id, bot):
-        # TODO: Remove return
-        return True
         expiration_provisioning = j.data.time.getEpochDeltaTime("15m")
         while True:
             workload = j.sal.zosv2.workloads.get(workload_id)
