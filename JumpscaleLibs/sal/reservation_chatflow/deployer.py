@@ -27,7 +27,7 @@ class NetworkView:
             elif workload.info.workload_type == "CONTAINER":
                 for conn in workload.network_connection:
                     if conn.network_id == self.name:
-                        self._fill_used_ips(conn.ipaddress)
+                        self.used_ips.append(conn.ipaddress)
 
     def _init_network_workloads(self, workloads):
         for workload in workloads:
