@@ -12,6 +12,7 @@ from .pools import Pools
 from .reservations import Reservations
 from .workloads import Workloads
 from .users import Users
+from .convertion import Convertion
 
 JSConfigClient = j.baseclasses.object_config
 
@@ -37,3 +38,4 @@ class Explorer(JSConfigClient):
         self.pools = Pools(self)
         self.workloads = Workloads(self)
         self.gateway = Gateway(self)
+        self.convertion = Convertion(self)

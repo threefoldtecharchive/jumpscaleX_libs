@@ -13,6 +13,9 @@ from .gateway import GatewayGenerator
 from .pools import Pools
 from .workloads import Workloads
 from .reservation import Reservation
+from .signature import sign_workload
+
+from JumpscaleLibs.clients.explorer.workloads import Decoder
 
 
 class Zosv2(j.baseclasses.object):
@@ -75,6 +78,16 @@ class Zosv2(j.baseclasses.object):
     @property
     def billing(self):
         return self._billing
+
+    def convertion(self):
+        me = j.me
+        raw = self._explorer.convertion.initialize()
+        for i, data in enumerate(raw):
+            w = Decoder.new(datadict=data)
+            signature = sign_workload(w, me.encryptor.signing_key)
+            raw[i]["customer_signature"] = j.data.hash.bin2hex(signature).decode()
+
+        self._explorer.convertion.finalize(raw)
 
     def reservation_create(self):
         """
