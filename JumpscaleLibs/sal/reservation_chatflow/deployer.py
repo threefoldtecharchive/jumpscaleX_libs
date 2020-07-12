@@ -343,6 +343,7 @@ class ChatflowDeployer(j.baseclasses.object):
         return {"ids": ids, "rid": ids[0]}
 
     def wait_workload(self, workload_id, bot=None):
+        return True
         expiration_provisioning = j.data.time.getEpochDeltaTime("15m")
         while True:
             workload = j.sal.zosv2.workloads.get(workload_id)
@@ -559,7 +560,16 @@ class ChatflowDeployer(j.baseclasses.object):
         return j.sal.zosv2.workloads.deploy(worker)
 
     def deploy_kubernetes_cluster(
-        self, pool_id, node_ids, network_name, cluster_secret, ssh_keys, size=1, ip_addresses=None, **metadata
+        self,
+        pool_id,
+        node_ids,
+        network_name,
+        cluster_secret,
+        ssh_keys,
+        size=1,
+        ip_addresses=None,
+        no_masters=1,
+        **metadata,
     ):
         """
         deplou k8s cluster with the same number of nodes as specifed in node_ids
@@ -633,3 +643,102 @@ class ChatflowDeployer(j.baseclasses.object):
         if metadata:
             workload.info.metadata = self.encrypt_metadata(metadata)
         return j.sal.zosv2.workloads.deploy(workload)
+
+    def deploy_zdb(self, pool_id, node_id, size, mode, password, disk_type="SSD", public=False, **metadata):
+        reservation = j.sal.zosv2.reservation_create()
+        workload = j.sal.zosv2.zdb.create(reservation, node_id, size, mode, password, pool_id, disk_type, public)
+        if metadata:
+            workload.info.metadata = self.encrypt_metadata(metadata)
+        return j.sal.zosv2.workloads.deploy(workload)
+
+    # def deploy_minio_single_mode(
+    #     self,
+    #     pool_id,
+    #     minio_node_id,
+    #     zdb_node_id,
+    #     network_name,
+    #     zdb_password,
+    #     access_key,
+    #     secret_key,
+    #     ssh_key,
+    #     cpu,
+    #     memory,
+    #     zdb_locations=2,
+    #
+    #     disk_type="SSD",
+    #     minio_ip_address=None,
+    #     log_config={},
+    #     zdb_size=10,
+    #     minio_vol_size=10,
+    #     minio_flist="https://hub.grid.tf/tf-official-apps/minio:latest.flist",
+    #     **metadata,
+    # ):
+    #     result = {}
+    #     if not minio_ip_address:
+    #         # get an ip for minio container
+    #         node = j.sal.zosv2._explorer.nodes.get(minio_node_id)
+    #         res = self.add_network_node(network_name, node)
+    #         if res:
+    #             for wid in res["ids"]:
+    #                 success = self.wait_workload(wid)
+    #                 if not success:
+    #                     raise StopChatFlow(f"Failed to add node {node.node_id} to network {wid}")
+    #         network_view = NetworkView(network_name)
+    #         minio_ip_address = network_view.get_free_ip(node)
+    #         if not minio_ip_address:
+    #             raise StopChatFlow(f"No free IPs for network {network_name} on the specifed node {minio_node_id}")
+    #
+    #     zdb_id = self.deploy_zdb(
+    #         pool_id,
+    #         zdb_node_id,
+    #         zdb_size,
+    #         "seq",
+    #         zdb_password,
+    #         disk_type,
+    #         False
+    #     )
+    #     result["zdb_id"] = zdb_id
+    #     if not self.wait_workload(zdb_id):
+    #         raise StopChatFlow(f"failed to create zdb workload {zdb_id}")
+    #     vol_id = self.deploy_volume(pool_id, minio_node_id, minio_vol_size, disk_type)
+    #     result["vol_id"] = vol_id
+    #     if not self.wait_workload(vol_id):
+    #         raise StopChatFlow(f"failed to create volume workload {vol_id}")
+    #     volume_config = {
+    #         "/data", vol_id
+    #     }
+    #     zdb_result = j.sal.zosv2.workloads.get(zdb_id)
+    #     if "IPs" in zdb_result.data_json:
+    #         ip = zdb_result.data_json["IPs"][0]
+    #     elif "IP" in zdb_result.data_json:
+    #         ip = zdb_result.data_json["IP"]
+    #     else:
+    #         raise StopChatFlow(f"missing IP field in the 0-DB result wid {zdb_id}")
+    #
+    #     namespace_config = [f"{zdb_result.data_json['Namespace']}:{zdb_password}@{minio_ip_address}:{zdb_result.data_json['Port']}"]
+    #
+    #     minio_id = self.deploy_container(
+    #         pool_id,
+    #         minio_node_id,
+    #         network_name,
+    #         minio_ip_address,
+    #         minio_flist,
+    #         {
+    #             "DATA": str(), # locations
+    #             "PARITY": str(), # locations allowed to fail
+    #             "ACCESS_KEY": access_key,
+    #             "SSH_KEY": ssh_key,
+    #             "MINIO_PROMETHEUS_AUTH_TYPE": "public",
+    #         },
+    #         cpu,
+    #         memory,
+    #         disk_type,
+    #         entrypoint="",
+    #         secret_env={
+    #             "SHARDS": ",".join(namespace_config),
+    #             "SECRET_KEY": secret_key
+    #         },
+    #         volumes=volume_config,
+    #         log_config=log_config,
+    #         **metadata
+    #     )
