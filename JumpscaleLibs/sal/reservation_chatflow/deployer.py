@@ -651,6 +651,59 @@ class ChatflowDeployer(j.baseclasses.object):
             workload.info.metadata = self.encrypt_metadata(metadata)
         return j.sal.zosv2.workloads.deploy(workload)
 
+    def create_subdomain(self, pool_id, gateway_id, subdomain, addresses=None, **metadata):
+        """
+        creates an A record pointing to the specified addresses
+        if no addresses are specified, the record will point the gateway IP address (used for exposing solutions)
+        """
+        if not addresses:
+            gateway = j.sal.zosv2._explorer.gateway.get(gateway_id)
+            addresses = [j.sal.nettools.getHostByName(ns) for ns in gateway.dns_nameserver]
+        reservation = j.sal.zosv2.reservation_create()
+        workload = j.sal.zosv2.gateway.sub_domain(reservation, gateway_id, subdomain, addresses, pool_id)
+        if metadata:
+            workload.info.metadata = self.encrypt_metadata(metadata)
+        return j.sal.zosv2.workloads.deploy(workload)
+
+    def create_proxy(self, pool_id, gateway_id, domain_name, trc_secret, **metadata):
+        """
+        creates a reverse tunnel on the gateway node
+        """
+        reservation = j.sal.zosv2.reservation_create()
+        workload = j.sal.zosv2.gateway.tcp_proxy_reverse(reservation, gateway_id, domain_name, trc_secret, pool_id)
+        if metadata:
+            workload.info.metadata = self.encrypt_metadata(metadata)
+        return j.sal.zosv2.workloads.deploy(workload)
+
+    def expose_address(self, pool_id, gateway_id, network_name, local_ip, port, tls_port, trc_secret, **metadata):
+        gateway = j.sal.zosv2._explorer.gateway.get(gateway_id)
+        remote = f"{gateway.dns_nameserver[0]}:{gateway.tcp_router_port}"
+        secret_env = {"TRC_SECRET": trc_secret}
+        entry_point = f"/bin/trc -local {local_ip}:{port} -local-tls {local_ip}:{tls_port} -remote {remote}"
+        node = self.schedule_container(pool_id=pool_id, cru=1, mru=1, sru=1)
+
+        res = self.add_network_node(network_name, node)
+        if res:
+            for wid in res["ids"]:
+                success = self.wait_workload(wid)
+                if not success:
+                    raise StopChatFlow(f"Failed to add node {node.node_id} to network {wid}")
+        network_view = NetworkView(network_name)
+        ip_address = network_view.get_free_ip(node)
+
+        resv_id = self.deploy_container(
+            pool_id=pool_id,
+            node_id=node.node_id,
+            network_name=network_name,
+            ip_address=ip_address,
+            flist="https://hub.grid.tf/tf-official-apps/tcprouter:latest.flist",
+            disk_type="HDD",
+            entrypoint=entry_point,
+            secret_env=secret_env,
+            **metadata,
+        )
+        return resv_id
+
     # def deploy_minio_single_mode(
     #     self,
     #     pool_id,
