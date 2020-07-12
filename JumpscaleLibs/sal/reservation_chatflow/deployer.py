@@ -565,7 +565,7 @@ class ChatflowDeployer(j.baseclasses.object):
         deplou k8s cluster with the same number of nodes as specifed in node_ids
 
         Args:
-            node_ids: list() of node ids to deploy on. first node_id is used for matser reservation
+            node_ids: list() of node ids to deploy on. first node_id is used for master reservation
             ip_addresses: if specified it will be mapped 1-1 with node_ids for workloads. if not specified it will choose any free_ip from the node
 
         Return:
@@ -617,5 +617,19 @@ class ChatflowDeployer(j.baseclasses.object):
             raise StopChatFlow(f"no available gateways in pool {pool_id} farm: {farm_id}")
         result = {}
         for g in gateways:
+            if not g.dns_nameserver:
+                continue
             result[f"{g.dns_nameserver[0]} {g.location.continent} {g.location.country} {g.node_id}"] = g
         return result
+
+    def select_gateway(self, bot, pool_id):
+        gateways = self.list_gateways(pool_id)
+        selected = bot.single_choice("Please select a gateway", list(gateways.keys()))
+        return gateways[selected]
+
+    def create_ipv6_gateway(self, gateway_id, pool_id, public_key, **metadata):
+        reservation = j.sal.zosv2.reservation_create()
+        workload = j.sal.zosv2.gateway.gateway_4to6(reservation, gateway_id, public_key, pool_id)
+        if metadata:
+            workload.info.metadata = self.encrypt_metadata(metadata)
+        return j.sal.zosv2.workloads.deploy(workload)
