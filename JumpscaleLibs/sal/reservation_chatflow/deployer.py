@@ -101,6 +101,8 @@ class ChatflowDeployer(j.baseclasses.object):
         for key in keys:
             self.workloads.pop(key)
         for workload in all_workloads:
+            if workload.info.metadata:
+                workload.info.metadata = self.decrypt_metadata(workload.info.metadata)
             self.workloads[str(workload.info.next_action)][str(workload.info.workload_type)][
                 workload.info.pool_id
             ].append(workload)
@@ -343,6 +345,7 @@ class ChatflowDeployer(j.baseclasses.object):
         return {"ids": ids, "rid": ids[0]}
 
     def wait_workload(self, workload_id, bot=None):
+        # FIXME: remove this return
         return True
         expiration_provisioning = j.data.time.getEpochDeltaTime("15m")
         while True:
@@ -560,16 +563,7 @@ class ChatflowDeployer(j.baseclasses.object):
         return j.sal.zosv2.workloads.deploy(worker)
 
     def deploy_kubernetes_cluster(
-        self,
-        pool_id,
-        node_ids,
-        network_name,
-        cluster_secret,
-        ssh_keys,
-        size=1,
-        ip_addresses=None,
-        no_masters=1,
-        **metadata,
+        self, pool_id, node_ids, network_name, cluster_secret, ssh_keys, size=1, ip_addresses=None, **metadata,
     ):
         """
         deplou k8s cluster with the same number of nodes as specifed in node_ids
