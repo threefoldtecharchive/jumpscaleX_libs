@@ -200,7 +200,7 @@ class ChatflowDeployer(j.baseclasses.object):
                 available_pools[pool.pool_id] = resources
         return available_pools
 
-    def select_pool(self, bot, cu=None, su=None, currency=None):
+    def select_pool(self, bot, cu=None, su=None):
         available_pools = self.list_pools(cu, su)
         if not available_pools:
             raise StopChatFlow("no available pools")
@@ -499,8 +499,17 @@ class ChatflowDeployer(j.baseclasses.object):
         return j.sal.reservation_chatflow.nodes_get(1, farm_names=[farm_name], **query)[0]
 
     def ask_container_placement(
-        self, bot, pool_id, cru=None, sru=None, mru=None, hru=None, ip_version=None, free_to_use=False, workload_name=None
-    ):  
+        self,
+        bot,
+        pool_id,
+        cru=None,
+        sru=None,
+        mru=None,
+        hru=None,
+        ip_version=None,
+        free_to_use=False,
+        workload_name=None,
+    ):
         if not workload_name:
             workload_name = "your workload"
         manual_choice = bot.single_choice(
@@ -515,12 +524,16 @@ class ChatflowDeployer(j.baseclasses.object):
         if not nodes:
             raise StopChatFlow("Failed to find resources for this reservation")
         node_messages = {node.node_id: node for node in nodes}
-        node_id = bot.drop_down_choice(f"Please choose the node you want to deploy {workload_name} on", list(node_messages.keys()))
+        node_id = bot.drop_down_choice(
+            f"Please choose the node you want to deploy {workload_name} on", list(node_messages.keys())
+        )
         return node_messages[node_id]
 
     def delegate_domain(self, pool_id, gateway_id, domain_name, **metadata):
         reservation = j.sal.zosv2.reservation_create()
         domain_delegate = j.sal.zosv2.gateway.delegate_domain(reservation, gateway_id, domain_name, pool_id)
+        if metadata:
+            domain_delegate.info.metadata = self.encrypt_metadata(metadata)
         return j.sal.zosv2.workloads.deploy(domain_delegate)
 
     def deploy_kubernetes_master(
@@ -570,7 +583,7 @@ class ChatflowDeployer(j.baseclasses.object):
                 res = self.add_network_node(network_name, node)
                 if res:
                     for wid in res["ids"]:
-                        success = j.sal.chatflow_deployer.wait_workload(wid)
+                        success = self.wait_workload(wid)
                         if not success:
                             raise StopChatFlow(f"Failed to add node {node.node_id} to network {wid}")
                 network_view = NetworkView(network_name)
@@ -592,4 +605,17 @@ class ChatflowDeployer(j.baseclasses.object):
                 pool_id, node_id, network_name, cluster_secret, ssh_keys, ip_address, master_ip, size, **metadata
             )
             result.append({"node_id": node_id, "ip_address": ip_address, "reservation_id": resv_id})
+        return result
+
+    def list_gateways(self, pool_id):
+        """
+        return dict of gateways where keys are descriptive string of each gateway
+        """
+        farm_id = self.get_pool_farm_id(pool_id)
+        gateways = j.sal.zosv2._explorer.gateway.list(farm_id=farm_id)
+        if not gateways:
+            raise StopChatFlow(f"no available gateways in pool {pool_id} farm: {farm_id}")
+        result = {}
+        for g in gateways:
+            result[f"{g.dns_nameserver[0]} {g.location.continent} {g.location.country} {g.node_id}"] = g
         return result
