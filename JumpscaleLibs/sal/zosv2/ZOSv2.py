@@ -16,6 +16,7 @@ from .reservation import Reservation
 from .signature import sign_workload
 
 from JumpscaleLibs.clients.explorer.workloads import Decoder
+from JumpscaleLibs.clients.explorer.convertion import AlreadyConvertedError
 
 
 class Zosv2(j.baseclasses.object):
@@ -81,7 +82,13 @@ class Zosv2(j.baseclasses.object):
 
     def convertion(self):
         me = j.me
-        raw = self._explorer.convertion.initialize()
+
+        try:
+            raw = self._explorer.convertion.initialize()
+        except AlreadyConvertedError as err:
+            self._log_info(str(err))
+            return
+
         for i, data in enumerate(raw):
             w = Decoder.new(datadict=data)
             signature = sign_workload(w, me.encryptor.signing_key)
