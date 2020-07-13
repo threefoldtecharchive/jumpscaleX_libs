@@ -300,7 +300,8 @@ class ChatflowDeployer(j.baseclasses.object):
         except:
             return ""
 
-    def deploy_network(self, name, reservation, access_node, ip_range, ip_version, pool_id, **metadata):
+    def deploy_network(self, name, access_node, ip_range, ip_version, pool_id, **metadata):
+        reservation = j.sal.zosv2.reservation_create()
         network = j.sal.zosv2.network.create(reservation, ip_range, name)
         node_subnets = netaddr.IPNetwork(ip_range).subnet(24)
         network_config = dict()
@@ -314,12 +315,10 @@ class ChatflowDeployer(j.baseclasses.object):
 
         ids = []
         parent_id = None
-        encrypted_metadata = ""
-        if metadata:
-            encrypted_metadata = self.encrypt_metadata(metadata)
         for workload in network.network_resources:
             workload.info.description = j.data.serializers.json.dumps({"parent_id": parent_id})
-            workload.metadata = encrypted_metadata
+            metadata["parent_network"] = parent_id
+            workload.metadata = self.encrypt_metadata(metadata)
             ids.append(j.sal.zosv2.workloads.deploy(workload))
             parent_id = ids[-1]
         network_config["ids"] = ids
@@ -334,12 +333,10 @@ class ChatflowDeployer(j.baseclasses.object):
             return
         parent_id = network_view.network_workloads[-1].id
         ids = []
-        encrypted_metadata = ""
-        if metadata:
-            encrypted_metadata = self.encrypt_metadata(metadata)
         for workload in network.network_resources:
             workload.info.description = j.data.serializers.json.dumps({"parent_id": parent_id})
-            workload.metadata = encrypted_metadata
+            metadata["parent_network"] = parent_id
+            workload.metadata = self.encrypt_metadata(metadata)
             ids.append(j.sal.zosv2.workloads.deploy(workload))
             parent_id = ids[-1]
         return {"ids": ids, "rid": ids[0]}
