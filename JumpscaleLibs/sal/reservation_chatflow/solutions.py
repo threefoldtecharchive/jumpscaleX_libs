@@ -37,6 +37,8 @@ class ChatflowSolutions(j.baseclasses.object):
                     continue
                 name = workload.metadata["form_info"].get("Solution name", workload.metadata.get("name"))
                 if name:
+                    if f"{workload.info.pool_id}-{name}" in result:
+                        continue
                     result[f"{workload.info.pool_id}-{name}"] = workload
         return list(result.values())
 
@@ -91,6 +93,8 @@ class ChatflowSolutions(j.baseclasses.object):
                 if workload.metadata["form_info"].get("chatflow") == "minio":
                     name = workload.metadata["form_info"].get("Solution name", workload.metadata.get("name"))
                     if name:
+                        if f"{workload.info.pool_id}-{name}" in result:
+                            continue
                         result[f"{workload.info.pool_id}-{name}"] = workload
         return list(result.keys())
 
