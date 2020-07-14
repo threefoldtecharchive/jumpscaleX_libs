@@ -4,31 +4,31 @@ from Jumpscale import j
 class ChatflowSolutions(j.baseclasses.object):
     __jslocation__ = "j.sal.chatflow_solutions"
 
-    def list_network_solutions(self):
-        networks = j.sal.chatflow_deployer.list_networks()
+    def list_network_solutions(self, next_action="DEPLOY"):
+        networks = j.sal.chatflow_deployer.list_networks(next_action=next_action)
         result = []
         for n in networks.values():
             result.append(n.network_workloads[-1])
         return result
 
-    def list_4to6gw_solutions(self):
+    def list_4to6gw_solutions(self, next_action="DEPLOY"):
         j.sal.chatflow_deployer.load_user_workloads()
         result = []
-        for gateways in j.sal.chatflow_deployer.workloads["DEPLOY"]["GATEWAY4TO6"].values():
+        for gateways in j.sal.chatflow_deployer.workloads[next_action]["GATEWAY4TO6"].values():
             result += gateways
         return result
 
-    def list_delegated_domains(self):
+    def list_delegated_domains(self, next_action="DEPLOY"):
         j.sal.chatflow_deployer.load_user_workloads()
         result = []
-        for domains in j.sal.chatflow_deployer.workloads["DEPLOY"]["DOMAIN-DELEGATE"].values():
+        for domains in j.sal.chatflow_deployer.workloads[next_action]["DOMAIN-DELEGATE"].values():
             result += domains
         return result
 
-    def list_kubernetes_solutions(self):
+    def list_kubernetes_solutions(self, next_action="DEPLOY"):
         j.sal.chatflow_deployer.load_user_workloads()
         result = {}
-        for kube_workloads in j.sal.chatflow_deployer.workloads["DEPLOY"]["KUBERNETES"].values():
+        for kube_workloads in j.sal.chatflow_deployer.workloads[next_action]["KUBERNETES"].values():
             for workload in kube_workloads:
                 if not workload.metadata:
                     continue
@@ -49,10 +49,13 @@ class ChatflowSolutions(j.baseclasses.object):
                     result[f"{workload.info.pool_id}-{name}"] = workload
         return list(result.values())
 
-    def list_ubuntu_solutions(self):
+    def list_ubuntu_solutions(self, next_action="DEPLOY"):
         j.sal.chatflow_deployer.load_user_workloads()
         result = []
-        for container_workloads in j.sal.chatflow_deployer.workloads["DEPLOY"]["CONTAINER"].values():
+        import pdb
+
+        pdb.set_trace()
+        for container_workloads in j.sal.chatflow_deployer.workloads[next_action]["CONTAINER"].values():
             for workload in container_workloads:
                 if not workload.metadata:
                     continue
@@ -70,10 +73,10 @@ class ChatflowSolutions(j.baseclasses.object):
                     result.append(workload)
         return result
 
-    def list_flist_solutions(self):
+    def list_flist_solutions(self, next_action="DEPLOY"):
         j.sal.chatflow_deployer.load_user_workloads()
         result = []
-        for container_workloads in j.sal.chatflow_deployer.workloads["DEPLOY"]["CONTAINER"].values():
+        for container_workloads in j.sal.chatflow_deployer.workloads[next_action]["CONTAINER"].values():
             for workload in container_workloads:
                 if not workload.metadata:
                     continue
@@ -91,10 +94,10 @@ class ChatflowSolutions(j.baseclasses.object):
                     result.append(workload)
         return result
 
-    def list_gitea_solutions(self):
+    def list_gitea_solutions(self, next_action="DEPLOY"):
         j.sal.chatflow_deployer.load_user_workloads()
         result = []
-        for container_workloads in j.sal.chatflow_deployer.workloads["DEPLOY"]["CONTAINER"].values():
+        for container_workloads in j.sal.chatflow_deployer.workloads[next_action]["CONTAINER"].values():
             for workload in container_workloads:
                 if not workload.metadata:
                     continue
@@ -112,10 +115,10 @@ class ChatflowSolutions(j.baseclasses.object):
                     result.append(workload)
         return result
 
-    def list_minio_solutions(self):
+    def list_minio_solutions(self, next_action="DEPLOY"):
         j.sal.chatflow_deployer.load_user_workloads()
         result = {}
-        for container_workloads in j.sal.chatflow_deployer.workloads["DEPLOY"]["CONTAINER"].values():
+        for container_workloads in j.sal.chatflow_deployer.workloads[next_action]["CONTAINER"].values():
             for workload in container_workloads:
                 if not workload.metadata:
                     continue
@@ -137,10 +140,10 @@ class ChatflowSolutions(j.baseclasses.object):
                         result[f"{workload.info.pool_id}-{name}"] = workload
         return list(result.keys())
 
-    def list_exposed_solutions(self):
+    def list_exposed_solutions(self, next_action="DEPLOY"):
         j.sal.chatflow_deployer.load_user_workloads()
         result = []
-        for proxies in j.sal.chatflow_deployer.workloads["DEPLOY"]["REVERSE-PROXY"].values():
+        for proxies in j.sal.chatflow_deployer.workloads[next_action]["REVERSE-PROXY"].values():
             result += proxies
         return result
 
