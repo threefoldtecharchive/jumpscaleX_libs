@@ -119,7 +119,7 @@ class Workloads:
         if isinstance(signature, bytes):
             signature = j.data.hash.bin2hex(signature)
 
-        data = j.data.serializers.json.dumps({"tid": tid, "epoch": j.data.time.epoch})
+        data = j.data.serializers.json.dumps({"signature": signature, "tid": tid, "epoch": j.data.time.epoch})
         print(data)
         self._session.post(url, data=data)
         return True
