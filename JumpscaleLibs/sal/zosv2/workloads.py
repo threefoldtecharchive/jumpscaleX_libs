@@ -27,11 +27,6 @@ class Workloads:
 
         signature = sign_workload(workload, me.encryptor.signing_key)
         workload.info.customer_signature = j.data.hash.bin2hex(signature)
-        print(workload)
-
-        import pdb
-
-        pdb.set_trace()
         return self._workloads.create(workload)
 
     def decomission(self, workload_id, identity=None):
