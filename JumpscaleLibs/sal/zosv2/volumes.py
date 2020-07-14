@@ -1,9 +1,11 @@
-from .id import _next_workload_id
 from Jumpscale import j
 
 
 class VolumesGenerator:
-    def create(self, reservation, node_id, size=5, type="HDD"):
+    def __init__(self):
+        self._model = j.data.schema.get_from_url("tfgrid.workloads.reservation.volume.1")
+
+    def create(self, reservation, node_id, capacity_pool_id, size=5, type="HDD"):
         """
         add a volume to the reservation
         
@@ -22,11 +24,15 @@ class VolumesGenerator:
         if type not in ["SSD", "HDD"]:
             raise j.excpetions.Input("volume type can only be SSD or HDD")
 
-        volume = reservation.data_reservation.volumes.new()
-        volume.workload_id = _next_workload_id(reservation)
+        volume = self._model.new()
+        volume.info.pool_id = capacity_pool_id
         volume.size = size
         volume.type = type
-        volume.node_id = node_id
+        volume.info.node_id = node_id
+        volume.info.workload_type = "VOLUME"
+
+        reservation.workloads.append(volume)
+
         return volume
 
     def attach(self, container, volume, mount_point):

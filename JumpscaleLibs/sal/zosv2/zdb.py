@@ -1,14 +1,14 @@
 from .crypto import encrypt_for_node
 
 from Jumpscale import j
-from .id import _next_workload_id
 
 
 class ZDBGenerator:
     def __init__(self, explorer):
         self._nodes = explorer.nodes
+        self._model = j.data.schema.get_from_url("tfgrid.workloads.reservation.zdb.1")
 
-    def create(self, reservation, node_id, size, mode, password, disk_type="SSD", public=False):
+    def create(self, reservation, node_id, size, mode, password, capacity_pool_id, disk_type="SSD", public=False):
         """
         add a 0-db namespace workload to the reservation
         
@@ -34,8 +34,8 @@ class ZDBGenerator:
         if mode not in ["seq", "user"]:
             raise j.excpetions.Input("mode can only be 'seq' or 'user'")
 
-        zdb = reservation.data_reservation.zdbs.new()
-        zdb.workload_id = _next_workload_id(reservation)
+        zdb = self._model.new()
+        zdb.info.pool_id = capacity_pool_id
         zdb.node_id = node_id
         zdb.size = size
         zdb.mode = mode
@@ -43,4 +43,7 @@ class ZDBGenerator:
             node = self._nodes.get(node_id)
             zdb.password = encrypt_for_node(node.public_key_hex, password)
         zdb.disk_type = disk_type.lower()
+
+        reservation.workloads.append(zdb)
+
         return zdb

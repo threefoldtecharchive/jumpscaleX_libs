@@ -1,29 +1,24 @@
 @url = tfgrid.workloads.reservation.gateway.proxy.1
-workload_id = (I)
-node_id = (S)
 domain = (S)
 addr = (S) # destination address
 port = (I) # 
 port_tls = (I)
+info = (O) !tfgrid.workloads.reservation.info.1
 
 @url = tfgrid.workloads.reservation.gateway.reverse_proxy.1
-workload_id = (I)
-node_id = (S)
 domain = (S)
 secret = (S) # the secret used by tcp router client. format must be 'threebotid:random_secret'
+info = (O) !tfgrid.workloads.reservation.info.1
 
 @url = tfgrid.workloads.reservation.gateway.subdomain.1
-workload_id = (I)
-node_id = (S)
 domain = (S) # full domain. e.g: `user1.tfgw1.io`
 ips = (LS) # list of target IP
+info = (O) !tfgrid.workloads.reservation.info.1
 
 @url = tfgrid.workloads.reservation.gateway.delegate.1
-workload_id = (I)
-node_id = (S)
 domain = (S)
+info = (O) !tfgrid.workloads.reservation.info.1
 
 @url = tfgrid.workloads.reservation.gateway4to6.1
-workload_id = (I)
-node_id = (S)
 public_key = (S) the wireguard public key of the user
+info = (O) !tfgrid.workloads.reservation.info.1

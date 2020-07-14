@@ -9,13 +9,6 @@ class Reservations:
         self._model = j.data.schema.get_from_url("tfgrid.workloads.reservation.1")
         self._reservation_create_model = j.data.schema.get_from_url("tfgrid.workloads.reservation.create.1")
 
-    def new(self):
-        return self._model.new()
-
-    def create(self, reservation):
-        resp = self._session.post(self._base_url, json=reservation._ddict)
-        return self._reservation_create_model.new(datadict=resp.json())
-
     @property
     def _base_url(self):
         return self._client.url + "/reservations"
@@ -42,6 +35,8 @@ class Reservations:
 
     def iter(self, customer_tid=None, next_action=None):
         def filter_next_action(reservation):
+            if next_action is None:
+                return True
             return reservation.next_action == next_action
 
         query = {}
@@ -55,15 +50,3 @@ class Reservations:
         url = self._base_url + f"/{reservation_id}"
         resp = self._session.get(url)
         return self._model.new(datadict=resp.json())
-
-    def sign_provision(self, reservation_id, tid, signature):
-        url = self._base_url + f"/{reservation_id}/sign/provision"
-        data = j.data.serializers.json.dumps({"signature": signature, "tid": tid, "epoch": j.data.time.epoch})
-        self._session.post(url, data=data)
-        return True
-
-    def sign_delete(self, reservation_id, tid, signature):
-        url = self._base_url + f"/{reservation_id}/sign/delete"
-        data = j.data.serializers.json.dumps({"signature": signature, "tid": tid, "epoch": j.data.time.epoch})
-        self._session.post(url, data=data)
-        return True

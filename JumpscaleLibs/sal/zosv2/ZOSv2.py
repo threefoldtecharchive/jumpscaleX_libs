@@ -10,6 +10,13 @@ from .volumes import VolumesGenerator
 from .zdb import ZDBGenerator
 from .billing import Billing
 from .gateway import GatewayGenerator
+from .pools import Pools
+from .workloads import Workloads
+from .reservation import Reservation
+from .signature import sign_workload
+
+from JumpscaleLibs.clients.explorer.workloads import Decoder
+from JumpscaleLibs.clients.explorer.convertion import AlreadyConvertedError
 
 
 class Zosv2(j.baseclasses.object):
@@ -26,6 +33,8 @@ class Zosv2(j.baseclasses.object):
         self._kubernetes = K8sGenerator(self._explorer)
         self._billing = Billing()
         self._gateway = GatewayGenerator(self._explorer)
+        self._pools = Pools(self._explorer)
+        self._workloads = Workloads(self._explorer)
 
     @property
     def network(self):
@@ -52,6 +61,14 @@ class Zosv2(j.baseclasses.object):
         return self._gateway
 
     @property
+    def pools(self):
+        return self._pools
+
+    @property
+    def workloads(self):
+        return self._workloads
+
+    @property
     def nodes_finder(self):
         return self._nodes_finder
 
@@ -63,6 +80,22 @@ class Zosv2(j.baseclasses.object):
     def billing(self):
         return self._billing
 
+    def convertion(self):
+        me = j.me
+
+        try:
+            raw = self._explorer.convertion.initialize()
+        except AlreadyConvertedError as err:
+            self._log_info(str(err))
+            return
+
+        for i, data in enumerate(raw):
+            w = Decoder.new(datadict=data)
+            signature = sign_workload(w, me.encryptor.signing_key)
+            raw[i]["customer_signature"] = j.data.hash.bin2hex(signature).decode()
+
+        self._explorer.convertion.finalize(raw)
+
     def reservation_create(self):
         """
         creates a new empty reservation schema
@@ -70,14 +103,13 @@ class Zosv2(j.baseclasses.object):
         :return: reservation (tfgrid.workloads.reservation.1)
         :rtype: BCDBModel
         """
-        return self._explorer.reservations.new()
+        return Reservation()
 
     def reservation_register(
         self,
         reservation,
-        expiration_date,
+        # expiration_date,
         identity=None,
-        expiration_provisioning=None,
         customer_tid=None,
         currencies=["TFT"],
     ):
@@ -90,9 +122,6 @@ class Zosv2(j.baseclasses.object):
         :type expiration_date: int
         :param identity: identity to use
         :type identity: Jumpscale.tools.threebot.ThreebotMe.ThreebotMe
-        :param expiration_provisioning: timestamp of the date when to reservation should be provisionned
-                                        if the reservation is not provisioning before this time, it will never be provionned
-        :type expiration_provisioning: int, optional
         :param currencies: list of currency asset code you want pay the reservation with
         :type: currencies: list of string
         :return: reservation create result
@@ -101,26 +130,10 @@ class Zosv2(j.baseclasses.object):
         me = identity if identity else j.me
         reservation.customer_tid = me.tid
 
-        if expiration_provisioning is None:
-            expiration_provisioning = j.data.time.epoch + (15 * 60)
-
-        dr = reservation.data_reservation
-        dr.currencies = currencies
-
-        dr.expiration_provisioning = expiration_provisioning
-        dr.expiration_reservation = expiration_date
-        dr.signing_request_delete.quorum_min = 0
-        dr.signing_request_provision.quorum_min = 0
-
-        # make the reservation cancellable by the user that registered it
-        if me.tid not in dr.signing_request_delete.signers:
-            dr.signing_request_delete.signers.append(me.tid)
-        dr.signing_request_delete.quorum_min = len(dr.signing_request_delete.signers)
-
-        reservation.json = dr._json
-        reservation.customer_signature = me.encryptor.sign_hex(reservation.json.encode())
-
-        return self._explorer.reservations.create(reservation)
+        ids = []
+        for workload in reservation.sorted:
+            ids.append(self.workloads.deploy(workload))
+        return ids
 
     def reservation_accept(self, reservation, identity=None):
         """
@@ -162,29 +175,6 @@ class Zosv2(j.baseclasses.object):
         :rtype: "tfgrid.workloads.reservation.1
         """
         return self._explorer.reservations.get(reservation_id)
-
-    def reservation_cancel(self, reservation_id, identity=None):
-        """
-        Cancel a reservation
-
-        you can only cancel your own reservation
-        Once a reservation is cancelled, it is marked as to be deleted in BCDB
-        the 0-OS node then detects it an will decomission the workloads from the reservation
-
-        :param reservation_id: reservation id
-        :type reservation_id: int
-        :param identity: identity to use
-        :type identity: Jumpscale.tools.threebot.ThreebotMe.ThreebotMe
-        :return: true if the reservation has been cancelled successfully
-        :rtype: bool
-        """
-        me = identity if identity else j.me
-
-        reservation = self.reservation_get(reservation_id)
-        payload = j.me.encryptor.payload_build(reservation.id, reservation.json.encode())
-        signature = me.encryptor.sign_hex(payload)
-
-        return self._explorer.reservations.sign_delete(reservation_id=reservation_id, tid=me.tid, signature=signature)
 
     def reservation_list(self, tid=None, next_action=None):
         tid = tid if tid else j.me.tid

@@ -1,8 +1,4 @@
 @url = tfgrid.workloads.reservation.k8s.1
-#unique id inside the reservation is an autoincrement
-workload_id = (I)
-#links to unique node on the TFGrid
-node_id = (S)
 # defines the amount of vCpu, memory, and the disk size
 # size 1: 1 vCpu, 2 GiB RAM, 50 GB disk
 # size 2: 2 vCpu, 4 GiB RAM, 100 GB disk
@@ -18,5 +14,4 @@ master_ips = (Lipaddress)
 ssh_keys = (LS)
 #where to send the statistics too
 stats_aggregator = (LO) !tfgrid.workloads.reservation.statsaggregator.1
-#id of threebot who is the farmer
-farmer_tid = (I)
+info = (O) !tfgrid.workloads.reservation.info.1
