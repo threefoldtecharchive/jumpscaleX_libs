@@ -3,6 +3,7 @@ from Jumpscale.servers.gedis.GedisChatBot import StopChatFlow
 import netaddr
 from collections import defaultdict
 import base64
+import math
 
 
 class NetworkView:
@@ -269,7 +270,7 @@ class ChatflowDeployer(j.baseclasses.object):
                 asset=escrow_asset.split(":")[0],
                 memo_text=resv_id,
             )
-        self.wait_payment(resv_id, bot)
+        # self.wait_payment(resv_id, bot)
 
     def wait_payment(self, workload_id, bot=None):
         expiration_provisioning = j.data.time.getEpochDeltaTime("15m")
@@ -289,7 +290,7 @@ class ChatflowDeployer(j.baseclasses.object):
                 res = f"# Failed to wait for payment for reservation:```{workload_id}```:\n"
                 if workload.info.result.state == "ERROR":
                     res += f"\n### {workload.info.result.category}: ```{workload.info.result.message}```\n"
-                link = f"{j.client.explorer.default.url}/workload/{workload_id}"
+                link = f"{j.client.explorer.default.url}/pools/{workload_id}"
                 res += f"<h2> <a href={link}>Full reservation info</a></h2>"
                 j.sal.zosv2.workloads.decomission(workload_id)
                 raise StopChatFlow(res, md=True, html=True)
@@ -838,3 +839,11 @@ class ChatflowDeployer(j.baseclasses.object):
         port = workload.result.data_json["port"]
         url = f"{namespace}:{password}@[{ip}]:{port}"
         return url
+
+    def calculate_capacity_units(self, cru=0, mru=0, sru=0, hru=0):
+        """
+        return cu, su
+        """
+        cu = min(cru * 4, (mru - 1) / 4)
+        su = hru / 1000 / 1.2 + sru / 100 / 1.2
+        return cu, su
