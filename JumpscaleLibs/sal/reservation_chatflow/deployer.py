@@ -3,7 +3,6 @@ from Jumpscale.servers.gedis.GedisChatBot import StopChatFlow
 import netaddr
 from collections import defaultdict
 import base64
-import math
 
 
 class NetworkView:
@@ -52,6 +51,8 @@ class NetworkView:
                 raise StopChatFlow("Failed to find free network")
             reservation = j.sal.zosv2.reservation_create()
             network = j.sal.zosv2.network.create(reservation, self.iprange, self.name)
+            for resource in self.network_workloads:
+                network.network_resources.append(resource)
             j.sal.zosv2.network.add_node(network, node.node_id, str(subnet), self.pool_id)
             return network
 
