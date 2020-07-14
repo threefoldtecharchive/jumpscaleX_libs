@@ -1,5 +1,5 @@
 from Jumpscale import j
-from collections import defaultdict
+from .deployer import NetworkView
 
 
 class ChatflowSolutions(j.baseclasses.object):
@@ -104,3 +104,21 @@ class ChatflowSolutions(j.baseclasses.object):
         for proxies in j.sal.chatflow_deployer.workloads["DEPLOY"]["REVERSE-PROXY"].values():
             result += proxies
         return result
+
+    def get_solution_ip_expose(self, workload):
+        ip_address = None
+        if workload.info.workload_type == "CONTAINER":
+            ip_address = workload.network_connection[0].ipaddress
+        elif workload.info.workload_type == "KUBERNETES":
+            ip_address = workload.ipaddress
+            if workload.master_ips:
+                ip_address = workload.master_ips[0]
+        return ip_address
+
+    def get_solution_network_name(self, workload):
+        network_name = None
+        if workload.info.workload_type == "CONTAINER":
+            network_name = workload.network_connection[0].network_id
+        elif workload.info.workload_type == "KUBERNETES":
+            network_name = workload.network_id
+        return network_name
