@@ -251,7 +251,9 @@ class ChatflowDeployer(j.baseclasses.object):
         """
         result = bot.single_choice(message, wallet_names, html=True)
         if result == "3bot app":
-            qr_code = f"{escrow_asset.split(':')[0]}:{escrow_address}?amount={total_amount}&message={resv_id}&sender=me"
+            qr_code = (
+                f"{escrow_asset.split(':')[0]}:{escrow_address}?amount={total_amount}&message=p-{resv_id}&sender=me"
+            )
             msg_text = f"""
             <h3> Please make your payment </h3>
             Scan the QR code with your application (do not change the message) or enter the information below manually and proceed with the payment. Make sure to add the reservationid as memo_text.
@@ -268,7 +270,7 @@ class ChatflowDeployer(j.baseclasses.object):
                 destination_address=escrow_address,
                 amount=total_amount,
                 asset=escrow_asset.split(":")[0],
-                memo_text=resv_id,
+                memo_text=f"p-{resv_id}",
             )
         # self.wait_payment(resv_id, bot)
 
