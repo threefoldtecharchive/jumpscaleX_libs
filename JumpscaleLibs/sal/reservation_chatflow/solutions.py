@@ -1,5 +1,4 @@
 from Jumpscale import j
-from .deployer import NetworkView
 
 
 class ChatflowSolutions(j.baseclasses.object):
@@ -8,7 +7,7 @@ class ChatflowSolutions(j.baseclasses.object):
     def list_network_solutions(self):
         networks = j.sal.chatflow_deployer.list_networks()
         result = []
-        for n in networks:
+        for n in networks.values():
             result.append(n.network_workloads[-1])
         return result
 
@@ -31,11 +30,19 @@ class ChatflowSolutions(j.baseclasses.object):
         result = {}
         for kube_workloads in j.sal.chatflow_deployer.workloads["DEPLOY"]["KUBERNETES"].values():
             for workload in kube_workloads:
-                if not isinstance(workload.metadata, dict):
+                if not workload.metadata:
                     continue
-                if not workload.metadata.get("form_info"):
+                try:
+                    metadata = j.data.serializers.json.loads(workload.metadata)
+                except:
+                    metadata = j.data.serializers.json.loads(
+                        j.sal.chatflow_deployer.decrypt_metadata(workload.metadata)
+                    )
+                    if not metadata:
+                        continue
+                if not metadata.get("form_info"):
                     continue
-                name = workload.metadata["form_info"].get("Solution name", workload.metadata.get("name"))
+                name = metadata["form_info"].get("Solution name", metadata.get("name"))
                 if name:
                     if f"{workload.info.pool_id}-{name}" in result:
                         continue
@@ -47,11 +54,19 @@ class ChatflowSolutions(j.baseclasses.object):
         result = []
         for container_workloads in j.sal.chatflow_deployer.workloads["DEPLOY"]["CONTAINER"].values():
             for workload in container_workloads:
-                if not isinstance(workload.metadata, dict):
+                if not workload.metadata:
                     continue
-                if not workload.metadata.get("form_info"):
+                try:
+                    metadata = j.data.serializers.json.loads(workload.metadata)
+                except:
+                    metadata = j.data.serializers.json.loads(
+                        j.sal.chatflow_deployer.decrypt_metadata(workload.metadata)
+                    )
+                    if not metadata:
+                        continue
+                if not metadata.get("form_info"):
                     continue
-                if workload.metadata["form_info"].get("chatflow") == "ubuntu":
+                if metadata["form_info"].get("chatflow") == "ubuntu":
                     result.append(workload)
         return result
 
@@ -60,11 +75,19 @@ class ChatflowSolutions(j.baseclasses.object):
         result = []
         for container_workloads in j.sal.chatflow_deployer.workloads["DEPLOY"]["CONTAINER"].values():
             for workload in container_workloads:
-                if not isinstance(workload.metadata, dict):
+                if not workload.metadata:
                     continue
-                if not workload.metadata.get("form_info"):
+                try:
+                    metadata = j.data.serializers.json.loads(workload.metadata)
+                except:
+                    metadata = j.data.serializers.json.loads(
+                        j.sal.chatflow_deployer.decrypt_metadata(workload.metadata)
+                    )
+                    if not metadata:
+                        continue
+                if not metadata.get("form_info"):
                     continue
-                if workload.metadata["form_info"].get("chatflow") == "flist":
+                if metadata["form_info"].get("chatflow") == "flist":
                     result.append(workload)
         return result
 
@@ -73,11 +96,19 @@ class ChatflowSolutions(j.baseclasses.object):
         result = []
         for container_workloads in j.sal.chatflow_deployer.workloads["DEPLOY"]["CONTAINER"].values():
             for workload in container_workloads:
-                if not isinstance(workload.metadata, dict):
+                if not workload.metadata:
                     continue
-                if not workload.metadata.get("form_info"):
+                try:
+                    metadata = j.data.serializers.json.loads(workload.metadata)
+                except:
+                    metadata = j.data.serializers.json.loads(
+                        j.sal.chatflow_deployer.decrypt_metadata(workload.metadata)
+                    )
+                    if not metadata:
+                        continue
+                if not metadata.get("form_info"):
                     continue
-                if workload.metadata["form_info"].get("chatflow") == "gitea":
+                if metadata["form_info"].get("chatflow") == "gitea":
                     result.append(workload)
         return result
 
@@ -86,12 +117,20 @@ class ChatflowSolutions(j.baseclasses.object):
         result = {}
         for container_workloads in j.sal.chatflow_deployer.workloads["DEPLOY"]["CONTAINER"].values():
             for workload in container_workloads:
-                if not isinstance(workload.metadata, dict):
+                if not workload.metadata:
                     continue
-                if not workload.metadata.get("form_info"):
+                try:
+                    metadata = j.data.serializers.json.loads(workload.metadata)
+                except:
+                    metadata = j.data.serializers.json.loads(
+                        j.sal.chatflow_deployer.decrypt_metadata(workload.metadata)
+                    )
+                    if not metadata:
+                        continue
+                if not metadata.get("form_info"):
                     continue
-                if workload.metadata["form_info"].get("chatflow") == "minio":
-                    name = workload.metadata["form_info"].get("Solution name", workload.metadata.get("name"))
+                if metadata["form_info"].get("chatflow") == "minio":
+                    name = metadata["form_info"].get("Solution name", metadata.get("name"))
                     if name:
                         if f"{workload.info.pool_id}-{name}" in result:
                             continue
