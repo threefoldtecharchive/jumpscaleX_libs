@@ -52,9 +52,6 @@ class ChatflowSolutions(j.baseclasses.object):
     def list_ubuntu_solutions(self, next_action="DEPLOY"):
         j.sal.chatflow_deployer.load_user_workloads()
         result = []
-        import pdb
-
-        pdb.set_trace()
         for container_workloads in j.sal.chatflow_deployer.workloads[next_action]["CONTAINER"].values():
             for workload in container_workloads:
                 if not workload.metadata:
