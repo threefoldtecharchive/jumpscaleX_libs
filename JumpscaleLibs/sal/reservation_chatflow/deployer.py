@@ -149,7 +149,7 @@ class ChatflowDeployer(j.baseclasses.object):
             pool_info = j.sal.zosv2.pools.create(cu, su, farm, currencies)
         except Exception as e:
             raise StopChatFlow(f"failed to reserve pool.\n{str(e)}")
-        self.payment_show(pool_info, bot)
+        self.show_payment(pool_info, bot)
         return pool_info
 
     def extend_pool(self, bot, pool_id):
@@ -165,7 +165,7 @@ class ChatflowDeployer(j.baseclasses.object):
             pool_info = j.sal.zosv2.pools.extend(pool_id, cu, su, currencies=currencies)
         except Exception as e:
             raise StopChatFlow(f"failed to extend pool.\n{str(e)}")
-        self.payment_show(pool_info, bot)
+        self.show_payment(pool_info, bot)
         return pool_info
 
     def check_farm_capacity(self, farm_name, currencies=[], sru=None, cru=None, mru=None, hru=None):
@@ -231,7 +231,7 @@ class ChatflowDeployer(j.baseclasses.object):
             return False, available_cu, available_su
         return True, available_cu, available_su
 
-    def payment_show(self, pool, bot):
+    def show_payment(self, pool, bot):
         escrow_info = pool.escrow_information
         resv_id = pool.reservation_id
         escrow_address = escrow_info.address
@@ -263,8 +263,36 @@ class ChatflowDeployer(j.baseclasses.object):
             bot.qrcode_show(data=qr_code, msg=msg_text, scale=4, update=True, html=True)
         else:
             wallet = wallets[result]
-            pass
-            # TODO: implement wallet payments
+            wallet.transfer(
+                destination_address=escrow_address,
+                amount=total_amount,
+                asset=escrow_asset.split(":")[0],
+                memo_text=resv_id,
+            )
+        self.wait_payment(resv_id, bot)
+
+    def wait_payment(self, workload_id, bot=None):
+        expiration_provisioning = j.data.time.getEpochDeltaTime("15m")
+
+        while True:
+            workload = j.sal.zosv2.workloads.get(workload_id)
+            remaining_time = j.data.time.secondsToHRDelta(expiration_provisioning - j.data.time.epoch)
+            if bot:
+                deploying_message = f"""
+                # Payment being processed...\n
+                Deployment will be cancelled if payment is not successful in {remaining_time}
+                """
+                bot.md_show_update(j.core.text.strip(deploying_message), md=True)
+            if workload.info.next_action != "PAY":
+                return
+            if expiration_provisioning < j.data.time.epoch:
+                res = f"# Failed to wait for payment for reservation:```{workload_id}```:\n"
+                if workload.info.result.state == "ERROR":
+                    res += f"\n### {workload.info.result.category}: ```{workload.info.result.message}```\n"
+                link = f"{j.client.explorer.default.url}/workload/{workload_id}"
+                res += f"<h2> <a href={link}>Full reservation info</a></h2>"
+                j.sal.zosv2.workloads.decomission(workload_id)
+                raise StopChatFlow(res, md=True, html=True)
 
     def ask_expiration(self, bot):
         expiration = bot.datetime_picker(
