@@ -494,11 +494,6 @@ class ChatflowDeployer(j.baseclasses.object):
 
     def schedule_container(self, pool_id, cru=None, sru=None, mru=None, hru=None, ip_version=None):
         pool = j.sal.zosv2.pools.get(pool_id)
-        res = self.check_pool_capacity(pool, cru, sru)
-        if not res[0]:
-            raise StopChatFlow(
-                f"Not enough resources in pool {pool_id}\n available cu: {res[1]} available su: {res[2]}"
-            )
         farm_id = self.get_pool_farm_id(pool_id)
         farm_name = j.sal.zosv2._explorer.farms.get(farm_id).name
         query = {"cru": cru, "sru": sru, "mru": mru, "hru": hru, "ip_version": ip_version}
