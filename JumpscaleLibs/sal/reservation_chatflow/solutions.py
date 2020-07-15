@@ -298,6 +298,59 @@ class ChatflowSolutions(j.baseclasses.object):
                     result[f"{pool_id}-{domain}"]["wids"].append(container_workload.id)
         return list(result.values())
 
+    def list_monitoring_solutions(self, next_action="DEPLOY", sync=True):
+        if sync:
+            j.sal.chatflow_deployer.load_user_workloads()
+        if not sync and not j.sal.chatflow_deployer.workloads[next_action]["CONTAINER"]:
+            j.sal.chatflow_deployer.load_user_workloads()
+        result = {}
+        for container_workloads in j.sal.chatflow_deployer.workloads[next_action]["CONTAINER"].values():
+            for workload in container_workloads:
+                if not workload.info.metadata:
+                    continue
+                try:
+                    metadata = j.data.serializers.json.loads(workload.info.metadata)
+                except:
+                    metadata = j.data.serializers.json.loads(
+                        j.sal.chatflow_deployer.decrypt_metadata(workload.info.metadata)
+                    )
+                    if not metadata:
+                        continue
+                if not metadata.get("form_info"):
+                    continue
+                if metadata["form_info"].get("chatflow") == "monitoring":
+                    pool_id = workload.info.pool_id
+                    solution_name = metadata["form_info"].get("Solution name")
+                    if not solution_name:
+                        continue
+                    name = f"{pool_id}-{solution_name}"
+                    if "grafana" in workload.flist:
+                        container_type = "Grafana"
+                    elif "redis_zinit" in workload.flist:
+                        container_type = "Redis"
+                    elif "prometheus" in workload.flist:
+                        container_type = "Prometheus"
+                    else:
+                        continue
+                    if name in result:
+                        result[name]["wids"].append(workload.id)
+                        if workload.volumes:
+                            for vol in workload.volumes:
+                                result[name]["wids"].append(vol.volume_id)
+                        result[name][f"{container_type} IP"] = workload.network_connection[0].ipaddress
+                        continue
+                    result[name] = {
+                        "wids": [workload.id],
+                        "Name": solution_name,
+                        "Pool": pool_id,
+                        "Network": workload.network_connection[0].network_id,
+                        f"{container_type} IP": workload.network_connection[0].ipaddress,
+                    }
+                    if workload.volumes:
+                        for vol in workload.volumes:
+                            result[name]["wids"].append(vol.volume_id)
+        return list(result.keys())
+
     def cancel_solution(self, solution_wids):
         workload = j.sal.zosv2.workloads.get(solution_wids[0])
         solution_uuid = self.get_solution_uuid(workload)
