@@ -129,16 +129,18 @@ class ChatflowSolutions(j.baseclasses.object):
                 if not metadata.get("form_info"):
                     continue
                 if metadata["form_info"].get("chatflow") == "flist":
-                    result.append(
-                        {
-                            "wids": [workload.id],
-                            "Name": metadata.get("name", metadata["form_info"].get("Solution name")),
-                            "IP Address": workload.network_connection[0].ipaddress,
-                            "Network": workload.network_connection[0].network_id,
-                            "Node": workload.info.node_id,
-                            "Pool": workload.info.pool_id,
-                        }
-                    )
+                    solution_dict = {
+                        "wids": [workload.id],
+                        "Name": metadata.get("name", metadata["form_info"].get("Solution name")),
+                        "IP Address": workload.network_connection[0].ipaddress,
+                        "Network": workload.network_connection[0].network_id,
+                        "Node": workload.info.node_id,
+                        "Pool": workload.info.pool_id,
+                    }
+                    if workload.volumes:
+                        for vol in workload.volumes:
+                            solution_dict["wids"].append(vol.volume_id)
+                    result.append(solution_dict)
         return result
 
     def list_gitea_solutions(self, next_action="DEPLOY"):
@@ -200,6 +202,9 @@ class ChatflowSolutions(j.baseclasses.object):
                             result[f"{workload.info.pool_id}-{name}"]["Secondary Node"] = workload.network_connection[
                                 0
                             ].ipaddress
+                            if workload.volumes:
+                                for vol in workload.volumes:
+                                    result[f"{workload.info.pool_id}-{name}"]["wids"].append(vol.volume_id)
                             continue
                         result[f"{workload.info.pool_id}-{name}"] = {
                             "wids": [workload.id],
@@ -209,6 +214,9 @@ class ChatflowSolutions(j.baseclasses.object):
                             "Primary Node": workload.info.node_id,
                             "Pool": workload.info.pool_id,
                         }
+                        if workload.volumes:
+                            for vol in workload.volumes:
+                                result[f"{workload.info.pool_id}-{name}"]["wids"].append(vol.volume_id)
         return list(result.keys())
 
     def list_exposed_solutions(self, next_action="DEPLOY"):
