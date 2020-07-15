@@ -576,8 +576,8 @@ class ChatflowDeployer(j.baseclasses.object):
             list: [{"node_id": "ip_address"}, ...] first dict is master's result
         """
         result = []  # [{"node_id": id,  "ip_address": ip, "reservation_id": 16}] first dict is master's result
-        if ip_addresses and len(ip_addresses) != node_ids:
-            raise StopChatFlow("length of ip")
+        if ip_addresses and len(ip_addresses) != len(node_ids):
+            raise StopChatFlow("length of ips != node_ids")
 
         if not ip_addresses:
             # get free_ips for the nodes
@@ -712,8 +712,9 @@ class ChatflowDeployer(j.baseclasses.object):
             else:
                 query["hru"] = disk_size
             farm_id = self.get_pool_farm_id(pool_id)
-            node_ids = j.sal.reservation_chatflow.nodes_get(farm_id=farm_id, number_of_nodes=zdb_no, **query)
-        for node_id in node_ids:
+            nodes = j.sal.reservation_chatflow.nodes_get(farm_id=farm_id, number_of_nodes=zdb_no, **query)
+        for node in nodes:
+            node_id = node.node_id
             resv_id = self.deploy_zdb(
                 pool_id=pool_id,
                 node_id=node_id,

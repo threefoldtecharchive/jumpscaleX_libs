@@ -66,7 +66,7 @@ class ChatflowSolutions(j.baseclasses.object):
                 name = metadata["form_info"].get("Solution name", metadata.get("name"))
                 if name:
                     if f"{workload.info.pool_id}-{name}" in result:
-                        if len(workload.master_ips != 0):
+                        if len(workload.master_ips) != 0:
                             result[f"{workload.info.pool_id}-{name}"]["wids"].append(workload.id)
                             result[f"{workload.info.pool_id}-{name}"]["Slave IPs"].append(workload.ipaddress)
                         continue
@@ -77,7 +77,7 @@ class ChatflowSolutions(j.baseclasses.object):
                         "Slave IPs": [],
                         "Pool": workload.info.pool_id,
                     }
-                    if len(workload.master_ips != 0):
+                    if len(workload.master_ips) != 0:
                         result[f"{workload.info.pool_id}-{name}"]["Slave IPs"].append(workload.ipaddress)
         return list(result.values())
 
