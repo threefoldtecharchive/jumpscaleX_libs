@@ -365,8 +365,9 @@ class ChatflowDeployer(j.baseclasses.object):
             if expiration_provisioning < j.data.time.epoch:
                 raise StopChatFlow(f"Workload {workload_id} failed to deploy in time")
 
-    def list_networks(self, next_action="DEPLOY", capacity_pool_id=None):
-        self.load_user_workloads()
+    def list_networks(self, next_action="DEPLOY", capacity_pool_id=None, sync=True):
+        if sync:
+            self.load_user_workloads()
         networks = {}  # name: last child network resource
         for pool_id in self.workloads[next_action]["NETWORK_RESOURCE"]:
             if capacity_pool_id and capacity_pool_id != pool_id:
