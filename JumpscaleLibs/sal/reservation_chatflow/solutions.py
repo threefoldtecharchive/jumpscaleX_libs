@@ -172,6 +172,7 @@ class ChatflowSolutions(j.baseclasses.object):
         return result
 
     def list_minio_solutions(self, next_action="DEPLOY"):
+        # TODO: add related ZDB wids to solution dict
         j.sal.chatflow_deployer.load_user_workloads()
         result = {}
         for container_workloads in j.sal.chatflow_deployer.workloads[next_action]["CONTAINER"].values():
@@ -232,13 +233,13 @@ class ChatflowSolutions(j.baseclasses.object):
                         )
                         if not metadata:
                             continue
-                        name = metadata.get("Solution name", metadata.get("form_info", {}).get("Solution name"))
-                        if name:
-                            result[f"{proxy.info.pool_id}-{proxy.domain}"]["Solution name"] = name
-                            name_to_proxy[f"{proxy.info.pool_id}-{name}"] = proxy.domain
+                    name = metadata.get("Solution name", metadata.get("form_info", {}).get("Solution name"))
+                    if name:
+                        result[f"{proxy.info.pool_id}-{proxy.domain}"]["Solution name"] = name
+                        name_to_proxy[f"{proxy.info.pool_id}-{name}"] = proxy.domain
                 pools.add(proxy.info.pool_id)
 
-        # link tcp router conainers to proxy reservations
+        # link tcp router containers to proxy reservations
         for pool_id in pools:
             for container_workload in j.sal.chatflow_deployer.workloads[next_action]["CONTAINER"][pool_id]:
                 if (
