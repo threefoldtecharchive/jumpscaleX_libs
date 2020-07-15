@@ -13,7 +13,6 @@ class ChatflowSolutions(j.baseclasses.object):
             result.append(
                 {
                     "Name": n.name,
-                    "type": "network",
                     "IP Range": n.network_workloads[-1].network_iprange,
                     "Pool": n.network_workloads[-1].info.pool_id,
                     "nodes": {res.info.node_id: res.iprange for res in n.network_workloads},
