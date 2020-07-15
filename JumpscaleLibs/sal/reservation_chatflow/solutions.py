@@ -299,8 +299,29 @@ class ChatflowSolutions(j.baseclasses.object):
         return list(result.values())
 
     def cancel_solution(self, solution_wids):
-        for wid in solution_wids:
+        workload = j.sal.zosv2.workloads.get(solution_wids[0])
+        solution_uuid = self.get_solution_uuid(workload)
+        ids_to_delete = []
+        if solution_uuid:
+            # solutions created by new chatflows
+            for workload in j.sal.zosv2.workloads.list():
+                if solution_uuid == self.get_solution_uuid(workload):
+                    ids_to_delete.append(workload.id)
+        else:
+            ids_to_delete = solution_wids
+
+        for wid in ids_to_delete:
             j.sal.zosv2.workloads.decomission(wid)
+
+    def get_solution_uuid(self, workload):
+        if workload.metadata:
+            try:
+                metadata = j.data.serializers.json.loads(j.sal.chatflow_deployer.decrypt_metadata(workload.metadata))
+            except:
+                return
+            if metadata:
+                solution_uuid = metadata.get("solution_uuid")
+                return solution_uuid
 
     def get_solution_ip_expose(self, workload):
         ip_address = None
