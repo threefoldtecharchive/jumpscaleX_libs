@@ -821,3 +821,6 @@ class ChatflowDeployer(j.baseclasses.object):
         cu = min(cru * 4, (mru - 1) / 4)
         su = hru / 1000 / 1.2 + sru / 100 / 1.2
         return cu, su
+
+    def get_network_view(self, network_name):
+        return NetworkView(network_name)

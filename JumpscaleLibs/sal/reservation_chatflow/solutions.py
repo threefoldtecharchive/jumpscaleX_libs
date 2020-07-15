@@ -8,7 +8,14 @@ class ChatflowSolutions(j.baseclasses.object):
         networks = j.sal.chatflow_deployer.list_networks(next_action=next_action)
         result = []
         for n in networks.values():
-            result.append(n.network_workloads[-1])
+            result.append(
+                {
+                    "Name": n.name,
+                    "type": "network",
+                    "IP Range": n.network_workloads[-1].network_iprange,
+                    "Pool": n.network_workloads[-1].info.pool_id,
+                }
+            )
         return result
 
     def list_4to6gw_solutions(self, next_action="DEPLOY"):
