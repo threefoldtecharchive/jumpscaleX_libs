@@ -36,7 +36,7 @@ class ChatflowSolutions(j.baseclasses.object):
                 )
         return result
 
-    def list_delegated_domains(self, next_action="DEPLOY"):
+    def list_delegated_domain_solutions(self, next_action="DEPLOY"):
         j.sal.chatflow_deployer.load_user_workloads()
         result = []
         for domains in j.sal.chatflow_deployer.workloads[next_action]["DOMAIN-DELEGATE"].values():
