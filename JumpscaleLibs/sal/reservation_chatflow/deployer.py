@@ -306,7 +306,7 @@ class ChatflowDeployer(j.baseclasses.object):
         try:
             return j.me.encryptor.decrypt(base64.b85decode(encrypted_metadata.encode())).decode()
         except:
-            return ""
+            return "{}"
 
     def deploy_network(self, name, access_node, ip_range, ip_version, pool_id, **metadata):
         reservation = j.sal.zosv2.reservation_create()
