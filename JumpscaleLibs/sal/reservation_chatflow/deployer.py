@@ -4,6 +4,7 @@ import netaddr
 from collections import defaultdict
 import base64
 from decimal import Decimal
+import math
 
 
 class NetworkView:
@@ -713,9 +714,9 @@ class ChatflowDeployer(j.baseclasses.object):
         if not node_ids and zdb_no:
             query = {}
             if disk_type == "SSD":
-                query["sru"] = disk_size
+                query["sru"] = math.ceil(disk_size / 1024)
             else:
-                query["hru"] = disk_size
+                query["hru"] = math.ceil(disk_size / 1024)
             farm_id = self.get_pool_farm_id(pool_id)
             nodes = j.sal.reservation_chatflow.nodes_get(farm_id=farm_id, number_of_nodes=zdb_no, **query)
         for node in nodes:

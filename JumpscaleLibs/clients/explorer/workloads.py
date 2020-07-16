@@ -103,7 +103,7 @@ class Workloads:
         yield from filter(filter_next_action, get_all(self._session, Decoder, url, query))
 
     def get(self, workload_id):
-        url = url = self._client.url + f"/workload/{workload_id}"
+        url = self._client.url + f"/workload/{workload_id}"
         resp = self._session.get(url)
         return Decoder.new(datadict=resp.json())
 
@@ -120,6 +120,5 @@ class Workloads:
             signature = j.data.hash.bin2hex(signature)
 
         data = j.data.serializers.json.dumps({"signature": signature, "tid": tid, "epoch": j.data.time.epoch})
-        print(data)
         self._session.post(url, data=data)
         return True
