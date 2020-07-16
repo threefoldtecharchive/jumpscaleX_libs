@@ -761,6 +761,7 @@ class ChatflowDeployer(j.baseclasses.object):
         disk_size=10,
         log_config=None,
         mode="Single",
+        bot=None,
         **metadata,
     ):
         secret_env = {}
@@ -770,15 +771,15 @@ class ChatflowDeployer(j.baseclasses.object):
         secret_env["SHARDS"] = shards
         secret_env["SECRET_KEY"] = sk
         env = {
-            "DATA": data,
-            "PARITY": parity,
+            "DATA": str(data),
+            "PARITY": str(parity),
             "ACCESS_KEY": ak,
             "SSH_KEY": ssh_key,
             "MINIO_PROMETHEUS_AUTH_TYPE": "public",
         }
         result = []
         master_volume_id = self.deploy_volume(pool_id, minio_nodes[0], disk_size, disk_type, **metadata)
-        success = self.wait_workload(master_volume_id)
+        success = self.wait_workload(master_volume_id, bot)
         if not success:
             raise StopChatFlow(
                 f"Failed to create volume {master_volume_id} for minio container on node {minio_nodes[0]}"
@@ -793,13 +794,15 @@ class ChatflowDeployer(j.baseclasses.object):
             memory=memory,
             secret_env=secret_env,
             log_config=log_config,
-            volumes={"/data", master_volume_id},
+            volumes={"/data": master_volume_id},
+            flist="https://hub.grid.tf/tf-official-apps/minio:latest.flist",
+            **metadata,
         )
         result.append(master_cont_id)
         if mode == "Master/Slave":
             secret_env["MASTER"] = secret_env.pop("TLOG")
             slave_volume_id = self.deploy_volume(pool_id, minio_nodes[1], disk_size, disk_type, **metadata)
-            success = self.wait_workload(slave_volume_id)
+            success = self.wait_workload(slave_volume_id, bot)
             if not success:
                 raise StopChatFlow(
                     f"Failed to create volume {slave_volume_id} for minio container on node {minio_nodes[1]}"
@@ -814,8 +817,9 @@ class ChatflowDeployer(j.baseclasses.object):
                 memory=memory,
                 secret_env=secret_env,
                 log_config=log_config,
-                volumes={"/data", master_volume_id},
+                volumes={"/data": master_volume_id},
                 flist="https://hub.grid.tf/tf-official-apps/minio:latest.flist",
+                **metadata,
             )
             result.append(slave_cont_id)
         return result

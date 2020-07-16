@@ -241,7 +241,7 @@ class ChatflowSolutions(j.baseclasses.object):
                         if workload.volumes:
                             for vol in workload.volumes:
                                 result[f"{workload.info.pool_id}-{name}"]["wids"].append(vol.volume_id.split("-")[0])
-        return list(result.keys())
+        return list(result.values())
 
     def list_exposed_solutions(self, next_action="DEPLOY", sync=True):
         if sync:
