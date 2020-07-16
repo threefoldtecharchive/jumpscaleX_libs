@@ -3,6 +3,7 @@ from Jumpscale.servers.gedis.GedisChatBot import StopChatFlow
 import netaddr
 from collections import defaultdict
 import base64
+from decimal import Decimal
 
 
 class NetworkView:
@@ -239,6 +240,9 @@ class ChatflowDeployer(j.baseclasses.object):
         escrow_address = escrow_info.address
         escrow_asset = escrow_info.asset
         total_amount = escrow_info.amount
+        total_amount_dec = Decimal(total_amount) / Decimal(1e7)
+        total_amount = "{0:f}".format(total_amount_dec)
+
         wallets = j.sal.reservation_chatflow.wallets_list()
         wallet_names = []
         for w in wallets.keys():
