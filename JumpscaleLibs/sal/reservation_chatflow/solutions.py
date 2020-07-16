@@ -349,7 +349,7 @@ class ChatflowSolutions(j.baseclasses.object):
                     if workload.volumes:
                         for vol in workload.volumes:
                             result[name]["wids"].append(vol.volume_id)
-        return list(result.keys())
+        return list(result.values())
 
     def cancel_solution(self, solution_wids):
         workload = j.sal.zosv2.workloads.get(solution_wids[0])
