@@ -459,7 +459,7 @@ class ChatflowDeployer(j.baseclasses.object):
             disk_type,
             entrypoint,
             interactive,
-            secret_env,
+            encrypted_secret_env,
             public_ipv6=public_ipv6,
         )
         if volumes:
