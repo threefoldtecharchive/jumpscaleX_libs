@@ -265,7 +265,7 @@ class ChatflowDeployer(j.baseclasses.object):
 
             <h4> Wallet address: </h4>  {escrow_address} \n
             <h4> Currency: </h4>  {escrow_asset} \n
-            <h4> Reservation id: </h4>  {resv_id} \n
+            <h4> Reservation id: </h4>  p-{resv_id} \n
             <h4> Total Amount: </h4> {total_amount} \n
             """
             bot.qrcode_show(data=qr_code, msg=msg_text, scale=4, update=True, html=True)
