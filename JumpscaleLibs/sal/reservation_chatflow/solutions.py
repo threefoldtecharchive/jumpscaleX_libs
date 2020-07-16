@@ -155,7 +155,7 @@ class ChatflowSolutions(j.baseclasses.object):
                     }
                     if workload.volumes:
                         for vol in workload.volumes:
-                            solution_dict["wids"].append(vol.volume_id)
+                            solution_dict["wids"].append(vol.volume_id.split("-")[0])
                     result.append(solution_dict)
         return result
 
@@ -226,7 +226,9 @@ class ChatflowSolutions(j.baseclasses.object):
                             ].ipaddress
                             if workload.volumes:
                                 for vol in workload.volumes:
-                                    result[f"{workload.info.pool_id}-{name}"]["wids"].append(vol.volume_id)
+                                    result[f"{workload.info.pool_id}-{name}"]["wids"].append(
+                                        vol.volume_id.split("-")[0]
+                                    )
                             continue
                         result[f"{workload.info.pool_id}-{name}"] = {
                             "wids": [workload.id],
@@ -238,7 +240,7 @@ class ChatflowSolutions(j.baseclasses.object):
                         }
                         if workload.volumes:
                             for vol in workload.volumes:
-                                result[f"{workload.info.pool_id}-{name}"]["wids"].append(vol.volume_id)
+                                result[f"{workload.info.pool_id}-{name}"]["wids"].append(vol.volume_id.split("-")[0])
         return list(result.keys())
 
     def list_exposed_solutions(self, next_action="DEPLOY", sync=True):
@@ -336,7 +338,7 @@ class ChatflowSolutions(j.baseclasses.object):
                         result[name]["wids"].append(workload.id)
                         if workload.volumes:
                             for vol in workload.volumes:
-                                result[name]["wids"].append(vol.volume_id)
+                                result[name]["wids"].append(vol.volume_id.split("-")[0])
                         result[name][f"{container_type} IP"] = workload.network_connection[0].ipaddress
                         continue
                     result[name] = {
@@ -348,7 +350,7 @@ class ChatflowSolutions(j.baseclasses.object):
                     }
                     if workload.volumes:
                         for vol in workload.volumes:
-                            result[name]["wids"].append(vol.volume_id)
+                            result[name]["wids"].append(vol.volume_id.split("-")[0])
         return list(result.values())
 
     def cancel_solution(self, solution_wids):
