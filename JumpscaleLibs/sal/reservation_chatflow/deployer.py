@@ -464,7 +464,7 @@ class ChatflowDeployer(j.baseclasses.object):
         )
         if volumes:
             for mount_point, vol_id in volumes.items():
-                j.sal.zosv2.volume.attach_existing(container, vol_id, mount_point)
+                j.sal.zosv2.volume.attach_existing(container, f"{vol_id}-1", mount_point)
         if metadata:
             container.info.metadata = self.encrypt_metadata(metadata)
         if log_config:
