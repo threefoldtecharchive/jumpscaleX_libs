@@ -39,6 +39,8 @@ empty_at = (I64)
 # CustomerTid is the threebot id of the pool owner. Only the owner can
 # assign workloads to the pool
 customer_tid = (I)
+# ids of the workloads alive linked to this pool
+active_workload_ids = (LS)
 
 @url = tfgrid.workloads.pool.created.1
 reservation_id = (I)
