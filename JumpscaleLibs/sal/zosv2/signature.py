@@ -106,10 +106,10 @@ def _container_challenge(container):
     b.write(str(container.hub_url))
     b.write(str(container.entrypoint))
     b.write(str(container.interactive).lower())
-    for k, v in container.environment.items():
-        b.write(str(f"{k}={v}"))
-    for k, v in container.secret_environment.items():
-        b.write(str(f"{k}={v}"))
+    for k in sorted(container.environment.keys()):
+        b.write(str(f"{k}={container.environment[k]}"))
+    for k in sorted(container.secret_environment.keys()):
+        b.write(str(f"{k}={container.secret_environment[k]}"))
     for v in container.volumes:
         b.write(str(v.volume_id))
         b.write(str(v.mountpoint))
