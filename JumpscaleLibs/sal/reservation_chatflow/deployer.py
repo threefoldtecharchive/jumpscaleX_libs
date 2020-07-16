@@ -53,6 +53,7 @@ class NetworkView:
                 raise StopChatFlow("Failed to find free network")
             reservation = j.sal.zosv2.reservation_create()
             network = j.sal.zosv2.network.create(reservation, self.iprange, self.name)
+            # FIXME: explorer is flooded with network workloads and mostly duplicates
             for resource in self.network_workloads:
                 network.network_resources.append(resource)
             j.sal.zosv2.network.add_node(network, node.node_id, str(subnet), self.pool_id)
@@ -812,12 +813,12 @@ class ChatflowDeployer(j.baseclasses.object):
 
     def get_zdb_url(self, zdb_id, password):
         workload = j.sal.zosv2.workloads.get(zdb_id)
-        if "IPs" in workload.result.data_json:
-            ip = workload.result.data_json["IPs"][0]
+        if "IPs" in workload.result["data_json"]:
+            ip = workload.result["data_json"]["IPs"][0]
         else:
-            ip = workload.result.data_json["IP"]
-        namespace = workload.result.data_json["namespace"]
-        port = workload.result.data_json["port"]
+            ip = workload.result["data_json"]["IP"]
+        namespace = workload.result["data_json"]["Namespace"]
+        port = workload.result["data_json"]["Port"]
         url = f"{namespace}:{password}@[{ip}]:{port}"
         return url
 
