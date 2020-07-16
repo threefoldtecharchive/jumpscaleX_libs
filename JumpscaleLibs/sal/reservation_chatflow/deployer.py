@@ -59,9 +59,9 @@ class NetworkView:
                 raise StopChatFlow("Failed to find free network")
             reservation = j.sal.zosv2.reservation_create()
             network = j.sal.zosv2.network.create(reservation, self.iprange, self.name)
-            # network.network_resources.append(self.network_workloads[-1])
+            for net_workload in self.network_workloads:
+                network.network_resources.append(net_workload)
             j.sal.zosv2.network.add_node(network, node.node_id, str(subnet), self.pool_id)
-            j.sal.zosv2.network.add_access(network, node.node_id, str(subnet))
             return network
 
     def get_node_range(self, node):
@@ -397,7 +397,11 @@ class ChatflowDeployer(j.baseclasses.object):
                 all_workloads += workload_list
         network_views = {}
         for network_name in networks:
-            name = network_name.split("-")[1]
+            name_splits = network_name.split("-")
+            if len(name_splits[1:]) == 1:
+                name = name_splits[1]
+            else:
+                name = "-".join(name_splits[1:])
             network_views[network_name] = NetworkView(name, networks[network_name].info.pool_id, all_workloads)
         return network_views
 
