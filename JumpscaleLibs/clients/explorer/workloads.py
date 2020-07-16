@@ -55,7 +55,7 @@ class Workloads:
         return self._model_info.new()
 
     def create(self, workload):
-        url = self._client.url + "/reservations"
+        url = self._base_url
         data = workload._ddict
         del data["info"]["result"]
         info = data.pop("info")
@@ -64,7 +64,7 @@ class Workloads:
         return resp.json().get("reservation_id")
 
     def list(self, customer_tid=None, next_action=None, page=None):
-        url = self._client.url + "/workload"
+        url = self._base_url
         if page:
             query = {}
             if customer_tid:
@@ -93,7 +93,7 @@ class Workloads:
                 return True
             return reservation.next_action == next_action
 
-        url = self._client.url + "/workload"
+        url = self._base_url
 
         query = {}
         if customer_tid:
@@ -103,7 +103,7 @@ class Workloads:
         yield from filter(filter_next_action, get_all(self._session, Decoder, url, query))
 
     def get(self, workload_id):
-        url = self._client.url + f"/workload/{workload_id}"
+        url = self._base_url + f"/workload/{workload_id}"
         resp = self._session.get(url)
         return Decoder.new(datadict=resp.json())
 
@@ -114,7 +114,7 @@ class Workloads:
         return True
 
     def sign_delete(self, workload_id, tid, signature):
-        url = self._client.url + f"/reservations/{workload_id}/sign/delete"
+        url = self._base_url + f"/{workload_id}/sign/delete"
 
         if isinstance(signature, bytes):
             signature = j.data.hash.bin2hex(signature)
