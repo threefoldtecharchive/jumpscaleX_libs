@@ -103,7 +103,7 @@ class Workloads:
         yield from filter(filter_next_action, get_all(self._session, Decoder, url, query))
 
     def get(self, workload_id):
-        url = self._base_url + f"/workload/{workload_id}"
+        url = self._base_url + f"/{workload_id}"
         resp = self._session.get(url)
         return Decoder.new(datadict=resp.json())
 
