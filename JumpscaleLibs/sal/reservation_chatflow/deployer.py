@@ -54,8 +54,7 @@ class NetworkView:
             reservation = j.sal.zosv2.reservation_create()
             network = j.sal.zosv2.network.create(reservation, self.iprange, self.name)
             # FIXME: explorer is flooded with network workloads and mostly duplicates
-            for resource in self.network_workloads:
-                network.network_resources.append(resource)
+            network.network_resources.append(self.network_workloads[-1])
             j.sal.zosv2.network.add_node(network, node.node_id, str(subnet), self.pool_id)
             return network
 
