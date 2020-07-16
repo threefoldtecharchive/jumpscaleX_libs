@@ -53,7 +53,6 @@ class NetworkView:
                 raise StopChatFlow("Failed to find free network")
             reservation = j.sal.zosv2.reservation_create()
             network = j.sal.zosv2.network.create(reservation, self.iprange, self.name)
-            # FIXME: explorer is flooded with network workloads and mostly duplicates
             network.network_resources.append(self.network_workloads[-1])
             j.sal.zosv2.network.add_node(network, node.node_id, str(subnet), self.pool_id)
             return network
@@ -136,7 +135,7 @@ class ChatflowDeployer(j.baseclasses.object):
         all_farms = self._explorer.farms.list()
         available_farms = {}
         for farm in all_farms:
-            res = self.check_farm_capacity(farm.name, currencies, cru=cu, sru=su)
+            res = self.check_farm_capacity(farm.name, currencies, cru=None, sru=None)
             available = res[0]
             resources = res[1:]
             if available:
