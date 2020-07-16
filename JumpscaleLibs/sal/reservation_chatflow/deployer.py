@@ -107,11 +107,9 @@ class ChatflowDeployer(j.baseclasses.object):
             lambda: defaultdict(lambda: defaultdict(list))
         )  # Next Action: workload_type: pool_id: [workloads]
 
-    def load_user_workloads(self):
-        all_workloads = j.sal.zosv2.workloads.list(j.me.tid)
-        keys = list(self.workloads.keys())
-        for key in keys:
-            self.workloads.pop(key)
+    def load_user_workloads(self, next_action="DEPLOY"):
+        all_workloads = j.sal.zosv2.workloads.list(j.me.tid, next_action)
+        self.workloads.pop(next_action, None)
         for workload in all_workloads:
             if workload.info.metadata:
                 workload.info.metadata = self.decrypt_metadata(workload.info.metadata)
@@ -379,7 +377,7 @@ class ChatflowDeployer(j.baseclasses.object):
 
     def list_networks(self, next_action="DEPLOY", capacity_pool_id=None, sync=True):
         if sync:
-            self.load_user_workloads()
+            self.load_user_workloads(next_action=next_action)
         networks = {}  # name: last child network resource
         for pool_id in self.workloads[next_action]["NETWORK_RESOURCE"]:
             if capacity_pool_id and capacity_pool_id != pool_id:
