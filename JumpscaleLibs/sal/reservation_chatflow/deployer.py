@@ -283,10 +283,7 @@ class ChatflowDeployer(j.baseclasses.object):
         else:
             wallet = wallets[result]
             wallet.transfer(
-                destination_address=escrow_address,
-                amount=total_amount,
-                asset=escrow_asset.split(":")[0],
-                memo_text=f"p-{resv_id}",
+                destination_address=escrow_address, amount=total_amount, asset=escrow_asset, memo_text=f"p-{resv_id}",
             )
 
     def ask_expiration(self, bot):
