@@ -357,7 +357,7 @@ class ChatflowSolutions(j.baseclasses.object):
         ids_to_delete = []
         if solution_uuid:
             # solutions created by new chatflows
-            for workload in j.sal.zosv2.workloads.list():
+            for workload in j.sal.zosv2.workloads.list(j.me.tid):
                 if solution_uuid == self.get_solution_uuid(workload):
                     ids_to_delete.append(workload.id)
         else:

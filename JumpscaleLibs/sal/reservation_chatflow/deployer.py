@@ -8,8 +8,9 @@ import math
 
 
 class NetworkView:
-    def __init__(self, name, workloads=None):
+    def __init__(self, name, pool_id, workloads=None):
         self.name = name
+        self.pool_id = pool_id
         if not workloads:
             workloads = j.sal.zosv2.workloads.list(j.me.tid)
         self.workloads = workloads
@@ -17,11 +18,12 @@ class NetworkView:
         self.network_workloads = []
         self._fill_used_ips(self.workloads)
         self._init_network_workloads(self.workloads)
-        self.pool_id = self.network_workloads[0].info.pool_id
         self.iprange = self.network_workloads[0].network_iprange
 
     def _fill_used_ips(self, workloads):
         for workload in workloads:
+            if workload.info.pool_id != self.pool_id:
+                continue
             if workload.info.next_action != "DEPLOY":
                 continue
             if workload.info.workload_type == "KUBERNETES":
@@ -33,6 +35,10 @@ class NetworkView:
 
     def _init_network_workloads(self, workloads):
         for workload in workloads:
+            if workload.info.pool_id != self.pool_id:
+                continue
+            if workload.info.next_action != "DEPLOY":
+                continue
             if workload.info.workload_type == "NETWORK_RESOURCE" and workload.name == self.name:
                 self.network_workloads.append(workload)
 
@@ -53,18 +59,21 @@ class NetworkView:
                 raise StopChatFlow("Failed to find free network")
             reservation = j.sal.zosv2.reservation_create()
             network = j.sal.zosv2.network.create(reservation, self.iprange, self.name)
-            network.network_resources.append(self.network_workloads[-1])
+            # network.network_resources.append(self.network_workloads[-1])
             j.sal.zosv2.network.add_node(network, node.node_id, str(subnet), self.pool_id)
+            j.sal.zosv2.network.add_access(network, node.node_id, str(subnet))
             return network
 
     def get_node_range(self, node):
         for workload in self.network_workloads:
+            if workload.info.pool_id != self.pool_id:
+                continue
             if workload.info.node_id == node.node_id:
                 return workload.iprange
         raise StopChatFlow(f"Node {node.node_id} is not part of network")
 
     def copy(self):
-        return NetworkView(self.name)
+        return NetworkView(self.name, self.pool_id)
 
     def get_node_free_ips(self, node):
         ip_range = self.get_node_range(node)
@@ -228,6 +237,8 @@ class ChatflowDeployer(j.baseclasses.object):
         """
         available_su = pool.sus - pool.active_su
         available_cu = pool.cus - pool.active_cu
+        if pool.empty_at < 0:
+            return False, 0, 0
         if cu and available_cu < cu:
             return False, available_cu, available_su
         if su and available_su < su:
@@ -337,9 +348,9 @@ class ChatflowDeployer(j.baseclasses.object):
         network_config["rid"] = ids[0]
         return network_config
 
-    def add_network_node(self, name, node, network_view=None, **metadata):
+    def add_network_node(self, name, node, pool_id, network_view=None, **metadata):
         if not network_view:
-            network_view = NetworkView(name)
+            network_view = NetworkView(name, pool_id)
         network = network_view.add_node(node)
         if not network:
             return
@@ -377,7 +388,7 @@ class ChatflowDeployer(j.baseclasses.object):
             if capacity_pool_id and capacity_pool_id != pool_id:
                 continue
             for workload in self.workloads[next_action]["NETWORK_RESOURCE"][pool_id]:
-                networks[workload.name] = workload
+                networks[f"{capacity_pool_id}-{workload.name}"] = workload
         all_workloads = []
         for pools_workloads in self.workloads[next_action].values():
             for pool_id, workload_list in pools_workloads.items():
@@ -386,7 +397,8 @@ class ChatflowDeployer(j.baseclasses.object):
                 all_workloads += workload_list
         network_views = {}
         for network_name in networks:
-            network_views[network_name] = NetworkView(network_name, all_workloads)
+            name = network_name.split("-")[1]
+            network_views[network_name] = NetworkView(name, networks[network_name].info.pool_id, all_workloads)
         return network_views
 
     def select_network(self, bot, pool_id):
@@ -589,13 +601,13 @@ class ChatflowDeployer(j.baseclasses.object):
             ip_addresses = []
             for node_id in node_ids:
                 node = j.sal.zosv2._explorer.nodes.get(node_id)
-                res = self.add_network_node(network_name, node)
+                res = self.add_network_node(network_name, node, pool_id)
                 if res:
                     for wid in res["ids"]:
                         success = self.wait_workload(wid)
                         if not success:
                             raise StopChatFlow(f"Failed to add node {node.node_id} to network {wid}")
-                network_view = NetworkView(network_name)
+                network_view = NetworkView(network_name, pool_id)
                 address = network_view.get_free_ip(node)
                 if not address:
                     raise StopChatFlow(f"No free IPs for network {network_name} on the specifed node {node_id}")
@@ -681,13 +693,13 @@ class ChatflowDeployer(j.baseclasses.object):
         entry_point = f"/bin/trc -local {local_ip}:{port} -local-tls {local_ip}:{tls_port} -remote {remote}"
         node = self.schedule_container(pool_id=pool_id, cru=1, mru=1, sru=1)
 
-        res = self.add_network_node(network_name, node)
+        res = self.add_network_node(network_name, node, pool_id)
         if res:
             for wid in res["ids"]:
                 success = self.wait_workload(wid)
                 if not success:
                     raise StopChatFlow(f"Failed to add node {node.node_id} to network {wid}")
-        network_view = NetworkView(network_name)
+        network_view = NetworkView(network_name, pool_id)
         ip_address = network_view.get_free_ip(node)
 
         resv_id = self.deploy_container(
@@ -828,5 +840,5 @@ class ChatflowDeployer(j.baseclasses.object):
         su = hru / 1000 / 1.2 + sru / 100 / 1.2
         return cu, su
 
-    def get_network_view(self, network_name):
-        return NetworkView(network_name)
+    def get_network_view(self, network_name, pool_id, workloads=None):
+        return NetworkView(network_name, pool_id, workloads)
