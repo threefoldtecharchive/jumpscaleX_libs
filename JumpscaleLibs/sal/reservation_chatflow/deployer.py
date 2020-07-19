@@ -697,7 +697,7 @@ class ChatflowDeployer(j.baseclasses.object):
         remote = f"{gateway.dns_nameserver[0]}:{gateway.tcp_router_port}"
         secret_env = {"TRC_SECRET": trc_secret}
         entry_point = f"/bin/trc -local {local_ip}:{port} -local-tls {local_ip}:{tls_port} -remote {remote}"
-        node = self.schedule_container(pool_id=pool_id, cru=1, mru=1, sru=1)
+        node = self.schedule_container(pool_id=pool_id, cru=1, mru=1, hru=1)
 
         res = self.add_network_node(network_name, node, pool_id)
         if res:
