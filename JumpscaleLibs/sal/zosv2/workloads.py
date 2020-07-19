@@ -22,7 +22,7 @@ class Workloads:
         workload.info.epoch = j.data.time.epoch
         workload.info.next_action = "deploy"
         # allow user to delete the workload
-        workload.info.signing_request_delete.signers = [j.me.tid]
+        workload.info.signing_request_delete.signers = [me.tid]
         workload.info.signing_request_delete.quorum_min = 1
 
         signature = sign_workload(workload, me.encryptor.signing_key)
