@@ -83,6 +83,7 @@ class ChatflowSolutions(j.baseclasses.object):
                     result[f"{workload.info.pool_id}-{name}"] = {
                         "wids": [workload.id],
                         "Name": name,
+                        "Network": workload.network_id,
                         "Master IP": workload.ipaddress if len(workload.master_ips) == 0 else workload.master_ips[0],
                         "Slave IPs": [],
                         "Pool": workload.info.pool_id,
