@@ -807,7 +807,7 @@ class ChatflowDeployer(j.baseclasses.object):
                 memory=memory,
                 secret_env=secret_env,
                 log_config=log_config,
-                volumes={"/data": master_volume_id},
+                volumes={"/data": slave_volume_id},
                 flist="https://hub.grid.tf/tf-official-apps/minio:latest.flist",
                 **metadata,
             )

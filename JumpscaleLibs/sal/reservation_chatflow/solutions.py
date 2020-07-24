@@ -75,12 +75,12 @@ class ChatflowSolutions(j.baseclasses.object):
                     continue
                 name = metadata["form_info"].get("Solution name", metadata.get("name"))
                 if name:
-                    if f"{workload.info.pool_id}-{name}" in result:
+                    if f"{name}" in result:
                         if len(workload.master_ips) != 0:
-                            result[f"{workload.info.pool_id}-{name}"]["wids"].append(workload.id)
-                            result[f"{workload.info.pool_id}-{name}"]["Slave IPs"].append(workload.ipaddress)
+                            result[f"{name}"]["wids"].append(workload.id)
+                            result[f"{name}"]["Slave IPs"].append(workload.ipaddress)
                         continue
-                    result[f"{workload.info.pool_id}-{name}"] = {
+                    result[f"{name}"] = {
                         "wids": [workload.id],
                         "Name": name,
                         "Network": workload.network_id,
@@ -89,7 +89,7 @@ class ChatflowSolutions(j.baseclasses.object):
                         "Pool": workload.info.pool_id,
                     }
                     if len(workload.master_ips) != 0:
-                        result[f"{workload.info.pool_id}-{name}"]["Slave IPs"].append(workload.ipaddress)
+                        result[f"{name}"]["Slave IPs"].append(workload.ipaddress)
         return list(result.values())
 
     def list_ubuntu_solutions(self, next_action="DEPLOY", sync=True):
@@ -217,21 +217,15 @@ class ChatflowSolutions(j.baseclasses.object):
                 if metadata["form_info"].get("chatflow") == "minio":
                     name = metadata["form_info"].get("Solution name", metadata.get("name"))
                     if name:
-                        if f"{workload.info.pool_id}-{name}" in result:
-                            result[f"{workload.info.pool_id}-{name}"]["wids"].append(workload.id)
-                            result[f"{workload.info.pool_id}-{name}"]["Secondary IP"] = workload.network_connection[
-                                0
-                            ].ipaddress
-                            result[f"{workload.info.pool_id}-{name}"]["Secondary Node"] = workload.network_connection[
-                                0
-                            ].ipaddress
+                        if f"{name}" in result:
+                            result[f"{name}"]["wids"].append(workload.id)
+                            result[f"{name}"]["Secondary IP"] = workload.network_connection[0].ipaddress
+                            result[f"{name}"]["Secondary Node"] = workload.network_connection[0].ipaddress
                             if workload.volumes:
                                 for vol in workload.volumes:
-                                    result[f"{workload.info.pool_id}-{name}"]["wids"].append(
-                                        vol.volume_id.split("-")[0]
-                                    )
+                                    result[f"{name}"]["wids"].append(vol.volume_id.split("-")[0])
                             continue
-                        result[f"{workload.info.pool_id}-{name}"] = {
+                        result[f"{name}"] = {
                             "wids": [workload.id],
                             "Name": name,
                             "Network": workload.network_connection[0].network_id,
@@ -241,7 +235,7 @@ class ChatflowSolutions(j.baseclasses.object):
                         }
                         if workload.volumes:
                             for vol in workload.volumes:
-                                result[f"{workload.info.pool_id}-{name}"]["wids"].append(vol.volume_id.split("-")[0])
+                                result[f"{name}"]["wids"].append(vol.volume_id.split("-")[0])
         return list(result.values())
 
     def list_exposed_solutions(self, next_action="DEPLOY", sync=True):
@@ -271,8 +265,8 @@ class ChatflowSolutions(j.baseclasses.object):
                             continue
                     name = metadata.get("Solution name", metadata.get("form_info", {}).get("Solution name"))
                     if name:
-                        result[f"{proxy.info.pool_id}-{proxy.domain}"]["Solution name"] = name
-                        name_to_proxy[f"{proxy.info.pool_id}-{name}"] = proxy.domain
+                        result[f"{proxy.domain}"]["Solution name"] = name
+                        name_to_proxy[f"{name}"] = proxy.domain
                 pools.add(proxy.info.pool_id)
 
         # link tcp router containers to proxy reservations
@@ -296,9 +290,9 @@ class ChatflowSolutions(j.baseclasses.object):
                 )
                 if not solution_name:
                     continue
-                if name_to_proxy.get(f"{pool_id}-{solution_name}"):
-                    domain = name_to_proxy.get(f"{pool_id}-{solution_name}")
-                    result[f"{pool_id}-{domain}"]["wids"].append(container_workload.id)
+                if name_to_proxy.get(f"{solution_name}"):
+                    domain = name_to_proxy.get(f"{solution_name}")
+                    result[f"{domain}"]["wids"].append(container_workload.id)
         return list(result.values())
 
     def list_monitoring_solutions(self, next_action="DEPLOY", sync=True):
@@ -326,7 +320,7 @@ class ChatflowSolutions(j.baseclasses.object):
                     solution_name = metadata["form_info"].get("Solution name")
                     if not solution_name:
                         continue
-                    name = f"{pool_id}-{solution_name}"
+                    name = f"{solution_name}"
                     if "grafana" in workload.flist:
                         container_type = "Grafana"
                     elif "redis_zinit" in workload.flist:
