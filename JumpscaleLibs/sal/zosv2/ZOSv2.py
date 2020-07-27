@@ -89,12 +89,13 @@ class Zosv2(j.baseclasses.object):
             self._log_info(str(err))
             return
 
-        for i, data in enumerate(raw):
-            w = Decoder.new(datadict=data)
-            signature = sign_workload(w, me.encryptor.signing_key)
-            raw[i]["customer_signature"] = j.data.hash.bin2hex(signature).decode()
+        if raw:
+            for i, data in enumerate(raw):
+                w = Decoder.new(datadict=data)
+                signature = sign_workload(w, me.encryptor.signing_key)
+                raw[i]["customer_signature"] = j.data.hash.bin2hex(signature).decode()
 
-        self._explorer.convertion.finalize(raw)
+            self._explorer.convertion.finalize(raw)
 
     def reservation_create(self):
         """
