@@ -141,7 +141,7 @@ class Chatflow(j.baseclasses.object):
     def _init(self, **kwargs):
         j.data.bcdb.get("tfgrid_solutions")
         self._explorer = j.clients.explorer.default
-        self.solutions_explorer_get()
+        # self.solutions_explorer_get()
 
     def validate_user(self, user_info):
         if not j.core.myenv.config.get("THREEBOT_CONNECT", False):
@@ -368,8 +368,8 @@ class Chatflow(j.baseclasses.object):
         reservation,
         access_node,
         ip_range,
-        customer_tid,
         ip_version,
+        pool_id,
         expiration=None,
         currency=None,
         bot=None,
@@ -387,7 +387,7 @@ class Chatflow(j.baseclasses.object):
         network_config = dict()
         use_ipv4 = ip_version == "IPv4"
 
-        j.sal.zosv2.network.add_node(network, access_node.node_id, str(next(node_subnets)))
+        j.sal.zosv2.network.add_node(network, access_node.node_id, str(next(node_subnets)), pool_id)
         wg_quick = j.sal.zosv2.network.add_access(network, access_node.node_id, str(next(node_subnets)), ipv4=use_ipv4)
 
         network_config["wg"] = wg_quick
@@ -395,18 +395,14 @@ class Chatflow(j.baseclasses.object):
 
         # register the reservation
         expiration = expiration or j.data.time.epoch + (60 * 60 * 24)
-        reservation_create = self.reservation_register(
-            reservation, expiration, customer_tid, currency=currency, bot=bot
-        )
+        reservation_create = self.reservation_register(reservation, expiration, currency=currency, bot=bot)
 
         network_config["rid"] = reservation_create.reservation_id
         network_config["reservation_create"] = reservation_create
 
         return network_config
 
-    def reservation_register(
-        self, reservation, expiration, customer_tid, expiration_provisioning=1000, currency=None, bot=None
-    ):
+    def reservation_register(self, reservation, expiration=None, expiration_provisioning=1000, currency=None, bot=None):
         """
         Register reservation
 
@@ -414,8 +410,6 @@ class Chatflow(j.baseclasses.object):
         :type  reservation: object
         :param expiration: epoch time when the reservation should be canceled automaticly
         :type  expiration: int
-        :param customer_tid: Id of the customer making the reservation
-        :type  customer_tid: int
         :param expiration_provisioning: timeout on the deployment of the provisioning in seconds
         :type  expiration_provisioning: int
 
@@ -425,11 +419,7 @@ class Chatflow(j.baseclasses.object):
         expiration_provisioning += j.data.time.epoch
         try:
             reservation_create = j.sal.zosv2.reservation_register(
-                reservation,
-                expiration,
-                expiration_provisioning=expiration_provisioning,
-                customer_tid=customer_tid,
-                currencies=[currency],
+                reservation, None, expiration_provisioning=expiration_provisioning, currencies=[currency],
             )
         except requests.HTTPError as e:
             try:
@@ -441,13 +431,6 @@ class Chatflow(j.baseclasses.object):
         rid = reservation_create.reservation_id
         reservation.id = rid
 
-        if j.core.myenv.config.get("DEPLOYER") and customer_tid:
-            # create a new object from deployed_reservation with the reservation and the tid
-            deployed_rsv_model = j.clients.bcdbmodel.get(url="tfgrid.deployed_reservation.1", name="tfgrid_workloads")
-            deployed_reservation = deployed_rsv_model.new()
-            deployed_reservation.reservation_id = rid
-            deployed_reservation.customer_tid = customer_tid
-            deployed_reservation.save()
         return reservation_create
 
     def reservation_wait(self, bot, rid):
@@ -1052,11 +1035,13 @@ class Chatflow(j.baseclasses.object):
                 domains[dom.domain] = dom
         return domains
 
-    def gateway_list(self, bot, currency=None):
+    def gateway_list(self, bot, currency=None, pool_farm_id=None):
         unknowns = ["", None, "Uknown", "Unknown"]
         gateways = {}
         farms = {}
         for g in j.sal.zosv2._explorer.gateway.list():
+            if pool_farm_id and g.farm_id != pool_farm_id:
+                continue
             if not j.sal.zosv2.nodes_finder.filter_is_up(g):
                 continue
             location = []

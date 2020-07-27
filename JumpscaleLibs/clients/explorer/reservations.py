@@ -1,5 +1,6 @@
 from Jumpscale import j
 from .pagination import get_page, get_all
+from urllib.parse import urlparse, urlunparse
 
 
 class Reservations:
@@ -11,7 +12,11 @@ class Reservations:
 
     @property
     def _base_url(self):
-        return self._client.url + "/reservations"
+        # we fallback on the legacy endpoint of the API
+        # cause they are only endpoints for reservation there
+        url_parts = list(urlparse(self._client.url))
+        url_parts[2] = "/explorer/reservations"
+        return urlunparse(url_parts)
 
     def list(self, customer_tid=None, next_action=None, page=None):
         if page:

@@ -26,7 +26,7 @@ class ExplorerClientFactory(JSConfigs):
 
     def _get_url(self, addr):
         proto = "http" if ":" in addr else "https"
-        return f"{proto}://{addr}/explorer"
+        return f"{proto}://{addr}/api/v1"
 
     @property
     def default(self):

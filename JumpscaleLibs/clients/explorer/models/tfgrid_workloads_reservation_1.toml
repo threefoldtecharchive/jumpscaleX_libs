@@ -9,7 +9,7 @@ customer_tid = (I)
 customer_signature = (S)
 #state, allows anyone to see what can happen next e.g. sign means waiting for everyone to sign
 #delete means its deployed now we need to wait till enough people sign to delete
-next_action = "create,sign,pay,deploy,delete,invalid,deleted" (E)
+next_action = "create,sign,pay,deploy,delete,invalid,deleted,migrated" (E)
 signatures_provision = (LO) !tfgrid.workloads.reservation.signing.signature.1
 signatures_farmer = (LO) !tfgrid.workloads.reservation.signing.signature.1
 signatures_delete = (LO) !tfgrid.workloads.reservation.signing.signature.1

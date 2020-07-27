@@ -22,12 +22,11 @@ class Workloads:
         workload.info.epoch = j.data.time.epoch
         workload.info.next_action = "deploy"
         # allow user to delete the workload
-        workload.info.signing_request_delete.signers = [1]
+        workload.info.signing_request_delete.signers = [me.tid]
         workload.info.signing_request_delete.quorum_min = 1
 
         signature = sign_workload(workload, me.encryptor.signing_key)
         workload.info.customer_signature = j.data.hash.bin2hex(signature)
-
         return self._workloads.create(workload)
 
     def decomission(self, workload_id, identity=None):

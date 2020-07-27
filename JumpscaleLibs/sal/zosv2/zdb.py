@@ -11,7 +11,7 @@ class ZDBGenerator:
     def create(self, reservation, node_id, size, mode, password, capacity_pool_id, disk_type="SSD", public=False):
         """
         add a 0-db namespace workload to the reservation
-        
+
         :param reservation: reservation where to add the volume
         :type reservation: tfgrid.workloads.reservation.1)
         :param node_id: id of the node where to reserve the volume
@@ -36,7 +36,7 @@ class ZDBGenerator:
 
         zdb = self._model.new()
         zdb.info.pool_id = capacity_pool_id
-        zdb.node_id = node_id
+        zdb.info.node_id = node_id
         zdb.size = size
         zdb.mode = mode
         if password:
