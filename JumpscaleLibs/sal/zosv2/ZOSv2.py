@@ -80,7 +80,7 @@ class Zosv2(j.baseclasses.object):
     def billing(self):
         return self._billing
 
-    def convertion(self):
+    def conversion(self):
         me = j.me
 
         try:
